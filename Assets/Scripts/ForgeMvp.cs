@@ -1,12 +1,12 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
 using UnityEngine;
 
 // Temporary single-scene frontend; the evaluator owns no Unity or inventory state.
 public class ForgeMvp : MonoBehaviour
 {
+    [SerializeField] Color reservedColor = new Color(197f/255f, 134f/255f, 192f/255f, 1f);
     const string Example = "Material = 1\nBlade = 1(Material)\n2(Blade, 7)\n3(Blade)\n4(Blade, 0)\n!Blade";
     string source = Example, report = "시험 실행으로 도면을 확인하세요.", hover = "";
     Rect workspaceWindow = new Rect(30, 55, 360, 240);
@@ -22,10 +22,13 @@ public class ForgeMvp : MonoBehaviour
         public List<ForgeSyntax.Token> coloredTokens;
         public string name;
         public float clickedAt = -100f;
-        public bool compileError;
+        public ForgeCompileDiagnostic diagnostic;
+        public bool showDiagnostic, revealDiagnostic;
+        public Vector2 diagnosticScroll;
         public Vector2 scroll;
         public List<EditSnapshot> undo = new List<EditSnapshot>();
         public int id;
+        public uint seed = 1;
     }
     readonly List<CodeWindow> codeWindows = new List<CodeWindow>();
     int activeWindow, movingWindow = -1;
@@ -35,8 +38,10 @@ public class ForgeMvp : MonoBehaviour
     int dragButton = -1, dragControl;
     Vector2 dragStartMouse, dragStartPosition;
     bool showSalesPanel = true;
-    Rect salesWindow = new Rect(430, 55, 310, 360);
+    Rect salesWindow = new Rect(430, 55, 350, 480);
     bool movingSales;
+    int salesResizeEdge = -1;
+    Rect salesResizeStart;
     string resultOwner = "아직 실행하지 않음";
     bool reportError;
     int renamingWindow = -1;
@@ -55,7 +60,7 @@ public class ForgeMvp : MonoBehaviour
     void EndWorkspaceDrag()
     {
         if (GUIUtility.hotControl == dragControl) GUIUtility.hotControl = 0;
-        movingWindow = -1; movingSales = false; panning = false; dragButton = -1;
+        movingWindow = -1; movingSales = false; salesResizeEdge = -1; panning = false; dragButton = -1;
     }
     string controlName = CodeControl;
 
@@ -86,7 +91,9 @@ public class ForgeMvp : MonoBehaviour
     void OnApplicationFocus(bool focused) { if (!focused) { EndWorkspaceDrag(); edge = -1; SetHorizontalResizeCursor(false); } }
     Vector2 scroll, logs, lastMouse;
     float hoverSince;
-    int edge = -1, gold = 100, iron = 10, products;
+    int edge = -1, gold = 100, iron = 10;
+    int products => shop.Count;
+    int selectedProductId = -1;
     bool busy;
     struct EditSnapshot
     {
@@ -179,13 +186,12 @@ public class ForgeMvp : MonoBehaviour
         if (thumbFill) Destroy(thumbFill);
     }
     GameObject work;
-    public class Piece { public int heat; public bool shaped; }
-    public class Step { public int line, cost, iron, heat; public bool shaped, finished; public string text; }
-    public class Evaluation { public List<Step> steps = new List<Step>(); public string error; public int cost; }
+    public class Piece { public int heat; public bool shaped; public ForgeTraits traits; }
+    public class Step { public int line, cost, iron, heat, process; public bool shaped, finished; public ForgeTraits traits; public string text; }
+    public class Evaluation { public List<Step> steps = new List<Step>(); public string error; public int cost, ironConsumed, errorLine; public string errorMessage; public bool compileError; public ForgeProduct product; public bool skipped; public Dictionary<string, object> values = new Dictionary<string, object>(); }
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void Boot() { if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == "SampleScene" && FindAnyObjectByType<ForgeMvp>() == null) new GameObject("Forge MVP").AddComponent<ForgeMvp>(); }
-    readonly Queue<int> productCosts = new Queue<int>();
-    readonly Queue<string> productOwners = new Queue<string>();
+    readonly ForgeShop shop = new ForgeShop();
     void Start()
     {
         work = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -207,109 +213,81 @@ public class ForgeMvp : MonoBehaviour
         bench.transform.position = new Vector3(2, .5f, 0);
         bench.transform.localScale = new Vector3(3, .3f, 2);
     }
-    static object Value(string token, Dictionary<string, object> vars)
-    {
-        token = token.Trim();
-        if (Regex.IsMatch(token, @"^[0-9]+$")) { if (int.TryParse(token, out int n)) return n; throw new Exception("정수 범위 초과"); }
-        token = PythonIdentifier.Parse(token);
-        if (!vars.TryGetValue(token, out object value)) throw new Exception("미선언 변수 " + token + " · Blade = 1(1)처럼 먼저 선언하세요.");
-        return value;
-    }
-    // Structural/type validation runs over the entire source before simulation.
-    public static Evaluation Evaluate(string source)
-    {
-        var result = new Evaluation();
-        var types = new Dictionary<string, object>();
-        string[] lines = source.Replace("\r", "").Split('\n');
-        for (int pass = 0; pass < 2; pass++)
-        {
-            var vars = pass == 0 ? types : new Dictionary<string, object>();
-            bool ended = false;
-            for (int i = 0; i < lines.Length; i++)
-            {
-                string line = lines[i];
-                int comment = line.IndexOf('#');
-                string s = (comment >= 0 ? line.Substring(0, comment) : line).Trim();
-                if (s.Length == 0) continue;
-                try
-                {
-                    if (ended) throw new Exception("완성품 반환 뒤에는 명령을 쓸 수 없습니다.");
-                    var step = new Step { line = i + 1 };
-                    if (s.StartsWith("!"))
-                    {
-                        if (!(Value(s.Substring(1), vars) is Piece p)) throw new Exception("완성품에는 작업물 변수가 필요합니다.");
-                        if (pass == 1 && (!p.shaped || p.heat != 0)) throw new Exception("완성품 검사 실패: 타격과 공기 냉각이 필요합니다.");
-                        step.finished = true; step.shaped = p.shaped; step.text = "철 검날 완성 · 판매가 28G"; ended = true;
-                    }
-                    else
-                    {
-                        string name = null;
-                        int eq = s.IndexOf('=');
-                        if (eq >= 0) { name = PythonIdentifier.ParseAssignment(s.Substring(0, eq).Trim()); s = s.Substring(eq + 1).Trim(); }
-                        var call = Regex.Match(s, @"^([0-9]+)\((.*)\)$");
-                        if (!call.Success) { if (name == null) throw new Exception("대입 또는 함수 호출이 필요합니다."); vars[name] = Value(s, vars); step.text = name + " 저장"; }
-                        else
-                        {
-                            if (!int.TryParse(call.Groups[1].Value, out int f) || f < 1 || f > 4) throw new Exception("지원 함수는 1~4입니다.");
-                            string[] args = call.Groups[2].Value.Split(',');
-                            int count = f == 1 || f == 3 ? 1 : 2;
-                            if (args.Length != count) throw new Exception("필요 인자 수: " + count);
-                            object a = Value(args[0], vars);
-                            object b = count == 2 ? Value(args[1], vars) : null;
-                            if (f == 1)
-                            {
-                                if (!(a is int material) || material != 1) throw new Exception("MVP 작업대 재료는 철(1)입니다.");
-                                if (name == null) throw new Exception("작업물 참조를 변수에 저장하세요.");
-                                vars[name] = new Piece(); step.cost = 10; step.iron = 1; step.text = "철 올리기 · 10G";
-                            }
-                            else
-                            {
-                                if (name != null) throw new Exception("함수 2~4는 반환값이 없습니다.");
-                                if (!(a is Piece p)) throw new Exception("첫 인자는 작업물이어야 합니다.");
-                                if (count == 2 && !(b is int)) throw new Exception("두 번째 인자는 정수여야 합니다.");
-                                if (f == 2) { int heat = (int)b; if (heat < 1 || heat > 9) throw new Exception("열 단계 범위: 1~9"); p.heat = heat; step.cost = 2; step.text = "가열 · 연료 2G"; }
-                                if (f == 3) { if (pass == 1 && p.heat < 6) throw new Exception("실행 오류: 타격 전에 2(작업물, 6 이상)으로 가열해야 합니다."); p.shaped = true; step.text = "타격 · 검날 성형"; }
-                                if (f == 4) { if ((int)b != 0) throw new Exception("MVP 냉각 재료는 공기(0)입니다."); p.heat = 0; step.text = "공기 냉각 · 0G"; }
-                                step.heat = p.heat; step.shaped = p.shaped;
-                            }
-                        }
-                    }
-                    if (pass == 1) { result.steps.Add(step); result.cost += step.cost; }
-                }
-                catch (Exception ex) { result.error = (pass == 0 ? "컴파일 오류" : "공정 오류") + " · " + (i + 1) + "줄: " + ex.Message; return result; }
-            }
-            if (!ended) { result.error = "완성품 반환 !Blade가 필요합니다."; return result; }
-        }
-        return result;
-    }
+    public static Evaluation Evaluate(string source, int availableGold = int.MaxValue, int availableIron = int.MaxValue, string owner = "", uint seed = 1)
+    { return BlueprintRuntime.Evaluate(source, availableGold, availableIron, owner, seed); }
     void Execute(bool preview)
     {
         if (busy) return;
-        resultOwner = codeWindows[activeWindow].name;
-        var evaluation = Evaluate(source);
-        codeWindows[activeWindow].compileError = evaluation.error != null && evaluation.steps.Count == 0;
+        var owner = codeWindows[activeWindow];
+        var evaluation = Evaluate(source, gold, iron, owner.name, owner.seed);
+        if (evaluation.compileError)
+        {
+            owner.diagnostic = new ForgeCompileDiagnostic(source, evaluation.errorLine, evaluation.errorMessage);
+            owner.showDiagnostic = true; owner.revealDiagnostic = true;
+            owner.diagnosticScroll = Vector2.zero;
+            hover = "";
+            return; // Do not open, clear or overwrite the shop/receipt on compilation failure.
+        }
+        owner.diagnostic = null; owner.showDiagnostic = false; owner.revealDiagnostic = false;
+        resultOwner = owner.name;
         reportError = evaluation.error != null;
-        if (reportError) showSalesPanel = true;
+        showSalesPanel = true;
         report = "";
-        if (preview) { foreach (var s in evaluation.steps) report += s.line + "줄: " + s.text + "\n"; report += "예상 비용 " + evaluation.cost + "G\n" + evaluation.error; return; }
+        if (evaluation.skipped) { report = "조건에 맞지 않아 제작하지 않았습니다. 비용 0G"; return; }
+        if (preview)
+        {
+            foreach (var step in evaluation.steps) report += step.line + "줄: " + step.text + "\n";
+            report += evaluation.product != null
+                ? "\n시험 견적\n" + ForgePricing.Describe(evaluation.product, true)
+                : "예상 제작비 " + evaluation.cost + "G · 소비 예정 재료 · 철 " + evaluation.ironConsumed + "개\n" + evaluation.error;
+            return;
+        }
         if (evaluation.error != null && evaluation.steps.Count == 0) { report = evaluation.error; return; }
-        StartCoroutine(Craft(evaluation));
+        StartCoroutine(Craft(evaluation, owner));
     }
-    IEnumerator Craft(Evaluation e)
+    IEnumerator Craft(Evaluation evaluation, CodeWindow codeOwner)
     {
         busy = true;
-        foreach (var s in e.steps)
+        string owner = resultOwner;
+        var ledger = new ForgeProductionLedger();
+        ForgeProduct completed = null;
+        bool seedConsumed = false;
+        foreach (var step in evaluation.steps)
         {
-            if (gold < s.cost || iron < s.iron) { reportError = true; report += s.line + "줄: 자금 또는 철 부족"; busy = false; yield break; }
-            gold -= s.cost; iron -= s.iron;
-            report += s.line + "줄: " + s.text + "\n";
-            work.transform.localScale = s.shaped ? new Vector3(.25f, .15f, 2) : new Vector3(1, .4f, .5f);
-            work.GetComponent<Renderer>().material.color = s.heat > 0 ? Color.red : Color.gray;
-            if (s.finished) { products++; productCosts.Enqueue(e.cost); productOwners.Enqueue(resultOwner); }
+            if (!ledger.TrySpend(step.cost, step.iron, ref gold, ref iron))
+            {
+                reportError = true;
+                report += step.line + "줄: 자금 또는 철 부족\n실제 제작비 " + ledger.CashCost + "G · 소비 재료 · 철 " + ledger.IronConsumed + "개";
+                busy = false; yield break;
+            }
+            if (!seedConsumed && step.process > 0) { codeOwner.seed = unchecked(codeOwner.seed * 1664525u + 1013904223u); seedConsumed = true; }
+            report += step.line + "줄: " + step.text + "\n";
+            if (step.process > 0 || step.finished)
+            {
+                work.transform.localScale = step.shaped ? new Vector3(.25f, .15f, 2) : new Vector3(1, .4f, .5f);
+                work.GetComponent<Renderer>().material.color = step.heat > 0 ? Color.red : Color.gray;
+            }
+            if (step.finished)
+            {
+                completed = ledger.Complete(owner, step.heat, step.shaped, step.traits);
+                selectedProductId = shop.Add(completed);
+            }
             yield return new WaitForSeconds(.65f);
         }
-        report += e.error ?? ("완성품: 철 검날 · 제작비 " + e.cost + "G · 판매가 28G · 이익 " + (28-e.cost) + "G");
+        reportError = evaluation.error != null;
+        report += completed != null ? "\n제작 완료\n" + ForgePricing.Describe(completed, false)
+            : evaluation.error + "\n실제 제작비 " + ledger.CashCost + "G · 소비 재료 · 철 " + ledger.IronConsumed + "개";
         busy = false;
+    }
+    bool SellProduct(int id)
+    {
+        if (busy || !shop.TrySell(id, ref gold, out ForgeProduct sold)) return false;
+        selectedProductId = -1; // Never silently sell the next item on a second click.
+        reportError = false;
+        resultOwner = sold.BlueprintName;
+        report = "판매 영수증 · #" + id + "\n" + ForgePricing.Describe(sold, false)
+            + "\n지급액 +" + ForgePricing.Quote(sold).SalePrice + "G (제작비는 제작 때 지불됨)";
+        return true;
     }
     void OnGUI()
     {
@@ -319,6 +297,11 @@ public class ForgeMvp : MonoBehaviour
         bool modalOpen = deleteWindowId >= 0;
         if (modalOpen && Event.current.type != EventType.Layout && Event.current.type != EventType.Repaint) Event.current.type = EventType.Ignore;
         var ev = Event.current;
+        CodeWindow diagnosticOwner = codeWindows.Count > 0 ? codeWindows[activeWindow] : null;
+        EventType diagnosticEvent = ev.type;
+        bool maskDiagnostic = diagnosticOwner != null && diagnosticOwner.showDiagnostic && diagnosticOwner.diagnostic != null
+            && DiagnosticRect().Contains(ev.mousePosition) && (ev.isMouse || ev.type == EventType.ScrollWheel);
+        if (maskDiagnostic) ev.type = EventType.Ignore;
         Vector2 mouse = ev.mousePosition / workspaceZoom;
         workspaceMouse = mouse;
         dragControl = GUIUtility.GetControlID("WorkspaceDrag".GetHashCode(), FocusType.Passive);
@@ -340,9 +323,17 @@ public class ForgeMvp : MonoBehaviour
         if (ev.type == EventType.MouseDown && (ev.button == 0 || ev.button == 1) && hit >= 0 && ev.mousePosition.y > 40)
             codeWindows[hit].clickedAt = Time.realtimeSinceStartup;
         Rect salesScreen = salesWindow; salesScreen.position += workspaceOffset;
-        bool overSales = showSalesPanel && salesScreen.Contains(mouse);
+        int overSalesEdge = -1;
+        if (showSalesPanel)
+        {
+            if (new Rect(salesScreen.x - 4, salesScreen.y, 8, salesScreen.height).Contains(mouse)) overSalesEdge = 0;
+            else if (new Rect(salesScreen.xMax - 4, salesScreen.y, 8, salesScreen.height).Contains(mouse)) overSalesEdge = 1;
+            else if (new Rect(salesScreen.x, salesScreen.yMax - 4, salesScreen.width, 8).Contains(mouse)) overSalesEdge = 2;
+        }
+        bool overSales = showSalesPanel && (salesScreen.Contains(mouse) || overSalesEdge >= 0 || salesResizeEdge >= 0);
         if (overSales) { overWindow = true; hit = -1; }
-        bool horizontalEdge = edge == 0 || edge == 1;
+        bool horizontalEdge = edge == 0 || edge == 1 || salesResizeEdge == 0 || salesResizeEdge == 1
+            || (!panning && movingWindow < 0 && !movingSales && (overSalesEdge == 0 || overSalesEdge == 1));
         if (hit >= 0 && !overSales && ev.mousePosition.y > 40 && !panning && movingWindow < 0 && !movingSales)
         {
             Rect hovered = codeWindows[hit].rect; hovered.position += workspaceOffset;
@@ -355,7 +346,7 @@ public class ForgeMvp : MonoBehaviour
             Rect renameRect = codeWindows[renamingWindow].rect; renameRect.position += workspaceOffset;
             if (!NameRect(renameRect).Contains(mouse)) CommitName();
         }
-        if (ev.type == EventType.ScrollWheel && !overWindow && ev.mousePosition.y > 40)
+        if (ev.type == EventType.ScrollWheel && !overWindow && ev.mousePosition.y > 40 && dragButton < 0)
         {
             Vector2 anchor = mouse - workspaceOffset;
             workspaceZoom = Mathf.Clamp(workspaceZoom * Mathf.Pow(1.05f, -ev.delta.y), .4f, 2f);
@@ -366,7 +357,9 @@ public class ForgeMvp : MonoBehaviour
         if (ev.type == EventType.MouseDown && (ev.button == 0 || ev.button == 1)
             && ev.mousePosition.y > 40 && GUIUtility.hotControl == 0)
         {
-            if (overSales && new Rect(salesScreen.x + 8, salesScreen.y + 4, salesScreen.width - 50, 30).Contains(mouse))
+            if (overSalesEdge >= 0 && ev.button == 0 && edge < 0)
+            { salesResizeEdge = overSalesEdge; salesResizeStart = salesWindow; }
+            else if (overSales && new Rect(salesScreen.x + 8, salesScreen.y + 4, salesScreen.width - 50, 30).Contains(mouse))
             { movingSales = true; draggedTitle = false; dragStartPosition = salesWindow.position; }
             else if (hit >= 0 && edge < 0)
             {
@@ -384,7 +377,7 @@ public class ForgeMvp : MonoBehaviour
                 }
             }
             else if (!overWindow) { panning = true; dragStartPosition = workspaceOffset; }
-            if (movingWindow >= 0 || movingSales || panning)
+            if (movingWindow >= 0 || movingSales || salesResizeEdge >= 0 || panning)
             {
                 dragButton = ev.button; dragStartMouse = ev.mousePosition;
                 GUIUtility.hotControl = dragControl; GUI.FocusControl(null); ev.Use();
@@ -398,7 +391,16 @@ public class ForgeMvp : MonoBehaviour
                 Vector2 movement = ev.mousePosition - dragStartMouse;
                 movement = Vector2.Scale(movement, new Vector2(.8f, 1f));
                 Vector2 position = dragStartPosition + movement / workspaceZoom;
-                if (movingWindow >= 0 && draggedTitle) codeWindows[movingWindow].rect.position = position;
+                if (salesResizeEdge >= 0)
+                {
+                    Vector2 delta = (ev.mousePosition - dragStartMouse) / workspaceZoom;
+                    Rect resized = salesResizeStart;
+                    if (salesResizeEdge == 0) resized.xMin = Mathf.Min(salesResizeStart.xMin + delta.x, salesResizeStart.xMax - 340);
+                    else if (salesResizeEdge == 1) resized.xMax = Mathf.Max(salesResizeStart.xMax + delta.x, salesResizeStart.xMin + 340);
+                    else resized.yMax = Mathf.Max(salesResizeStart.yMax + delta.y, salesResizeStart.yMin + 180);
+                    salesWindow = resized;
+                }
+                else if (movingWindow >= 0 && draggedTitle) codeWindows[movingWindow].rect.position = position;
                 else if (movingSales && draggedTitle) salesWindow.position = position;
                 else if (panning) workspaceOffset = position;
                 hover = ""; hoverSince = Time.realtimeSinceStartup;
@@ -462,7 +464,50 @@ public class ForgeMvp : MonoBehaviour
             activeWindow = codeWindows.Count - 1; edge = -1; movingWindow = -1; GUI.FocusControl(null);
         }
         if (GUI.Button(new Rect(Screen.width - 150, 6, 140, 28), "작업 공간 원위치")) ResetWorkspaceView();
+        if (maskDiagnostic) ev.type = diagnosticEvent;
+        DrawCompileErrorWindow(diagnosticOwner);
         if (modalOpen) { Event.current.type = modalEvent; DrawDeleteDialog(); }
+    }
+    Rect DiagnosticRect()
+    {
+        float width = Mathf.Min(380, Mathf.Max(1, Screen.width - 16));
+        float height = Mathf.Min(190, Mathf.Max(1, Screen.height - 56));
+        return new Rect(Mathf.Max(8, Screen.width - width - 12), 48, width, height);
+    }
+    void DrawCompileErrorWindow(CodeWindow owner)
+    {
+        if (owner == null || !owner.showDiagnostic || owner.diagnostic == null) return;
+        Rect panel = DiagnosticRect();
+        Color previous = GUI.color;
+        GUI.color = new Color(.16f, .08f, .09f, 1f);
+        GUI.DrawTexture(panel, Texture2D.whiteTexture);
+        GUI.color = new Color(1f, .25f, .25f, 1f);
+        GUI.DrawTexture(new Rect(panel.x, panel.y, panel.width, 2), Texture2D.whiteTexture);
+        GUI.color = previous;
+        GUI.Label(new Rect(panel.x + 10, panel.y + 7, panel.width - 48, 24), "컴파일 오류 · " + owner.name);
+        if (GUI.Button(new Rect(panel.xMax - 32, panel.y + 5, 24, 24), "×")) owner.showDiagnostic = false;
+        GUILayout.BeginArea(new Rect(panel.x + 10, panel.y + 36, panel.width - 20, Mathf.Max(1, panel.height - 46)));
+        owner.diagnosticScroll = GUILayout.BeginScrollView(owner.diagnosticScroll);
+        GUILayout.Label(owner.diagnostic.Line + "줄: " + owner.diagnostic.Message, errorLabel);
+        GUILayout.EndScrollView();
+        if (GUILayout.Button("오류 줄 보기"))
+        {
+            owner.revealDiagnostic = true;
+            if (owner.collapsed) { owner.collapsed = false; owner.rect.height = owner.expandedHeight; }
+        }
+        GUILayout.EndArea();
+        if (panel.Contains(Event.current.mousePosition) && (Event.current.isMouse || Event.current.type == EventType.ScrollWheel)) Event.current.Use();
+    }
+    void DrawDiagnosticUnderline(Rect content, string text, CodeWindow owner)
+    {
+        if (owner.diagnostic == null || owner.diagnostic.Source != text) return;
+        owner.diagnostic.GetLineSpan(out int start, out int length);
+        Vector2 first = codeStyle.GetCursorPixelPosition(content, new GUIContent(text), start);
+        Vector2 last = codeStyle.GetCursorPixelPosition(content, new GUIContent(text), start + length);
+        Color previous = GUI.color;
+        GUI.color = new Color(1f, .2f, .2f, 1f);
+        GUI.DrawTexture(new Rect(first.x, first.y + codeStyle.lineHeight - 1, Mathf.Max(20, last.x - first.x), 2), Texture2D.whiteTexture);
+        GUI.color = previous;
     }
     void DrawCodeBackground(Rect rect, CodeWindow codeWindow)
     {
@@ -474,12 +519,6 @@ public class ForgeMvp : MonoBehaviour
         GUI.DrawTexture(rect, Texture2D.whiteTexture);
         GUI.color = new Color(.48f, .52f, .58f, .28f);
         GUI.DrawTexture(new Rect(rect.x + 8, rect.y + 35, rect.width - 16, 1), Texture2D.whiteTexture);
-        if (codeWindow.compileError)
-        {
-            GUI.color = new Color(1f, .25f, .25f, 1f);
-            GUI.DrawTexture(new Rect(rect.x, rect.y, rect.width, 2), Texture2D.whiteTexture);
-            GUI.color = previous;
-        }
         GUI.color = previous;
     }
     void DrawSyntax(Rect content, string text, CodeWindow owner)
@@ -491,11 +530,13 @@ public class ForgeMvp : MonoBehaviour
             owner.coloredTokens = ForgeSyntax.Scan(text);
         }
         var fullText = new GUIContent(text);
+        DrawDiagnosticUnderline(content, text, owner);
         foreach (var token in owner.coloredTokens)
         {
             Color color = Color.white;
             switch (token.kind)
             {
+                case ForgeSyntax.Kind.Reserved: color = reservedColor; break;
                 case ForgeSyntax.Kind.Comment: color = new Color(.42f, .78f, .42f); break;
                 case ForgeSyntax.Kind.Material: color = new Color(1f, .55f, .76f); break;
                 case ForgeSyntax.Kind.Keyword: color = new Color(1f, .65f, .30f); break;
@@ -572,6 +613,14 @@ public class ForgeMvp : MonoBehaviour
         Rect viewport=new Rect(window.x+40,window.y+40,window.width-52,window.height-58);
         Vector2 size=codeStyle.CalcSize(new GUIContent(source+"\n "));
         Rect content=new Rect(0,0,Mathf.Max(viewport.width,size.x),Mathf.Max(viewport.height,size.y));
+        if (codeWindows[activeWindow].revealDiagnostic && codeWindows[activeWindow].diagnostic != null)
+        {
+            codeWindows[activeWindow].diagnostic.GetLineSpan(out int errorStart, out int errorLength);
+            Vector2 errorPosition = codeStyle.GetCursorPixelPosition(content, new GUIContent(source), errorStart);
+            scroll.x = 0;
+            scroll.y = Mathf.Clamp(errorPosition.y - viewport.height * .35f, 0, Mathf.Max(0, content.height - viewport.height));
+            codeWindows[activeWindow].revealDiagnostic = false;
+        }
         Vector2 oldScroll=scroll;
         scroll=GUI.BeginScrollView(viewport,scroll,content, false, false, GUIStyle.none, GUIStyle.none);
         string old=source;
@@ -579,6 +628,12 @@ public class ForgeMvp : MonoBehaviour
         var editor = focused ? (TextEditor)GUIUtility.GetStateObject(typeof(TextEditor), GUIUtility.keyboardControl) : null;
         var before = new EditSnapshot { text = source, cursor = editor != null ? editor.cursorIndex : 0,
             selection = editor != null ? editor.selectIndex : 0, scroll = scroll };
+        // TextArea consumes KeyDown, so remember navigation before it handles the event.
+        bool followCaret = focused && ev.type == EventType.KeyDown &&
+            (ev.keyCode == KeyCode.DownArrow || ev.keyCode == KeyCode.UpArrow ||
+             ev.keyCode == KeyCode.LeftArrow || ev.keyCode == KeyCode.RightArrow ||
+             ev.keyCode == KeyCode.Home || ev.keyCode == KeyCode.End ||
+             ev.keyCode == KeyCode.PageDown || ev.keyCode == KeyCode.PageUp);
         bool undoKey = focused && ev.type == EventType.KeyDown && ev.control && !ev.alt && !ev.shift && ev.keyCode == KeyCode.Z;
         if (undoKey)
         {
@@ -599,13 +654,35 @@ public class ForgeMvp : MonoBehaviour
         GUI.SetNextControlName(controlName);
         // Keep native selection/caret and plain-text editing; only the glyph layer is colored.
         source=GUI.TextArea(content,source,inputStyle);
-        DrawSyntax(content, source, codeWindows[activeWindow]);
+        var currentOwner = codeWindows[activeWindow];
+        if (currentOwner.diagnostic != null && currentOwner.diagnostic.Source != source)
+        {
+            currentOwner.diagnostic = null;
+            currentOwner.showDiagnostic = false; currentOwner.revealDiagnostic = false;
+        }
+        DrawSyntax(content, source, currentOwner);
         if (!undoKey && source != old)
         {
             undoHistory.Add(before);
             if (undoHistory.Count > 256) undoHistory.RemoveAt(0);
         }
         GUI.EndScrollView();
+        if (followCaret && GUI.GetNameOfFocusedControl() == controlName)
+        {
+            var movedEditor = (TextEditor)GUIUtility.GetStateObject(typeof(TextEditor), GUIUtility.keyboardControl);
+            Vector2 caret = codeStyle.GetCursorPixelPosition(content, new GUIContent(source),
+                Mathf.Clamp(movedEditor.cursorIndex, 0, source.Length));
+            const float margin = 4f;
+            float lineHeight = Mathf.Max(1f, codeStyle.lineHeight);
+            if (caret.y < scroll.y + margin) scroll.y = caret.y - margin;
+            else if (caret.y + lineHeight > scroll.y + viewport.height - margin)
+                scroll.y = caret.y + lineHeight - viewport.height + margin;
+            if (caret.x < scroll.x + margin) scroll.x = caret.x - margin;
+            else if (caret.x + 2f > scroll.x + viewport.width - margin)
+                scroll.x = caret.x + 2f - viewport.width + margin;
+            scroll.x = Mathf.Clamp(scroll.x, 0, Mathf.Max(0, content.width - viewport.width));
+            scroll.y = Mathf.Clamp(scroll.y, 0, Mathf.Max(0, content.height - viewport.height));
+        }
         // Slim bars sit inside the outer frame, outside the symmetric text viewport.
         if (content.height > viewport.height)
             scroll.y = GUI.VerticalSlider(new Rect(window.xMax - 9, viewport.y, 6, viewport.height), scroll.y, 0, content.height - viewport.height, scrollTrack, scrollThumb);
@@ -623,17 +700,18 @@ public class ForgeMvp : MonoBehaviour
             hover="";
             Vector2 local=mouse-viewport.position+scroll;
             int index=codeStyle.GetCursorStringIndex(content,new GUIContent(source),local);
-            foreach(Match m in Regex.Matches(source,@"\b[0-9]+\b"))
+            foreach(var token in BlueprintLexer.Scan(source, true))
             {
-                if(index<m.Index || index>m.Index+m.Length) continue;
-                Vector2 start=codeStyle.GetCursorPixelPosition(content,new GUIContent(source),m.Index);
-                Vector2 end=codeStyle.GetCursorPixelPosition(content,new GUIContent(source),m.Index+m.Length);
-                if(new Rect(start.x,start.y,end.x-start.x,codeStyle.lineHeight).Contains(local)) hover=Describe(source,m);
+                if (token.Length == 0 || index < token.Start || index > token.Start + token.Length) continue;
+                Vector2 start = codeStyle.GetCursorPixelPosition(content,new GUIContent(source),token.Start);
+                Vector2 end = codeStyle.GetCursorPixelPosition(content,new GUIContent(source),token.Start+token.Length);
+                if (!new Rect(start.x,start.y,end.x-start.x,codeStyle.lineHeight).Contains(local)) continue;
+                hover = BlueprintHelp.Describe(source, token);
             }
         }
         else hover="";
         if(over>=2 || edge>=2) GUI.Box(new Rect(mouse.x+12,mouse.y+12,40,24),(edge>=0?edge:over)<2?"↔":"↕");
-        if(hover.Length>0) GUI.Box(new Rect(Mathf.Min(mouse.x+16,Screen.width-300),Mathf.Min(mouse.y+24,Screen.height-50),300,44),hover);
+        if(hover.Length>0) GUI.Box(new Rect(Mathf.Max(0,Mathf.Min(mouse.x+16,Screen.width/workspaceZoom-420)),Mathf.Max(0,Mathf.Min(mouse.y+24,Screen.height/workspaceZoom-100)),420,100),hover,new GUIStyle(GUI.skin.box) { wordWrap = true, richText = false, alignment = TextAnchor.MiddleLeft });
     }
     void DrawDeleteDialog()
     {
@@ -659,44 +737,36 @@ public class ForgeMvp : MonoBehaviour
         if (!showSalesPanel) return;
         Rect panel = salesWindow; panel.position += workspaceOffset;
         GUI.Box(panel, "");
-        GUI.Label(new Rect(panel.x + 10, panel.y + 6, panel.width - 50, 26), "공용 결과 / 판매");
+        GUI.Label(new Rect(panel.x + 10, panel.y + 6, panel.width - 50, 26), "공용 결과 / 상점 판매");
         if (GUI.Button(new Rect(panel.xMax - 34, panel.y + 6, 24, 24), "×")) showSalesPanel = false;
         GUILayout.BeginArea(new Rect(panel.x + 10, panel.y + 38, panel.width - 20, panel.height - 48));
+        logs = GUILayout.BeginScrollView(logs);
         GUILayout.Label("실행 도면: " + resultOwner + (busy ? " · 제작 중" : ""));
-        logs=GUILayout.BeginScrollView(logs); GUILayout.Label(report, reportError ? errorLabel : GUI.skin.label); GUILayout.EndScrollView();
-        GUI.enabled=products>0&&!busy;
-        if(GUILayout.Button("철 검날 판매 · +28G"))
+        GUILayout.Label(report, reportError ? errorLabel : GUI.skin.label);
+        GUILayout.Space(12);
+        GUILayout.Label("판매 가능한 완성품 · " + shop.Count + "개");
+        foreach (var item in shop.Items)
         {
-            if (!busy && productCosts.Count > 0)
-            {
-                reportError = false;
-                int cost = productCosts.Dequeue(); resultOwner = productOwners.Dequeue(); products--; gold+=28;
-                report="판매 영수증 · 철 검날\n제작비 " + cost + "G · 판매가 28G · 순이익 " + (28-cost) + "G";
-            }
+            string label = (selectedProductId == item.Id ? "● " : "○ ") + "#" + item.Id + " " + item.Product.DisplayName
+                + " · 제작비 " + item.Product.CashCost + "G";
+            if (GUILayout.Button(label)) selectedProductId = item.Id;
         }
-        GUI.enabled=true; GUILayout.EndArea();
+        var selected = shop.Find(selectedProductId);
+        if (selected != null)
+        {
+            GUILayout.Space(8);
+            GUILayout.Label("선택 #" + selected.Id + " · 도면 " + selected.Product.BlueprintName);
+            GUILayout.Label(ForgePricing.Describe(selected.Product, false));
+        }
+        else GUILayout.Label("완성품을 선택하면 판매 견적이 표시됩니다.");
+        GUILayout.EndScrollView();
+        GUI.enabled = selected != null && !busy;
+        if (GUILayout.Button(selected == null ? "판매할 완성품을 선택하세요" : "선택 완성품 판매 · +" + ForgePricing.Quote(selected.Product).SalePrice + "G", GUILayout.Height(30)))
+            SellProduct(selected.Id);
+        GUI.enabled = true;
+        GUILayout.EndArea();
+        if (salesResizeEdge == 2)
+            GUI.Box(new Rect(workspaceMouse.x + 12, workspaceMouse.y + 12, 40, 24), "↕");
         if (panel.Contains(workspaceMouse) && (Event.current.isMouse || Event.current.type == EventType.ScrollWheel)) Event.current.Use();
-    }
-    static string Describe(string text, Match token)
-    {
-        int lineStart=text.LastIndexOf('\n',Mathf.Max(0,token.Index-1))+1;
-        string prefix=text.Substring(lineStart,token.Index-lineStart);
-        if (prefix.IndexOf('#') >= 0) return "";
-        int lineEnd = text.IndexOf('\n', token.Index);
-        if (lineEnd < 0) lineEnd = text.Length;
-        string after=text.Substring(token.Index+token.Length, lineEnd-token.Index-token.Length).TrimStart();
-        string[] names={"","재료 올리기","가열 함수","타격 함수","냉각 함수"};
-        if(after.StartsWith("(")) return int.TryParse(token.Value,out int f)&&f>=1&&f<=4?names[f]:"미지원 함수 "+token.Value;
-        var call=Regex.Match(prefix,@"([1-4])\(([^()]*)$");
-        if(call.Success)
-        {
-            int arg=call.Groups[2].Value.Split(',').Length;
-            string f=call.Groups[1].Value;
-            if(f=="2"&&arg==2) return "목표 열 단계 "+token.Value;
-            if(f=="4"&&arg==2) return token.Value=="0"?"냉각 재료 · 공기 · 비용 0G":"냉각 재료 · MVP 미지원";
-            if(f=="1"&&arg==1) return token.Value=="1"?"재료 · 철 · 1개 + 10G":"재료 · MVP 미지원";
-            return "함수 "+f+" · "+arg+"번째 인자 · "+token.Value;
-        }
-        return "정수 값 "+token.Value;
     }
 }

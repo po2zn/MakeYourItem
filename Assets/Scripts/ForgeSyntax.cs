@@ -1,48 +1,47 @@
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
-// Presentation-only tokens: indices always refer to the original editable source.
+// All spans point into unmodified source. The lexer is shared with execution.
 public static class ForgeSyntax
 {
-    public enum Kind { Plain, Comment, Material, Keyword, Function }
+    public enum Kind { Plain, Comment, Material, Keyword, Function, Reserved }
     public struct Token
     {
         public int start, length;
         public Kind kind;
-        public Token(int start, int length, Kind kind)
-        { this.start = start; this.length = length; this.kind = kind; }
+        public Token(int start,int length,Kind kind){this.start=start;this.length=length;this.kind=kind;}
     }
-    static readonly Regex Tokens = new Regex(@"#[^\r\n]*|[^\s()=,!#]+|[()=,!]", RegexOptions.Compiled);
-    static readonly Regex Integer = new Regex(@"^[0-9]+$", RegexOptions.Compiled);
     public static List<Token> Scan(string source)
     {
-        var result = new List<Token>();
-        int function = 0, argument = 0, line = -1;
-        foreach (Match match in Tokens.Matches(source))
+        var result=new List<Token>();
+        var tokens=BlueprintLexer.Scan(source,true);
+        bool definitionNamePending=false;
+        foreach(var token in tokens)
         {
-            int currentLine = source.LastIndexOf('\n', match.Index);
-            if (currentLine != line) { function = 0; argument = 0; line = currentLine; }
-            string value = match.Value;
-            Kind kind = Kind.Plain;
-            if (value[0] == '#') kind = Kind.Comment;
-            else if (value == "!" || PythonIdentifier.IsKeyword(value) || value == "__debug__") kind = Kind.Keyword;
-            else if (Integer.IsMatch(value))
+            if(token.Kind==BlueprintTokenKind.NewLine){definitionNamePending=false;continue;}
+            if(token.Length==0)continue;
+            var kind=Kind.Plain;
+            if(token.Kind==BlueprintTokenKind.Comment)kind=Kind.Comment;
+            else if(token.Feature!=BlueprintFeature.None)kind=BlueprintAliases.Find(token.Feature).Syntax==BlueprintSyntaxKind.Builtin?Kind.Function:Kind.Reserved;
+            else if(token.Kind==BlueprintTokenKind.Name&&PythonIdentifier.IsKeyword(token.Raw))kind=Kind.Reserved;
+            else if(token.Raw=="!")kind=Kind.Keyword;
+            else if(token.Kind==BlueprintTokenKind.Name)
             {
-                int next = match.Index + match.Length;
-                while (next < source.Length && (source[next] == ' ' || source[next] == '	')) next++;
-                if (next < source.Length && source[next] == '(')
-                {
-                    kind = Kind.Function;
-                    int.TryParse(value, out function);
-                    argument = 0;
-                }
-                else if ((function == 1 && argument == 1) || (function == 4 && argument == 2))
-                    kind = Kind.Material;
+                int next=token.Start+token.Length;while(next<source.Length&&(source[next]==' '||source[next]=='\t'))next++;
+                if(definitionNamePending||next<source.Length&&source[next]=='(')kind=Kind.Function;
+                definitionNamePending=false;
             }
-            if (value == "(") argument = 1;
-            else if (value == ",") argument++;
-            else if (value == ")" || value == "=") { function = 0; argument = 0; }
-            result.Add(new Token(match.Index, match.Length, kind));
+            else if(token.Kind==BlueprintTokenKind.Number)
+            {
+                int next=token.Start+token.Length;while(next<source.Length&&(source[next]==' '||source[next]=='\t'))next++;
+                int line=source.LastIndexOf('\n',System.Math.Max(0,token.Start-1))+1;
+                string prefix=source.Substring(line,token.Start-line);
+                if(next<source.Length&&source[next]=='(')kind=Kind.Function;
+                else if(Regex.IsMatch(prefix,@"^\s*[^=]+\s*=\s*$")&&(next==source.Length||source[next]=='#'||source[next]=='\r'||source[next]=='\n'))kind=Kind.Material;
+                else if(Regex.IsMatch(prefix,@"(?:^|[^0-9])1\(\s*$")||Regex.IsMatch(prefix,@"(?:^|[^0-9])4\([^(),]*,\s*$"))kind=Kind.Material;
+            }
+            if(token.Feature==BlueprintFeature.Def)definitionNamePending=true;
+            result.Add(new Token(token.Start,token.Length,kind));
         }
         return result;
     }
