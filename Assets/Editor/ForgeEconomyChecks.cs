@@ -64,7 +64,7 @@ public static class ForgeEconomyChecks
             Require(e.product == null && e.error != null && e.cost == 0 && e.ironConsumed == 0, "stock");
         });
         check("compile failure: whole run has zero cost", () => {
-            var e = ForgeMvp.Evaluate(Basic.Replace("3(Blade)", "3(Missing)"), 100, 10);
+            var e = ForgeMvp.Evaluate(Basic.Replace("3(Blade)", "3(Blade, 1)"), 100, 10);
             Require(e.compileError && e.steps.Count == 0 && e.cost == 0 && e.product == null, "compile failure");
         });
         check("sell same ID repeatedly: pay exactly 28 once", () => {

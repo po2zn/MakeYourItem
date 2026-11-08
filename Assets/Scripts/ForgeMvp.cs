@@ -219,8 +219,8 @@ public class ForgeMvp : MonoBehaviour
     }
     GameObject work;
     public class Piece { public int heat; public bool shaped; public ForgeTraits traits; }
-    public class Step { public int line, cost, iron, heat, process; public bool shaped, finished; public ForgeTraits traits; public string text; }
-    public class Evaluation { public List<Step> steps = new List<Step>(); public string error; public int cost, ironConsumed, errorLine; public string errorMessage; public bool compileError; public ForgeProduct product; public bool skipped; public Dictionary<string, object> values = new Dictionary<string, object>(); }
+    public class Step { public int line, cost, iron, heat, process; public bool shaped, finished, debugOutput; public ForgeTraits traits; public string text; }
+    public class Evaluation { public List<Step> steps = new List<Step>(); public string error; public int cost, ironConsumed, errorLine; public string errorMessage; public bool compileError; public ForgeProduct product; public bool skipped, debugOnly; public Dictionary<string, object> values = new Dictionary<string, object>(); }
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void Boot() { if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == "SampleScene" && FindAnyObjectByType<ForgeMvp>() == null) new GameObject("Forge MVP").AddComponent<ForgeMvp>(); }
     readonly ForgeShop shop = new ForgeShop();
@@ -261,6 +261,13 @@ public class ForgeMvp : MonoBehaviour
             return; // Do not open, clear or overwrite the shop/receipt on compilation failure.
         }
         owner.diagnostic = null; owner.showDiagnostic = false; owner.revealDiagnostic = false;
+        BeginDebugRun(evaluation,owner.name,preview);
+        if(evaluation.debugOnly)
+        {
+            foreach(var step in evaluation.steps)if(step.debugOutput)AppendDebug(step.text);
+            if(evaluation.error!=null)AppendDebug(evaluation.error);
+            return;
+        }
         resultOwner = owner.name;
         reportError = evaluation.error != null;
         showSalesPanel = true;
@@ -268,7 +275,8 @@ public class ForgeMvp : MonoBehaviour
         if (evaluation.skipped) { report = "조건에 맞지 않아 제작하지 않았습니다. 비용 0G"; return; }
         if (preview)
         {
-            foreach (var step in evaluation.steps) report += step.line + "줄: " + step.text + "\n";
+            foreach (var step in evaluation.steps)
+                if(step.debugOutput)AppendDebug(step.text);else report += step.line + "줄: " + step.text + "\n";
             report += evaluation.product != null
                 ? "\n시험 견적\n" + ForgePricing.Describe(evaluation.product, true)
                 : "예상 제작비 " + evaluation.cost + "G · 소비 예정 재료 · 철 " + evaluation.ironConsumed + "개\n" + evaluation.error;
@@ -286,6 +294,7 @@ public class ForgeMvp : MonoBehaviour
         bool seedConsumed = false;
         foreach (var step in evaluation.steps)
         {
+            if(step.debugOutput){AppendDebug(step.text);continue;}
             if (!ledger.TrySpend(step.cost, step.iron, ref gold, ref iron))
             {
                 reportError = true;
@@ -321,6 +330,59 @@ public class ForgeMvp : MonoBehaviour
             + "\n지급액 +" + ForgePricing.Quote(sold).SalePrice + "G (제작비는 제작 때 지불됨)";
         return true;
     }
+    readonly ForgeDebugOutput debugOutput=new ForgeDebugOutput();
+    Rect debugWindow=new Rect(30,320,480,240);
+    Vector2 debugScroll,debugResizeMouse;
+    Rect debugResizeStart;
+    bool showDebugWindow,debugFollow,debugInteracting;
+    int debugResizeEdge=-1;
+    GUIStyle debugTextStyle;
+    void BeginDebugRun(Evaluation evaluation,string owner,bool preview)
+    {
+        if(!evaluation.debugOnly&&!evaluation.steps.Exists(step=>step.debugOutput))return;
+        AppendDebug("── "+owner+" · "+(preview?"시험 실행":"실제 실행")+" ──");
+    }
+    void AppendDebug(string message){debugOutput.Append(message);showDebugWindow=true;debugFollow=true;}
+    void DrawDebugWindow()
+    {
+        if(!showDebugWindow)return;
+        if(debugTextStyle==null)debugTextStyle=new GUIStyle(codeStyle){wordWrap=true,richText=false,padding=new RectOffset(4,4,4,4),fontSize=16};
+        Rect before=debugWindow;
+        Rect drawn=GUI.Window(197601,debugWindow,DrawDebugContents,"디버그 출력");
+        if(debugWindow==before)debugWindow=drawn; // Preserve size changes made by the callback.
+        if(Event.current.rawType==EventType.MouseUp)debugInteracting=false;
+    }
+    void DrawDebugContents(int id)
+    {
+        var ev=Event.current;
+        if(ev.type==EventType.MouseDown)debugInteracting=true;
+        int resizeId=GUIUtility.GetControlID("DebugResize".GetHashCode(),FocusType.Passive);
+        int edge=-1;
+        if(ev.mousePosition.x<6&&ev.mousePosition.y>28)edge=0;
+        else if(ev.mousePosition.x>debugWindow.width-6&&ev.mousePosition.y>28)edge=1;
+        else if(ev.mousePosition.y>debugWindow.height-6)edge=2;
+        if(ev.type==EventType.MouseDown&&ev.button==0&&edge>=0){debugResizeEdge=edge;debugResizeStart=debugWindow;debugResizeMouse=GUIUtility.GUIToScreenPoint(ev.mousePosition);GUIUtility.hotControl=resizeId;ev.Use();}
+        if(debugResizeEdge>=0&&ev.type==EventType.MouseDrag){
+            Vector2 delta=GUIUtility.GUIToScreenPoint(ev.mousePosition)-debugResizeMouse;
+            Rect rect=debugResizeStart;
+            if(debugResizeEdge==0)rect.xMin=Mathf.Min(rect.xMin+delta.x,rect.xMax-320);
+            else if(debugResizeEdge==1)rect.width=Mathf.Max(320,rect.width+delta.x);
+            else rect.height=Mathf.Max(160,rect.height+delta.y);
+            debugWindow=rect;ev.Use();
+        }
+        if(debugResizeEdge>=0&&ev.rawType==EventType.MouseUp){debugResizeEdge=-1;GUIUtility.hotControl=0;ev.Use();}
+        if(GUI.Button(new Rect(debugWindow.width-90,3,52,23),"지우기")){debugOutput.Clear();debugScroll=Vector2.zero;}
+        if(GUI.Button(new Rect(debugWindow.width-32,3,26,23),"×")){showDebugWindow=false;debugInteracting=false;}
+        GUI.Label(new Rect(10,29,debugWindow.width-20,22),"print 출력 · 읽기 전용");
+        Rect view=new Rect(10,54,debugWindow.width-20,debugWindow.height-65);
+        string text=debugOutput.Text;
+        float height=Mathf.Max(view.height,debugTextStyle.CalcHeight(new GUIContent(text+"\n "),Mathf.Max(1,view.width-18)));
+        if(debugFollow){debugScroll.y=Mathf.Max(0,height-view.height);if(ev.type==EventType.Repaint)debugFollow=false;}
+        debugScroll=GUI.BeginScrollView(view,debugScroll,new Rect(0,0,view.width-18,height));
+        GUI.Label(new Rect(0,0,view.width-18,height),text,debugTextStyle);
+        GUI.EndScrollView();
+        GUI.DragWindow(new Rect(6,0,Mathf.Max(0,debugWindow.width-100),27));
+    }
     void OnGUI()
     {
         InitializeCodeStyle();
@@ -329,6 +391,9 @@ public class ForgeMvp : MonoBehaviour
         bool modalOpen = deleteWindowId >= 0;
         if (modalOpen && Event.current.type != EventType.Layout && Event.current.type != EventType.Repaint) Event.current.type = EventType.Ignore;
         var ev = Event.current;
+        EventType debugUnderlyingEvent=ev.type;
+        bool maskDebug=showDebugWindow&&(debugInteracting||debugWindow.Contains(ev.mousePosition))&&(ev.isMouse||ev.type==EventType.ScrollWheel);
+        if(maskDebug)ev.type=EventType.Ignore;
         CodeWindow diagnosticOwner = codeWindows.Count > 0 ? codeWindows[activeWindow] : null;
         EventType diagnosticEvent = ev.type;
         bool maskDiagnostic = diagnosticOwner != null && diagnosticOwner.showDiagnostic && diagnosticOwner.diagnostic != null
@@ -496,6 +561,9 @@ public class ForgeMvp : MonoBehaviour
             activeWindow = codeWindows.Count - 1; edge = -1; movingWindow = -1; GUI.FocusControl(null);
         }
         if (GUI.Button(new Rect(Screen.width - 150, 6, 140, 28), "작업 공간 원위치")) ResetWorkspaceView();
+        if(GUI.Button(new Rect(Screen.width-540,6,90,28),"디버그 창"))showDebugWindow=!showDebugWindow;
+        if(maskDebug)ev.type=debugUnderlyingEvent;
+        DrawDebugWindow();
         if (maskDiagnostic) ev.type = diagnosticEvent;
         DrawCompileErrorWindow(diagnosticOwner);
         if (modalOpen) { Event.current.type = modalEvent; DrawDeleteDialog(); }

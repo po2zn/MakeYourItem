@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 
-public enum BlueprintFeature { None, While, For, Break, Continue, If, Else, Def, Return, Heat, Abs, Len, Min, Max, Random, Set, Elif }
+public enum BlueprintFeature { None, While, For, Break, Continue, If, Else, Def, Return, Heat, Abs, Len, Min, Max, Random, Set, Elif, Print }
 public enum BlueprintSyntaxKind { Block, Branch, Control, Builtin }
 public sealed class BlueprintAlias
 {
@@ -13,7 +13,7 @@ public sealed class BlueprintAlias
     public string Description { get; }
     public string Signature { get; }
     public int Arity { get; }
-    public string Tooltip => Symbol + " ↔ " + English + "\n" + Description + (Signature.Length == 0 ? "" : "\n" + Signature);
+    public string Tooltip => (Symbol.Length==0?English:Symbol + " ↔ " + English) + "\n" + Description + (Signature.Length == 0 ? "" : "\n" + Signature);
     public BlueprintAlias(BlueprintFeature id, string english, string symbol, BlueprintSyntaxKind syntax, string description, string signature = "", int arity = -1)
     { Id = id; English = english; Symbol = symbol; Syntax = syntax; Description = description; Signature = signature; Arity = arity; }
 }
@@ -21,6 +21,7 @@ public sealed class BlueprintAlias
 public static class BlueprintAliases
 {
     static readonly BlueprintAlias[] definitions = {
+        new BlueprintAlias(BlueprintFeature.Print,"print","",BlueprintSyntaxKind.Builtin,"문자열을 디버그 출력 창에 한 줄씩 출력합니다.","print(문자열) → None · 비용0G",1),
         new BlueprintAlias(BlueprintFeature.While,"while","888",BlueprintSyntaxKind.Block,"조건이 참인 동안 블록을 반복합니다.","888(조건): · 조건은 bool"),
         new BlueprintAlias(BlueprintFeature.For,"for","123",BlueprintSyntaxKind.Block,"리스트 또는 튜플을 순서대로 순회합니다.","123(이름 in 대상):"),
         new BlueprintAlias(BlueprintFeature.Break,"break","!!",BlueprintSyntaxKind.Control,"가장 가까운 반복문을 종료합니다."),
@@ -40,5 +41,5 @@ public static class BlueprintAliases
     };
     public static readonly ReadOnlyCollection<BlueprintAlias> All = Array.AsReadOnly(definitions);
     public static BlueprintAlias Find(BlueprintFeature id) { foreach(var a in definitions) if(a.Id==id) return a; return null; }
-    public static BlueprintAlias Find(string spelling) { foreach(var a in definitions) if(a.English==spelling || a.Symbol==spelling) return a; return null; }
+    public static BlueprintAlias Find(string spelling) { foreach(var a in definitions) if(a.English==spelling || a.Symbol.Length>0 && a.Symbol==spelling) return a; return null; }
 }

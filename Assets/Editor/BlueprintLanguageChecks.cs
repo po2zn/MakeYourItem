@@ -10,7 +10,7 @@ public static class BlueprintLanguageChecks
     {
         var log=new StringBuilder();int count=0;
         Action<string,Action> check=(name,test)=>{test();count++;log.AppendLine("PASS "+name);};
-        check("16 aliases have unique stable IDs and complete metadata",()=>{Require(BlueprintAliases.All.Count==16,"count");Require(BlueprintAliases.All.Select(a=>a.Id).Distinct().Count()==16,"IDs");foreach(var a in BlueprintAliases.All)Require(a.Tooltip.Contains(a.English)&&a.Tooltip.Contains(a.Symbol),"tooltip");});
+        check("17 builtins/control entries have unique stable IDs and complete metadata",()=>{Require(BlueprintAliases.All.Count==17,"count");Require(BlueprintAliases.All.Select(a=>a.Id).Distinct().Count()==17,"IDs");foreach(var a in BlueprintAliases.All)Require(a.Tooltip.Contains(a.English)&&a.Tooltip.Contains(a.Symbol),"tooltip");});
         check("all builtin aliases share result and source remains intact",()=>{
             string english="v = [9, 7, 5]\na = abs(-3)\nb = len(v)\nc = min(v)\nd = max(v)\ne = random(1, 7)\nf = set()";
             string numeric="v = [9, 7, 5]\na = 101(-3)\nb = 1111(v)\nc = 000(v)\nd = 999(v)\ne = 66(1, 7)\nf = 1010()";

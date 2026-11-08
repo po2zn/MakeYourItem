@@ -5,6 +5,7 @@ public enum BlueprintType { Unknown, Int, Bool, None, String, Piece, List, Tuple
 public sealed class BlueprintProgram
 {
     public List<BlueprintStatement> Body;
+    public bool DebugOnly;
     public Dictionary<string,BlueprintStatement> Functions = new Dictionary<string,BlueprintStatement>(StringComparer.Ordinal);
     public HashSet<string> Effectful = new HashSet<string>(StringComparer.Ordinal);
 }
@@ -32,7 +33,9 @@ public sealed class BlueprintValidator
             Statements(f.Body,names,true,0,false);
         }
         Statements(program.Body,new Dictionary<string,BlueprintType>(),false,0,true);
-        if(!hasFinish) throw new BlueprintException(program.Body.Count==0?1:program.Body[program.Body.Count-1].Token.Line,"완성품 반환 !Blade가 필요합니다. 마지막 명령 뒤에 추가하세요.");
+        bool hasPrint=false;foreach(var call in Calls(program.Body))if(call.Feature==BlueprintFeature.Print)hasPrint=true;
+        program.DebugOnly=!hasFinish&&hasPrint&&!HasEffects(program.Body);
+        if(!hasFinish&&!program.DebugOnly) throw new BlueprintException(program.Body.Count==0?1:program.Body[program.Body.Count-1].Token.Line,"완성품 반환 !Blade가 필요합니다. 마지막 명령 뒤에 추가하세요.");
         return program;
     }
     int VisitCalls(string name,HashSet<string> path)
@@ -114,7 +117,11 @@ public sealed class BlueprintValidator
     BlueprintType ExprCore(BlueprintExpr e,Dictionary<string,BlueprintType> names,bool allowProcess)
     {
         if(e.Kind==BlueprintExprKind.Literal)return e.Value==null?BlueprintType.None:e.Value is int?BlueprintType.Int:e.Value is bool?BlueprintType.Bool:BlueprintType.String;
-        if(e.Kind==BlueprintExprKind.Name){if(!names.TryGetValue(e.Name,out var type))Error(e.Token,"미선언 변수 "+e.Name+" · 사용 전에 모든 경로에서 값을 대입하세요.");return type;}
+        // Variables are dynamic bindings in the current runtime scope. A value may
+        // have been assigned by an earlier iteration or a selected branch. This
+        // single-pass validator cannot prove its presence/type at the point of use.
+        // Keep syntax/literal/arity checks here; Eval resolves names and types when read.
+        if(e.Kind==BlueprintExprKind.Name)return BlueprintType.Unknown;
         var args=new List<BlueprintType>();foreach(var a in e.Args)args.Add(Expr(a,names,false));
         if(e.Kind==BlueprintExprKind.Call) {
             if(e.Process>0 || e.Name!=null&&program.Effectful.Contains(e.Name))if(!allowProcess)Error(e.Token,"공정 포함 함수는 별도의 대입 또는 호출 줄에서 실행하세요.");
@@ -131,6 +138,7 @@ public sealed class BlueprintValidator
                 return e.Process==1?BlueprintType.Piece:BlueprintType.Void;
             }
             switch(e.Feature){
+                case BlueprintFeature.Print:if(!Known(args[0],BlueprintType.String))Error(e.Token,"print에는 문자열 인자1개가 필요합니다.");return BlueprintType.None;
                 case BlueprintFeature.Heat:if(!Known(args[0],BlueprintType.Piece))Error(e.Token,"heat에는 작업물이 필요합니다.");return BlueprintType.Int;
                 case BlueprintFeature.Abs:case BlueprintFeature.Random:foreach(var a in args)if(!Known(a,BlueprintType.Int))Error(e.Token,"정수 인자가 필요합니다.");return BlueprintType.Int;
                 case BlueprintFeature.Len:if(!Known(args[0],BlueprintType.List,BlueprintType.Tuple,BlueprintType.Set,BlueprintType.Dict))Error(e.Token,"len에는 컬렉션이 필요합니다.");return BlueprintType.Int;

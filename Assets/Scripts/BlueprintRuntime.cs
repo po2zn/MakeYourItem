@@ -9,13 +9,13 @@ public sealed class BlueprintRuntime
     readonly ForgeMvp.Evaluation result=new ForgeMvp.Evaluation();
     readonly ForgeProductionLedger ledger=new ForgeProductionLedger();
     readonly string owner;
-    int gold, iron, commands, calls, allocated;
+    int gold, iron, commands, calls, allocated, printCount, printCharacters;
     uint randomState;
     int currentLine=1;
     enum Flow { Next, Break, Continue, Return, Finish }
     struct Signal { public Flow Flow; public object Value; public Signal(Flow flow,object value=null){Flow=flow;Value=value;} }
     BlueprintRuntime(BlueprintProgram program,int gold,int iron,string owner,uint seed)
-    {this.program=program;this.gold=gold;this.iron=iron;this.owner=owner;randomState=seed;}
+    {this.program=program;this.gold=gold;this.iron=iron;this.owner=owner;randomState=seed;result.debugOnly=program.DebugOnly;}
     public static ForgeMvp.Evaluation Evaluate(string source,int gold,int iron,string owner,uint seed)
     {
         BlueprintProgram program;
@@ -24,7 +24,7 @@ public sealed class BlueprintRuntime
         var runtime=new BlueprintRuntime(program,gold,iron,owner,seed);
         try {
             runtime.Block(program.Body,runtime.result.values);
-            if(runtime.result.product==null && runtime.result.steps.Count>0)runtime.Fail("실행한 공정에 완성품 판정이 없습니다.");
+            if(runtime.result.product==null && runtime.result.steps.Exists(step=>step.process>0))runtime.Fail("실행한 공정에 완성품 판정이 없습니다.");
             runtime.result.skipped=runtime.result.steps.Count==0;
         }catch(BlueprintException e){Failure(runtime.result,e,false);}
         catch(OverflowException){Failure(runtime.result,new BlueprintException(runtime.currentLine,"정수 범위 초과"),false);}
@@ -84,7 +84,7 @@ public sealed class BlueprintRuntime
         Tick(e.Token);
         switch(e.Kind){
             case BlueprintExprKind.Literal:return e.Value;
-            case BlueprintExprKind.Name:if(!env.TryGetValue(e.Name,out var value))Fail("미선언 변수 "+e.Name);return value;
+            case BlueprintExprKind.Name:if(!env.TryGetValue(e.Name,out var value))Fail("변수 '"+e.Name+"'에 아직 값이 없습니다. 이 줄 실행 전에 값을 대입하세요.");return value;
             case BlueprintExprKind.Unary:var unary=Eval(e.Args[0],env);currentLine=e.Token.Line;return e.Token.Raw=="not"?(object)!Bool(unary):checked(-Int(unary));
             case BlueprintExprKind.Binary:return Binary(e,env);
             case BlueprintExprKind.Call:
@@ -128,6 +128,12 @@ public sealed class BlueprintRuntime
     {
         if(e.Process>0)return Process(e.Process,args);
         switch(e.Feature){
+            case BlueprintFeature.Print:
+                if(!(args[0] is string))Fail("print에는 문자열 인자1개가 필요합니다.");
+                string message=(string)args[0];
+                if(printCount>=256 || message.Length>65536-printCharacters)Fail("한 실행의 출력 한도(256개/65536자)를 초과했습니다.");
+                printCount++;printCharacters+=message.Length;
+                result.steps.Add(new ForgeMvp.Step{line=currentLine,debugOutput=true,text=message});return null;
             case BlueprintFeature.Heat:return Piece(args[0]).heat;
             case BlueprintFeature.Abs:int n=Int(args[0]);return n<0?checked(-n):n;
             case BlueprintFeature.Len:if(args[0] is IList<int> l)return l.Count;if(args[0] is HashSet<int> s)return s.Count;if(args[0] is Dictionary<int,int> d)return d.Count;Fail("len에는 컬렉션이 필요합니다.");break;
