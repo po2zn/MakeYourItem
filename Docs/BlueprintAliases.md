@@ -167,3 +167,25 @@ if/1? 뒤 같은 들여쓰기에서 elif/01?를 여러 개 연결할 수 있다.
 
 ## 함수 색상 분리 및 def 표기 유지
 함수 호출(heat/100, abs/101 등)은 연노랑색, if/1?, elif/01?, def/333 등 제어·정의 키워드는 보라색이다. 333(함수명, 매개변수): 형태를 유지하며 333: 함수명(...)은 지원하지 않는다. 사용자 함수 이름은 정의와 호출 위치 모두 연노랑색이다. C# 컴파일과 standalone Mono 자동 검사43개 통과, Play Mode 시각 검증은 미수행.
+
+## 코드 창 들여쓰기 편집 지원
+
+공백4칸 기준으로 Enter/Tab/Shift+Tab/Backspace를 처리한다. Enter는 현재 줄의 선행 공백을 이어받고, def/333, if/1?, elif/01?, else/0?, while/888, for/123의 블록 헤더가 콜론으로 끝나면4칸을 더한다. 뒤쪽 주석은 무시하며 주석/문자열/딕셔너리의 콜론은 블록으로 취급하지 않는다. 미완성 def(): 입력도 편집 편의상 자동 들여쓰기하지만 실제 실행에는 함수 이름이 필요하다.
+
+Tab은 다음4칸 위치까지 공백을 넣는다. 여러 줄 선택 상태에서는 전체 선택 줄을4칸 들여쓰고, Shift+Tab은 선택 줄 또는 현재 줄의 들여쓰기를 한 단계 줄인다. 다음 줄 시작점까지만 선택한 경우 그 다음 줄은 제외한다. 선행 공백에서 Backspace는 이전4칸 위치까지 지우고, 일반 글자/선택 영역 삭제는 기본 TextArea에 맡긴다. 문자열 내용이나 붙여넣은 소스 전체를 자동 재정렬하지 않는다. 기존 잘못된 들여쓰기의 컴파일 오류 검사는 유지한다.
+
+ForgeMvp.DrawCodeWindow → BlueprintIndentation.Enter/Tab/Backspace → ApplyCodeEdit로 소스와 커서/선택을 함께 갱신한다. 기존 창별 Undo에 한 번의 편집으로 기록되며, 새 줄의 크기를 계산한 뒤 커서 자동 스크롤을 적용한다. Input System의 IME 조합 중 및 조합 변경 프레임에는 사용자 정의 들여쓰기 키 처리를 건너뛰어 기본 입력 처리에 맡긴다.
+
+검증: ENABLE_INPUT_SYSTEM/UNITY_EDITOR를 포함한 C# 컴파일 및 standalone Mono 자동 검사53개(들여쓰기10+기존43) 통과. 한국어 원문/CRLF/정방향·역방향 선택/중첩 블록/주석·문자열 보호/새 문법으로 제작 실행을 검사했다. Play Mode 키보드·IME·Undo·스크롤의 직접 조작 검증은 미수행이다.
+
+직접 확인: SampleScene Play → 코드 창에333(warm, p): 입력 후 Enter → 공백4칸과 커서 확인 → 내부1?(True): 뒤 Enter → 공백8칸 확인 → Shift+Tab/Backspace로 한 단계 복귀 → 여러 줄 선택 후 Tab/Shift+Tab → Ctrl+Z → 긴 도면 마지막 줄 Enter 시 스크롤 확인. 한국어 조합 확정 Enter가 추가 줄/들여쓰기를 만들지 않는지도 확인한다. Tools > MakeYourItem > Validate Code Indentation에서 편집 모델10개 검사를 실행할 수 있다.
+
+## Enter 중복 입력 및 커서 스크롤 원인 경로 수정
+
+코드 분석: 이전 구현은 Return/KeypadEnter KeyDown에서 직접 개행을 추가했다. Windows IMGUI는 키 코드 이벤트와 문자 이벤트를 분리해 전달할 수 있으며, 별도 newline 문자 이벤트는 GUI.TextArea가 다시 삽입한다. 키 이벤트에서 Use()해도 뒤의 별도 문자 이벤트를 소비하지 않는다. 스크롤 예약 역시 키 코드에 의존해 기본 문자 입력으로 바뀐 최종 커서를 놓칠 수 있었다. Unity 공식 GUI.cs의 HandleTextFieldEventForDesktop(KeyDown/character 삽입)과 BeginScrollView(캐시 scrollPosition 적용) 경로를 참고했다: https://github.com/Unity-Technologies/UnityCsReference/blob/master/Modules/IMGUI/GUI.cs . 실제 사용자 키 이벤트 로그/Play Mode 재현은 수집하지 못했으므로 코드 경로 분석과 실측을 구분한다.
+
+변경: 줄바꿈 삽입은 TextArea에만 맡긴다. BlueprintIndentation.IndentNativeNewline은 이전 소스/선택을 기준으로 정확히 개행 한 개가 삽입된 경우만 감지하여 들여쓰기를 덧붙인다. Return 키 코드만 받은 경우 소스를 직접 변경하지 않는다. 모든 실제 텍스트 변경에서 최종 커서 추적을 예약한다. BlueprintViewport는 마지막 빈 줄을 포함한 원본 줄 수로 스크롤 높이/세로 커서 위치를 계산하며, 원래 글자 측정 높이보다 작아지지 않도록 한다. 예약은 실제 Repaint에서 요청한 스크롤이 반영될 때까지 유지한다.
+
+검증: ENABLE_INPUT_SYSTEM/UNITY_EDITOR 포함 C# 컴파일, standalone Mono 총56개(입력·스크롤 모델13+언어24+진단5+경제14) 통과. 개행 없는 키 이벤트→문자 개행→들여쓰기 모델,50회 연속 Enter의 정확한 줄 수/커서 표시 범위,CRLF,IME 글자 확정이 개행으로 오인되지 않는 경우를 검사했다. OS 이벤트 주입 또는 실제 Play Mode에서의 원인/해결 실측을 대체하지 않는다.
+
+직접 재검증: SampleScene 코드 창에 def warm(p): 입력 후 Enter 한 번에 다음 줄4칸으로 이동하는지, 빈 줄에서 Enter50회 시 정확히50줄 추가되면서 커서가 보이는지, 키패드 Enter/한글 조합 확정/Shift 선택 후 Enter/Undo/위아래 이동/마우스 휠 후 Enter를 확인한다.

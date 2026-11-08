@@ -26,6 +26,7 @@ public class ForgeMvp : MonoBehaviour
         public bool showDiagnostic, revealDiagnostic;
         public Vector2 diagnosticScroll;
         public Vector2 scroll;
+        public int pendingCaret = -1;
         public List<EditSnapshot> undo = new List<EditSnapshot>();
         public int id;
         public uint seed = 1;
@@ -143,7 +144,38 @@ public class ForgeMvp : MonoBehaviour
         Cursor.SetCursor(enabled ? horizontalResizeCursor : null, enabled ? new Vector2(16,16) : Vector2.zero, CursorMode.Auto);
         horizontalCursorShown = enabled;
     }
-    void OnDisable() { SetHorizontalResizeCursor(false); }
+    void OnDisable() { SetHorizontalResizeCursor(false); ReleaseImeKeyboard(); }
+#if ENABLE_INPUT_SYSTEM
+    UnityEngine.InputSystem.Keyboard imeKeyboard;
+    bool imeComposing;
+    int imeChangedFrame=-1;
+    void ImeChanged(UnityEngine.InputSystem.LowLevel.IMECompositionString value)
+    { imeComposing=value.Count>0; imeChangedFrame=Time.frameCount; }
+#endif
+    void ReleaseImeKeyboard()
+    {
+#if ENABLE_INPUT_SYSTEM
+        if(imeKeyboard!=null)imeKeyboard.onIMECompositionChange-=ImeChanged;
+        imeKeyboard=null;imeComposing=false;
+#endif
+    }
+    bool IsImeEditing()
+    {
+#if ENABLE_INPUT_SYSTEM
+        var keyboard=UnityEngine.InputSystem.Keyboard.current;
+        if(imeKeyboard!=keyboard){ReleaseImeKeyboard();imeKeyboard=keyboard;if(imeKeyboard!=null)imeKeyboard.onIMECompositionChange+=ImeChanged;}
+        return imeComposing||imeChangedFrame==Time.frameCount;
+#elif ENABLE_LEGACY_INPUT_MANAGER
+        return !string.IsNullOrEmpty(Input.compositionString);
+#else
+        return false;
+#endif
+    }
+    void ApplyCodeEdit(BlueprintIndentation.Edit edit,TextEditor editor)
+    {
+        source=edit.Text;editor.text=source;
+        editor.cursorIndex=edit.Cursor;editor.selectIndex=edit.Selection;
+    }
     GUIStyle codeStyle, inputStyle, tokenStyle, scrollTrack, scrollThumb, actionButton, errorLabel;
     Texture2D windowFill, trackFill, thumbFill, buttonFill;
     Texture2D FlatColor(Color color)
@@ -434,7 +466,7 @@ public class ForgeMvp : MonoBehaviour
             DrawCodeGutter(r);
             Rect preview = new Rect(r.x + 40, r.y + 40, r.width - 52, r.height - 58);
             GUI.BeginGroup(preview);
-            Vector2 previewSize = codeStyle.CalcSize(new GUIContent(codeWindows[i].text + "\n "));
+            Vector2 previewSize = MeasureCode(codeWindows[i].text);
             DrawSyntax(new Rect(-codeWindows[i].scroll.x, -codeWindows[i].scroll.y,
                 Mathf.Max(preview.width, previewSize.x), Mathf.Max(preview.height, previewSize.y)), codeWindows[i].text, codeWindows[i]);
             GUI.EndGroup();
@@ -557,6 +589,27 @@ public class ForgeMvp : MonoBehaviour
         GUI.DrawTexture(new Rect(window.x + 36, window.y + 42, 1, Mathf.Max(0, window.height - 62)), Texture2D.whiteTexture);
         GUI.color = previous;
     }
+    Vector2 MeasureCode(string text)
+    {
+        // Explicit line count includes trailing empty lines; CalcSize alone is not
+        // a reliable scroll extent for an editor ending in a newline.
+        Vector2 measured=codeStyle.CalcSize(new GUIContent(text+"\n "));
+        measured.y=Mathf.Max(measured.y,BlueprintViewport.ContentHeight(text,codeStyle.lineHeight,codeStyle.padding.vertical));
+        return measured;
+    }
+    void FollowCodeCaret(Rect content,Rect viewport,int index)
+    {
+        index=Mathf.Clamp(index,0,source.Length);
+        Vector2 caret=codeStyle.GetCursorPixelPosition(content,new GUIContent(source+" "),index);
+
+        const float margin=4f;
+        float lineHeight=Mathf.Max(1f,codeStyle.lineHeight);
+        scroll.y=BlueprintViewport.FollowY(source,index,lineHeight,codeStyle.padding.top,viewport.height,content.height,scroll.y);
+        if(caret.x<scroll.x+margin)scroll.x=caret.x-margin;
+        else if(caret.x+2f>scroll.x+viewport.width-margin)scroll.x=caret.x+2f-viewport.width+margin;
+        scroll.x=Mathf.Clamp(scroll.x,0,Mathf.Max(0,content.width-viewport.width));
+        scroll.y=Mathf.Clamp(scroll.y,0,Mathf.Max(0,content.height-viewport.height));
+    }
     void DrawCodeWindow()
     {
         InitializeCodeStyle();
@@ -611,7 +664,7 @@ public class ForgeMvp : MonoBehaviour
         if (codeWindows[activeWindow].collapsed) return;
         DrawCodeGutter(window);
         Rect viewport=new Rect(window.x+40,window.y+40,window.width-52,window.height-58);
-        Vector2 size=codeStyle.CalcSize(new GUIContent(source+"\n "));
+        Vector2 size=MeasureCode(source);
         Rect content=new Rect(0,0,Mathf.Max(viewport.width,size.x),Mathf.Max(viewport.height,size.y));
         if (codeWindows[activeWindow].revealDiagnostic && codeWindows[activeWindow].diagnostic != null)
         {
@@ -621,8 +674,22 @@ public class ForgeMvp : MonoBehaviour
             scroll.y = Mathf.Clamp(errorPosition.y - viewport.height * .35f, 0, Mathf.Max(0, content.height - viewport.height));
             codeWindows[activeWindow].revealDiagnostic = false;
         }
+        // Apply on the next GUI pass, after the newly inserted lines have a layout.
+        // BeginScrollView must receive both the new content size and the desired scroll.
+        var scrollOwner=codeWindows[activeWindow];
+        if(scrollOwner.pendingCaret>=0)
+        {
+            FollowCodeCaret(content,viewport,scrollOwner.pendingCaret);
+
+        }
         Vector2 oldScroll=scroll;
+        Vector2 requestedScroll=scroll;
         scroll=GUI.BeginScrollView(viewport,scroll,content, false, false, GUIStyle.none, GUIStyle.none);
+        if(scrollOwner.pendingCaret>=0 && ev.type==EventType.Repaint)
+        {
+            if((scroll-requestedScroll).sqrMagnitude<.01f)scrollOwner.pendingCaret=-1;
+            else scroll=requestedScroll; // Retry if native wheel state overrode this reveal.
+        }
         string old=source;
         bool focused = GUI.GetNameOfFocusedControl() == controlName;
         var editor = focused ? (TextEditor)GUIUtility.GetStateObject(typeof(TextEditor), GUIUtility.keyboardControl) : null;
@@ -633,7 +700,9 @@ public class ForgeMvp : MonoBehaviour
             (ev.keyCode == KeyCode.DownArrow || ev.keyCode == KeyCode.UpArrow ||
              ev.keyCode == KeyCode.LeftArrow || ev.keyCode == KeyCode.RightArrow ||
              ev.keyCode == KeyCode.Home || ev.keyCode == KeyCode.End ||
-             ev.keyCode == KeyCode.PageDown || ev.keyCode == KeyCode.PageUp);
+             ev.keyCode == KeyCode.PageDown || ev.keyCode == KeyCode.PageUp ||
+             ev.keyCode == KeyCode.Return || ev.keyCode == KeyCode.KeypadEnter);
+        bool imeEditing = IsImeEditing();
         bool undoKey = focused && ev.type == EventType.KeyDown && ev.control && !ev.alt && !ev.shift && ev.keyCode == KeyCode.Z;
         if (undoKey)
         {
@@ -651,9 +720,28 @@ public class ForgeMvp : MonoBehaviour
             hoverSince = Time.realtimeSinceStartup;
             ev.Use(); // Prevent the native TextArea undo path from handling this again.
         }
+        if(focused && !imeEditing && ev.type==EventType.KeyDown && !ev.control && !ev.alt && !ev.command)
+        {
+            bool handled=false;
+            if(ev.keyCode==KeyCode.Tab)
+            { ApplyCodeEdit(BlueprintIndentation.Tab(source,editor.cursorIndex,editor.selectIndex,ev.shift),editor); handled=true; }
+            else if(ev.keyCode==KeyCode.Backspace && !ev.shift && BlueprintIndentation.Backspace(source,editor.cursorIndex,editor.selectIndex,out var edit))
+            { ApplyCodeEdit(edit,editor); handled=true; }
+            if(handled){followCaret=true;ev.Use();}
+        }
         GUI.SetNextControlName(controlName);
         // Keep native selection/caret and plain-text editing; only the glyph layer is colored.
         source=GUI.TextArea(content,source,inputStyle);
+        // Windows can send Return-key and newline-character events separately.
+        // Never insert a newline on the key event: TextArea is the sole insertion path.
+        bool editorStillFocused=GUI.GetNameOfFocusedControl()==controlName;
+        if(focused && editorStillFocused && !undoKey && !imeEditing && source!=old &&
+            BlueprintIndentation.IndentNativeNewline(old,source,before.cursor,before.selection,out var newlineEdit))
+        {
+            var nativeEditor=(TextEditor)GUIUtility.GetStateObject(typeof(TextEditor),GUIUtility.keyboardControl);
+            ApplyCodeEdit(newlineEdit,nativeEditor);
+        }
+        if(editorStillFocused && source!=old && !undoKey)followCaret=true;
         var currentOwner = codeWindows[activeWindow];
         if (currentOwner.diagnostic != null && currentOwner.diagnostic.Source != source)
         {
@@ -667,21 +755,16 @@ public class ForgeMvp : MonoBehaviour
             if (undoHistory.Count > 256) undoHistory.RemoveAt(0);
         }
         GUI.EndScrollView();
+        if(source!=old)
+        {
+            size=MeasureCode(source);
+            content.width=Mathf.Max(viewport.width,size.x);content.height=Mathf.Max(viewport.height,size.y);
+        }
         if (followCaret && GUI.GetNameOfFocusedControl() == controlName)
         {
             var movedEditor = (TextEditor)GUIUtility.GetStateObject(typeof(TextEditor), GUIUtility.keyboardControl);
-            Vector2 caret = codeStyle.GetCursorPixelPosition(content, new GUIContent(source),
-                Mathf.Clamp(movedEditor.cursorIndex, 0, source.Length));
-            const float margin = 4f;
-            float lineHeight = Mathf.Max(1f, codeStyle.lineHeight);
-            if (caret.y < scroll.y + margin) scroll.y = caret.y - margin;
-            else if (caret.y + lineHeight > scroll.y + viewport.height - margin)
-                scroll.y = caret.y + lineHeight - viewport.height + margin;
-            if (caret.x < scroll.x + margin) scroll.x = caret.x - margin;
-            else if (caret.x + 2f > scroll.x + viewport.width - margin)
-                scroll.x = caret.x + 2f - viewport.width + margin;
-            scroll.x = Mathf.Clamp(scroll.x, 0, Mathf.Max(0, content.width - viewport.width));
-            scroll.y = Mathf.Clamp(scroll.y, 0, Mathf.Max(0, content.height - viewport.height));
+            currentOwner.pendingCaret=Mathf.Clamp(movedEditor.cursorIndex,0,source.Length);
+            FollowCodeCaret(content,viewport,currentOwner.pendingCaret);
         }
         // Slim bars sit inside the outer frame, outside the symmetric text viewport.
         if (content.height > viewport.height)
