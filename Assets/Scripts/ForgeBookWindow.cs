@@ -5,6 +5,7 @@ public sealed class ForgeBookWindow
 {
     public Rect Rect { get; private set; }
     public bool Dragging => gesture>=0;
+    readonly ForgeGuideReader reader=new ForgeGuideReader();
     bool initialized;
     int gesture=-1,control;
     Vector2 startMouse;
@@ -38,7 +39,7 @@ public sealed class ForgeBookWindow
         int edge=Dragging?gesture:ResizeEdge(mouse);
         return edge==2?2:edge==0||edge==1?1:0;
     }
-    public void Draw(ref bool open,Font font)
+    public void Draw(ref bool open,Font font,int fontSize,bool englishGuideUnlocked)
     {
         if(!open){CancelDrag();return;}
         EnsureInitialized();
@@ -58,7 +59,7 @@ public sealed class ForgeBookWindow
             Rect=next;ev.Use();
         }
         if(gesture>=0&&ev.rawType==EventType.MouseUp){CancelDrag();ev.Use();}
-        ForgeGuideUI.DrawBook(Rect,ref open,font);
+        ForgeGuideUI.DrawBook(Rect,ref open,font,fontSize,reader,englishGuideUnlocked);
         if(!open)CancelDrag();
         if((Dragging||Contains(ev.mousePosition))&&(ev.isMouse||ev.type==EventType.ScrollWheel))ev.Use();
     }

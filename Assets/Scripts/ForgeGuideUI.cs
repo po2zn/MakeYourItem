@@ -37,12 +37,13 @@ public static class ForgeGuideUI
         }
         return clicked;
     }
-    public static void DrawBook(Rect window,ref bool open,Font font)
+    public static void DrawBook(Rect window,ref bool open,Font font,int fontSize,ForgeGuideReader reader,bool englishGuideUnlocked)
     {
         if(!open)return;
         Rect book=new Rect(window.x,window.y+30,window.width,window.height-30);
         Fill(new Rect(window.x,window.y,window.width,30),new Color(.16f,.18f,.22f,.98f));
-        var title=new GUIStyle(GUI.skin.label){font=font,fontSize=16,alignment=TextAnchor.MiddleLeft,richText=false};
+        var title=new GUIStyle(GUI.skin.label){font=font,fontSize=fontSize+4,fontStyle=FontStyle.Bold,alignment=TextAnchor.MiddleLeft,richText=false};
+        title.hover.textColor=title.normal.textColor;
         GUI.Label(new Rect(window.x+10,window.y+2,window.width-48,26),"도면 안내서",title);
         if(GUI.Button(new Rect(window.xMax-30,window.y+3,26,24),new GUIContent("×","안내서 닫기")))open=false;
         Fill(new Rect(book.x+4,book.y+5,book.width,book.height),new Color(0,0,0,.25f));
@@ -52,9 +53,10 @@ public static class ForgeGuideUI
         Rect left=new Rect(book.x+9,book.y+9,pageWidth,Mathf.Max(1,book.height-18));
         Rect right=new Rect(book.center.x+4,book.y+9,pageWidth,Mathf.Max(1,book.height-18));
         Fill(left,new Color(.93f,.89f,.78f));Fill(right,new Color(.97f,.94f,.85f));
-        // The pages intentionally have no instructions yet.
+        // Page decoration remains behind the scrollable reading panel.
         Fill(new Rect(left.xMax-4,left.y,4,left.height),new Color(.84f,.78f,.65f));
         Fill(new Rect(right.x,right.y,4,right.height),new Color(.88f,.82f,.70f));
         Fill(new Rect(book.center.x-2,book.y+8,4,book.height-16),new Color(.36f,.25f,.16f));
+        reader.Draw(new Rect(book.x+10,book.y+10,book.width-20,book.height-20),font,fontSize,englishGuideUnlocked);
     }
 }

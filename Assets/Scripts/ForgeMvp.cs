@@ -40,6 +40,11 @@ public class ForgeMvp : MonoBehaviour
     Vector2 dragStartMouse, dragStartPosition;
     bool showSalesPanel = true;
     bool showGuideBook;
+    [SerializeField, Tooltip("안내서의 영문 문법 표시 여부. 추후 구매/저장 상태에서 설정합니다.")]
+    bool englishGuideUnlocked;
+    public bool EnglishGuideUnlocked => englishGuideUnlocked;
+    // Presentation only: never changes parser support, inventory or funds.
+    public void SetEnglishGuideUnlocked(bool unlocked) { englishGuideUnlocked=unlocked; }
     readonly ForgeBookWindow guideBook=new ForgeBookWindow();
     Rect salesWindow = new Rect(430, 55, 350, 480);
     bool movingSales;
@@ -588,7 +593,7 @@ public class ForgeMvp : MonoBehaviour
         if (maskDiagnostic) ev.type = diagnosticEvent;
         DrawCompileErrorWindow(diagnosticOwner);
         if(maskBook)ev.type=bookUnderlyingEvent;
-        if(showGuideBook&&!modalOpen)guideBook.Draw(ref showGuideBook,codeStyle.font);
+        if(showGuideBook&&!modalOpen)guideBook.Draw(ref showGuideBook,codeStyle.font,codeStyle.fontSize,englishGuideUnlocked);
         if (modalOpen) Event.current.type = modalEvent;
         if(deleteWindowId>=0)DrawDeleteDialog();
     }
