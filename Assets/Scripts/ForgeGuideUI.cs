@@ -3,7 +3,7 @@ using UnityEngine;
 // Code-drawn icons avoid depending on emoji glyphs in the user's installed fonts.
 public static class ForgeGuideUI
 {
-    public enum Icon { Add, Shop, Book }
+    public enum Icon { Add, Shop, Book, TechTree }
     static void Fill(Rect rect,Color color)
     {Color old=GUI.color;GUI.color=color;GUI.DrawTexture(rect,Texture2D.whiteTexture);GUI.color=old;}
     static void Stroke(Rect rect,Color color,float width=1.5f)
@@ -26,6 +26,11 @@ public static class ForgeGuideUI
         Rect box=new Rect(0,0,24,24);
         Color ink=new Color(.93f,.94f,.96f);
         if(icon==Icon.Add){Fill(new Rect(box.x+11,box.y+4,2,16),ink);Fill(new Rect(box.x+4,box.y+11,16,2),ink);}
+        else if(icon==Icon.TechTree){
+            Fill(new Rect(11,7,2,6),ink);Fill(new Rect(4,12,16,2),ink);
+            Fill(new Rect(4,12,2,5),ink);Fill(new Rect(18,12,2,5),ink);
+            Stroke(new Rect(8,1,8,7),ink);Stroke(new Rect(1,17,8,6),ink);Stroke(new Rect(15,17,8,6),ink);
+        }
         else if(icon==Icon.Book){
             Stroke(new Rect(box.x+2,box.y+4,9,16),ink);
             Stroke(new Rect(box.x+13,box.y+4,9,16),ink);

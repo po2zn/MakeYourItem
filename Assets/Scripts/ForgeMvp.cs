@@ -40,7 +40,8 @@ public class ForgeMvp : MonoBehaviour
     int codePointerControl;
     Vector2 dragStartMouse, dragStartPosition;
     bool showSalesPanel = true;
-    bool showGuideBook;
+    bool showGuideBook,showTechTree;
+    readonly ForgeTechTreeScreen techTree=new ForgeTechTreeScreen();
     [SerializeField, Tooltip("안내서의 영문 문법 표시 여부. 추후 구매/저장 상태에서 설정합니다.")]
     bool englishGuideUnlocked;
     public bool EnglishGuideUnlocked => englishGuideUnlocked;
@@ -89,7 +90,7 @@ public class ForgeMvp : MonoBehaviour
             + workspaceCamera.transform.up * workspaceOffset.y * WorkspaceUnitsPerPixel;
     }
     void LateUpdate() { UpdateWorkspaceCamera(); }
-    void OnApplicationFocus(bool focused) { if (!focused) { EndWorkspaceDrag(); guideBook.CancelDrag(); edge = -1; SetResizeCursor(0); } }
+    void OnApplicationFocus(bool focused) { if (!focused) { EndWorkspaceDrag(); techTree.CancelDrag(); guideBook.CancelDrag(); edge = -1; SetResizeCursor(0); } }
     Vector2 scroll, logs, lastMouse;
     float hoverSince;
     int edge = -1, gold = 100, iron = 10;
@@ -99,7 +100,7 @@ public class ForgeMvp : MonoBehaviour
         new ForgeMaterialStock{material=4},new ForgeMaterialStock{material=5},
         new ForgeMaterialStock{material=6},new ForgeMaterialStock{material=7},
         new ForgeMaterialStock{material=8},new ForgeMaterialStock{material=9}};
-    float ToolbarHeight => Mathf.Max(120,materialHud.Height(Mathf.Max(144,Screen.width-376),materialStocks));
+    float ToolbarHeight => Mathf.Max(120,materialHud.Height(Mathf.Max(144,Screen.width-496),materialStocks));
     int products => shop.Count;
     int selectedProductId = -1;
     bool busy;
@@ -158,7 +159,7 @@ public class ForgeMvp : MonoBehaviour
         Cursor.SetCursor(direction==1?horizontalResizeCursor:direction==2?verticalResizeCursor:null, direction!=0?new Vector2(16,16):Vector2.zero, CursorMode.Auto);
         resizeCursorShown = direction;
     }
-    void OnDisable() { SetResizeCursor(0); ReleaseImeKeyboard(); guideBook.CancelDrag(); }
+    void OnDisable() { techTree.CancelDrag(); SetResizeCursor(0); ReleaseImeKeyboard(); guideBook.CancelDrag(); }
 #if ENABLE_INPUT_SYSTEM
     UnityEngine.InputSystem.Keyboard imeKeyboard;
     bool imeComposing;
@@ -424,9 +425,16 @@ public class ForgeMvp : MonoBehaviour
     {
         guideBook.EnsureInitialized(BookWorkspacePoint(new Vector2(Mathf.Max(12,Screen.width-432),ToolbarHeight+15)));
     }
+    void OpenTechTree()
+    {
+        CommitName();EndWorkspaceDrag();guideBook.CancelDrag();techTree.CancelDrag();
+        edge=-1;debugResizeEdge=-1;debugInteracting=false;hover="";
+        GUIUtility.hotControl=0;GUI.FocusControl(null);SetResizeCursor(0);showTechTree=true;
+    }
     void OnGUI()
     {
         InitializeCodeStyle();
+        if(showTechTree){if(techTree.Draw(codeStyle.font)){showTechTree=false;GUI.FocusControl(null);}return;}
         if (!windowsInitialized) { windowsInitialized = true; nextWindowId = 1; codeWindows.Add(new CodeWindow { rect = workspaceWindow, id = 0, name = "f1" }); }
         EventType modalEvent = Event.current.type;
         bool modalOpen = deleteWindowId >= 0;
@@ -626,6 +634,7 @@ public class ForgeMvp : MonoBehaviour
         GUI.matrix = previous;
         if(maskToolbar)ev.type=toolbarEvent;
         DrawToolbar();
+        if(showTechTree)return;
         if(maskDebug)ev.type=debugUnderlyingEvent;
         DrawDebugWindow();
         if (maskDiagnostic) ev.type = diagnosticEvent;
@@ -643,12 +652,14 @@ public class ForgeMvp : MonoBehaviour
     void DrawToolbar()
     {
         GUI.Box(new Rect(0,0,Screen.width,40),"");
-        GUI.Label(new Rect(12,8,Mathf.Max(0,Screen.width-490),28),"자금 "+gold+"G · 완성품 "+products+" · 확대 "+Mathf.RoundToInt(workspaceZoom*100)+"%");
-        materialHud.Draw(iron,materialStocks,codeStyle.font,Mathf.Max(144,Screen.width-376));
-        Rect book=new Rect(Screen.width-122,4,112,112);
-        Rect shopButton=new Rect(Screen.width-242,4,112,112);
-        Rect add=new Rect(Screen.width-362,4,112,112);
-        if(GUI.Button(new Rect(Screen.width-460,6,90,28),"디버그 창"))showDebugWindow=!showDebugWindow;
+        GUI.Label(new Rect(12,8,Mathf.Max(0,Screen.width-610),28),"자금 "+gold+"G · 완성품 "+products+" · 확대 "+Mathf.RoundToInt(workspaceZoom*100)+"%");
+        materialHud.Draw(iron,materialStocks,codeStyle.font,Mathf.Max(144,Screen.width-496));
+        Rect tech=new Rect(Screen.width-122,4,112,112);
+        if(ForgeGuideUI.IconButton(tech,ForgeGuideUI.Icon.TechTree,"테크 트리")){OpenTechTree();return;}
+        Rect book=new Rect(Screen.width-242,4,112,112);
+        Rect shopButton=new Rect(Screen.width-362,4,112,112);
+        Rect add=new Rect(Screen.width-482,4,112,112);
+        if(GUI.Button(new Rect(Screen.width-580,6,90,28),"디버그 창"))showDebugWindow=!showDebugWindow;
         if(ForgeGuideUI.IconButton(add,ForgeGuideUI.Icon.Add,"코드 창 추가"))
         {
             CommitName();
@@ -663,7 +674,7 @@ public class ForgeMvp : MonoBehaviour
             debugResizeEdge=-1;debugInteracting=false;hover="";
             GUIUtility.hotControl=0;GUI.FocusControl(null);SetResizeCursor(0);
         }
-        string tip=book.Contains(Event.current.mousePosition)?"도면 안내서":shopButton.Contains(Event.current.mousePosition)?(showSalesPanel?"상점 숨기기":"상점 열기"):add.Contains(Event.current.mousePosition)?"코드 창 추가":"";
+        string tip=tech.Contains(Event.current.mousePosition)?"테크 트리":book.Contains(Event.current.mousePosition)?"도면 안내서":shopButton.Contains(Event.current.mousePosition)?(showSalesPanel?"상점 숨기기":"상점 열기"):add.Contains(Event.current.mousePosition)?"코드 창 추가":"";
         if(tip.Length>0&&!showGuideBook)GUI.Box(new Rect(Mathf.Max(0,Screen.width-180),120,170,26),tip);
     }
     Rect DiagnosticRect()
