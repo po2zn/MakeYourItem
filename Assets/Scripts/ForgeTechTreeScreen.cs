@@ -30,6 +30,12 @@ public sealed class ForgeTechTreeScreen
             if(material)materialY+=height+16;else functionY+=height+16;
         }
     }
+    Rect Project(Rect rect) => new Rect(offset.x+rect.x*zoom,offset.y+rect.y*zoom,rect.width*zoom,rect.height*zoom);
+    GUIStyle ScaledStyle(GUIStyle source)
+    {
+        return new GUIStyle(source){fontSize=Mathf.Max(1,Mathf.FloorToInt(source.fontSize*zoom)),
+            padding=new RectOffset(Mathf.RoundToInt(source.padding.left*zoom),Mathf.RoundToInt(source.padding.right*zoom),Mathf.RoundToInt(source.padding.top*zoom),Mathf.RoundToInt(source.padding.bottom*zoom))};
+    }
     bool OverCard(Vector2 point)
     {
         foreach(var card in cards)if(card.Contains(point))return true;
@@ -56,7 +62,8 @@ public sealed class ForgeTechTreeScreen
         if(ev.type==EventType.ScrollWheel&&canvas.Contains(ev.mousePosition)&&dragButton<0){
             Vector2 anchor=(ev.mousePosition-canvas.position-offset)/zoom;
             zoom=Mathf.Clamp(zoom*Mathf.Pow(1.05f,-ev.delta.y),.4f,2f);
-            offset=ev.mousePosition-canvas.position-anchor*zoom;ev.Use();
+            offset=ev.mousePosition-canvas.position-anchor*zoom;
+            ev.Use();
         }
         bool overCard=OverCard((ev.mousePosition-canvas.position-offset)/zoom);
         if(ev.type==EventType.MouseDown&&canvas.Contains(ev.mousePosition)&&(ev.button==1||ev.button==0&&!overCard)&&GUIUtility.hotControl==0){
@@ -72,28 +79,30 @@ public sealed class ForgeTechTreeScreen
         float xStart=((offset.x%spacing)+spacing)%spacing,yStart=((offset.y%spacing)+spacing)%spacing;
         for(float x=xStart;x<canvas.width;x+=spacing)Fill(new Rect(x,0,1,canvas.height),new Color(.15f,.18f,.22f));
         for(float y=yStart;y<canvas.height;y+=spacing)Fill(new Rect(0,y,canvas.width,1),new Color(.15f,.18f,.22f));
-        Matrix4x4 previous=GUI.matrix;
-        GUI.matrix=previous*Matrix4x4.TRS(new Vector3(offset.x,offset.y,0),Quaternion.identity,new Vector3(zoom,zoom,1));
-        GUI.Label(new Rect(24,12,350,headingHeight),"재료 구매 · 1개씩 반복 구매",label);
-        GUI.Label(new Rect(406,12,350,headingHeight),"기능 구매 · 한 번 구매해 해금",label);
-        GUI.Label(new Rect(24,descriptionY,350,descriptionHeight),"구매한 재료는 보유 재고에 추가됩니다.",body);
-        GUI.Label(new Rect(406,descriptionY,350,descriptionHeight),"기본 공정과 자료구조 조작은 무료이며, 특수 공정은 구매해 해금합니다.",body);
+        // Project into the fixed viewport before IMGUI clips controls. Changing
+        // GUI.matrix inside BeginGroup also transforms its clipping space.
+        var canvasLabel=ScaledStyle(label);
+        var canvasBody=ScaledStyle(body);
+        var canvasButton=ScaledStyle(button);
+        GUI.Label(Project(new Rect(24,12,350,headingHeight)),"재료 구매 · 1개씩 반복 구매",canvasLabel);
+        GUI.Label(Project(new Rect(406,12,350,headingHeight)),"기능 구매 · 한 번 구매해 해금",canvasLabel);
+        GUI.Label(Project(new Rect(24,descriptionY,350,descriptionHeight)),"구매한 재료는 보유 재고에 추가됩니다.",canvasBody);
+        GUI.Label(Project(new Rect(406,descriptionY,350,descriptionHeight)),"기본 공정과 자료구조 조작은 무료이며, 특수 공정은 구매해 해금합니다.",canvasBody);
         ForgeTechnology.Offer selected=null;
         for(int i=0;i<cards.Length;i++){
             var offer=ForgeTechnology.Offers[i];
             Rect card=cards[i];
             bool owned=offer.Kind==ForgePurchaseKind.Function&&technology.Owns(offer.Feature);
-            Fill(card,owned?new Color(.12f,.26f,.23f):new Color(.18f,.21f,.27f));
-            GUI.Label(new Rect(card.x+12,card.y+12,TextWidth,titleHeights[i]),offer.Title,body);
-            GUI.Label(new Rect(card.x+12,card.y+12+titleHeights[i]+8,TextWidth,detailHeights[i]),details[i],body);
+            Fill(Project(card),owned?new Color(.12f,.26f,.23f):new Color(.18f,.21f,.27f));
+            GUI.Label(Project(new Rect(card.x+12,card.y+12,TextWidth,titleHeights[i])),offer.Title,canvasBody);
+            GUI.Label(Project(new Rect(card.x+12,card.y+12+titleHeights[i]+8,TextWidth,detailHeights[i])),details[i],canvasBody);
             string reason=technology.BlockReason(offer,gold,iron,stocks,busy);
             bool enabled=GUI.enabled;
             GUI.enabled=enabled&&reason==null;
             string caption=owned?"구매 완료":busy?"제작 중":gold<offer.Price?offer.Price+"G · 골드 부족":offer.Price+"G · "+(offer.Kind==ForgePurchaseKind.Material?"1개 구매":"기능 구매");
-            if(GUI.Button(new Rect(card.x+12,card.yMax-48,TextWidth,36),new GUIContent(caption,reason??""),button))selected=offer;
+            if(GUI.Button(Project(new Rect(card.x+12,card.yMax-48,TextWidth,36)),new GUIContent(caption,reason??""),canvasButton))selected=offer;
             GUI.enabled=enabled;
         }
-        GUI.matrix=previous;
         GUI.EndGroup();
         Fill(new Rect(0,0,Screen.width,104),new Color(.14f,.16f,.2f));
         GUI.Label(new Rect(16,8,Mathf.Max(1,Screen.width-200),40),"테크 트리 · "+gold+"G",label);
