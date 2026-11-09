@@ -8,6 +8,7 @@ public sealed class ForgeDayCycle : MonoBehaviour
     [SerializeField, Min(1)] float secondsPerDay = 600;
     [SerializeField, Range(0, 23.99f)] float startHour = 8;
     public ForgeClock Clock { get; private set; }
+    public bool Paused { get; set; }
     public int Day => Clock?.Day ?? 1;
     public double CurrentHour => Clock?.Hour ?? startHour;
     public float SecondsPerDay { get => secondsPerDay; set => secondsPerDay = Mathf.Max(1, value); }
@@ -62,6 +63,7 @@ public sealed class ForgeDayCycle : MonoBehaviour
     }
     void Update()
     {
+        if(Paused)return;
         Clock.Advance(Time.deltaTime, Mathf.Max(1, secondsPerDay));
         announcementAge += Time.unscaledDeltaTime;
         if (initialized) ApplyLighting();
@@ -94,6 +96,7 @@ public sealed class ForgeDayCycle : MonoBehaviour
     }
     void OnGUI()
     {
+        if(Paused)return;
         float alpha = AnnouncementAlpha;
         if (alpha <= 0) return;
         if (title == null) title = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.UpperCenter, fontSize = 32, fontStyle = FontStyle.Bold };

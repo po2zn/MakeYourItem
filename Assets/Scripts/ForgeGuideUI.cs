@@ -50,21 +50,23 @@ public static class ForgeGuideUI
     }
     static void DrawPageStack(Rect book)
     {
-        // Exposed page edges sit between the cover and the reading margin.
-        // Each sheet starts a little farther inward and higher than the one below.
-        Fill(new Rect(book.x+2,book.y+8,14,Mathf.Max(1,book.height-14)),new Color(.12f,.08f,.04f,.32f));
-        for(int i=0;i<6;i++){
-            float x=book.x+2+i*2;
-            float top=book.y+10-i*.8f;
-            float bottom=book.yMax-5-i*.8f;
-            Rect sheet=new Rect(x,top,14-i*2,Mathf.Max(1,bottom-top));
-            float shade=i/5f;
-            Fill(sheet,Color.Lerp(new Color(.73f,.67f,.53f),new Color(.96f,.92f,.81f),shade));
-            Fill(new Rect(x,top,.65f,sheet.height),new Color(.49f,.42f,.29f,.65f));
-            Fill(new Rect(x+.7f,top,.65f,sheet.height),new Color(1f,.98f,.89f,.8f));
-            Fill(new Rect(x,top,sheet.width,.7f),new Color(1f,.97f,.86f,.85f));
-            Fill(new Rect(x,bottom-.8f,sheet.width,.8f),new Color(.46f,.37f,.23f,.65f));
+        // A single flush paper block, inset from the cover. Fine grain suggests
+        // individual sheets without staggered corners or protruding rectangles.
+        Rect edge=new Rect(book.x+4,book.y+10,10,Mathf.Max(1,book.height-20));
+        Fill(edge,new Color(.89f,.85f,.75f));
+        for(int i=0;i<10;i++){
+            float t=i/9f;
+            Color paper=Color.Lerp(new Color(.80f,.75f,.64f),new Color(.96f,.92f,.82f),Mathf.SmoothStep(0,1,t));
+            Fill(new Rect(edge.x+i,edge.y,1,edge.height),paper);
         }
+        // All seams share the same top and bottom edges and fade at the corners.
+        for(int i=0;i<4;i++){
+            float x=edge.x+1.5f+i*2;
+            Fill(new Rect(x,edge.y+3,.5f,Mathf.Max(1,edge.height-6)),new Color(.48f,.41f,.30f,.18f));
+            Fill(new Rect(x+.5f,edge.y+3,.5f,Mathf.Max(1,edge.height-6)),new Color(1f,.98f,.91f,.25f));
+        }
+        Fill(new Rect(edge.x,edge.y,edge.width,.6f),new Color(1f,.98f,.90f,.35f));
+        Fill(new Rect(edge.x,edge.yMax-.6f,edge.width,.6f),new Color(.48f,.41f,.30f,.16f));
     }
     public static void DrawBook(Rect window,ref bool open,ref bool collapsed,Font font,int fontSize,ForgeGuideReader reader,bool englishGuideUnlocked)
     {

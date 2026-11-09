@@ -28,13 +28,13 @@ public sealed class ForgeMaterialHud
     }
     static ForgeMaterialStock Find(ForgeMaterialStock[] stocks,int id)
     {return stocks==null?null:Array.Find(stocks,s=>s!=null&&s.material==id&&s.unlocked);}
-    public float Height(float width,ForgeMaterialStock[] stocks)
+    public float Height(float width,ForgeMaterialStock[] stocks,float top=42)
     {
         int count=1;for(int id=2;id<=9;id++)if(Find(stocks,id)!=null)count++;
         int columns=Math.Max(1,(int)((width-24)/CellWidth));
-        return 40+((count+columns-1)/columns)*RowHeight+4;
+        return top+((count+columns-1)/columns)*RowHeight+4;
     }
-    public void Draw(int iron,ForgeMaterialStock[] stocks,Font font,float availableWidth)
+    public void Draw(int iron,ForgeMaterialStock[] stocks,Font font,float availableWidth,float top=42)
     {
         if(numberStyle==null){
             numberStyle=new GUIStyle(GUI.skin.label){font=font,fontSize=36,alignment=TextAnchor.MiddleLeft,padding=new RectOffset(0,0,0,0),richText=false};
@@ -44,7 +44,7 @@ public sealed class ForgeMaterialHud
         for(int id=1;id<=9;id++){
             var stock=Find(stocks,id);if(id!=1&&stock==null)continue;
             long count=id==1?iron:stock.count;
-            Rect icon=new Rect(12+(index%columns)*CellWidth,42+(index/columns)*RowHeight,IconSize,IconSize);index++;
+            Rect icon=new Rect(12+(index%columns)*CellWidth,top+(index/columns)*RowHeight,IconSize,IconSize);index++;
             if(!icons[id])icons[id]=MakeIcon(id);
             GUI.DrawTexture(icon,icons[id]);
             GUI.Label(new Rect(icon.xMax+6,icon.y,CellWidth-IconSize-10,IconSize),FormatCount(count),numberStyle);

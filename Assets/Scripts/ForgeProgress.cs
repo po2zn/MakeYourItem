@@ -4,7 +4,11 @@ using UnityEngine;
 
 public partial class ForgeMvp
 {
-    const string SaveKey="MakeYourItem.Progress.v1";
+    const string LegacySaveKey="MakeYourItem.Progress.v1";
+    const int SlotCount=3;
+    int activeSaveSlot;
+    static string SlotKey(int slot)=>"MakeYourItem.Progress.v1.Slot"+slot;
+    string SaveKey=>SlotKey(activeSaveSlot);
     int worldSeed=72431,diamonds,totalSales,tutorialStage;
     long earnedGold;
     float craftSpeed=1;
@@ -15,37 +19,69 @@ public partial class ForgeMvp
     [Serializable] public class SavedWindow { public string name,text; public Rect rect; public uint seed; }
     [Serializable] public class SavedItem { public string owner; public int material,heat,iron,cost;public bool shaped;public ForgeTraits traits;public ForgeItemData data;public double seconds; }
     [Serializable] public class SavedProgress {
+        public string savedAt;
         public int version=1,gold,iron,day,seed,diamonds,sales,tutorial;public long earned;public double hour;public float speed;public bool autoSell;
         public ForgeMaterialStock[] stocks;public BlueprintFeature[] features;public string[] discoveries;
         public List<SavedWindow> windows=new List<SavedWindow>();public List<SavedItem> items=new List<SavedItem>();
     }
-    void LoadProgress()
+    bool LoadProgress()
     {
-        progressLoaded=true;
-        if(!PlayerPrefs.HasKey(SaveKey)){worldSeed=Guid.NewGuid().GetHashCode();return;}
+        progressLoaded=false;
+        if(activeSaveSlot<1||!PlayerPrefs.HasKey(SaveKey)){saveMessage="저장 데이터가 없습니다.";return false;}
         try {
             var saved=JsonUtility.FromJson<SavedProgress>(PlayerPrefs.GetString(SaveKey));
             if(saved==null||saved.version!=1||saved.gold<0||saved.iron<0||saved.diamonds<0||saved.day<1||saved.hour<0||saved.hour>=24)throw new Exception("저장 형식이 올바르지 않습니다.");
+            if(double.IsNaN(saved.hour)||double.IsInfinity(saved.hour)||saved.items==null)throw new Exception("저장 데이터가 손상되었습니다.");
+            foreach(var window in saved.windows??new List<SavedWindow>())if(window==null||window.name==null||window.text==null)throw new Exception("도면 데이터가 손상되었습니다.");
             // Parse products before applying state so an invalid product cannot half-load a save.
             var items=new List<ForgeProduct>();foreach(var item in saved.items)items.Add(new ForgeProduct(item.owner,item.heat,item.shaped,item.traits,item.cost,item.iron,item.material,item.data,item.seconds));
+            ResetProgressForDebug(false);
             gold=saved.gold;iron=saved.iron;worldSeed=saved.seed;diamonds=saved.diamonds;totalSales=saved.sales;tutorialStage=saved.tutorial;earnedGold=saved.earned;
             craftSpeed=Mathf.Clamp(saved.speed,1,5);autoSell=saved.autoSell;materialStocks=saved.stocks??Array.Empty<ForgeMaterialStock>();technology.Restore(saved.features);
             DayCycle.Clock.Restore(saved.day,saved.hour);
             foreach(var entry in saved.discoveries??Array.Empty<string>())discoveries.Add(entry);
             foreach(var item in items)shop.Add(item);
             if(saved.windows!=null&&saved.windows.Count>0){codeWindows.Clear();nextWindowId=0;foreach(var window in saved.windows)codeWindows.Add(new CodeWindow{id=nextWindowId++,name=window.name,text=window.text,rect=window.rect,seed=window.seed});windowsInitialized=true;activeWindow=0;source=codeWindows[0].text;}
-            saveMessage="저장된 공방을 불러왔습니다.";
-        }catch(Exception error){saveMessage="저장 불러오기 실패: "+error.Message;progressLoaded=false;}
+            progressLoaded=true;saveMessage="슬롯 "+activeSaveSlot+"의 공방을 불러왔습니다.";return true;
+        }catch(Exception error){saveMessage="저장 불러오기 실패: "+error.Message;progressLoaded=false;return false;}
     }
     void SaveProgress()
     {
-        if(!progressLoaded||DayCycle==null)return;
+        if(!progressLoaded||activeSaveSlot<1||DayCycle==null)return;
         try {
-            var saved=new SavedProgress{gold=gold,iron=iron,seed=worldSeed,diamonds=diamonds,sales=totalSales,tutorial=tutorialStage,earned=earnedGold,day=DayCycle.Day,hour=DayCycle.CurrentHour,speed=craftSpeed,autoSell=autoSell,stocks=materialStocks,features=technology.Export(),discoveries=new List<string>(discoveries).ToArray()};
+            var saved=new SavedProgress{savedAt=DateTime.Now.ToString("yyyy-MM-dd HH:mm"),gold=gold,iron=iron,seed=worldSeed,diamonds=diamonds,sales=totalSales,tutorial=tutorialStage,earned=earnedGold,day=DayCycle.Day,hour=DayCycle.CurrentHour,speed=craftSpeed,autoSell=autoSell,stocks=materialStocks,features=technology.Export(),discoveries=new List<string>(discoveries).ToArray()};
             for(int i=0;i<codeWindows.Count;i++){var w=codeWindows[i];saved.windows.Add(new SavedWindow{name=w.name,text=i==activeWindow?source:w.text,rect=w.rect,seed=w.seed});}
             foreach(var entry in shop.Items){var p=entry.Product;saved.items.Add(new SavedItem{owner=p.BlueprintName,material=p.Material,heat=p.FinalHeat,shaped=p.Shaped,traits=p.Traits,cost=p.CashCost,iron=p.IronConsumed,data=p.Data,seconds=p.ProductionSeconds});}
             PlayerPrefs.SetString(SaveKey,JsonUtility.ToJson(saved));PlayerPrefs.Save();saveMessage="공방 저장 완료";
         }catch(Exception error){saveMessage="저장 실패: "+error.Message;}
+    }
+    void ResetProgressForDebug(bool persist=true)
+    {
+        if(busy||executionSession!=null)return;
+        EndWorkspaceDrag();techTree.CancelDrag();guideBook.CancelDrag();
+        GUIUtility.hotControl=0;if(Event.current!=null)GUI.FocusControl(null);
+        gold=100;iron=10;diamonds=0;totalSales=0;earnedGold=0;tutorialStage=0;
+        worldSeed=Guid.NewGuid().GetHashCode();craftSpeed=1;autoSell=false;
+        materialStocks=new ForgeMaterialStock[8];
+        for(int i=0;i<materialStocks.Length;i++)materialStocks[i]=new ForgeMaterialStock{material=i+2};
+        technology.Restore(Array.Empty<BlueprintFeature>());discoveries.Clear();shop.Clear();
+        DayCycle.Clock.Restore(1,8);
+        workspaceOffset=Vector2.zero;workspaceZoom=1;UpdateWorkspaceCamera();
+        source=InitialSource;workspaceWindow=InitialCodeWindow;showSalesPanel=false;
+        codeWindows.Clear();
+        codeWindows.Add(new CodeWindow{id=0,name="f1",text=InitialSource,rect=workspaceWindow});
+        activeWindow=0;nextWindowId=1;windowsInitialized=true;
+        undoHistory=codeWindows[0].undo;scroll=Vector2.zero;
+        deleteWindowId=-1;renamingWindow=-1;selectedProductId=-1;
+        executionSources.Clear();executionOwner=null;executionLedger=null;executionProduct=null;receiptCursor=0;
+        workspaceOffset=Vector2.zero;workspaceZoom=1;englishGuideUnlocked=false;
+        showGuideBook=false;showTechTree=false;showProgress=false;showDebugWindow=false;
+        debugOutput.Clear();debugScroll=Vector2.zero;logs=Vector2.zero;
+        if(craftMotion!=null)craftMotion.BeginRun();
+        reportError=false;resultOwner="아직 실행하지 않음";
+        report="게임을 초기화했습니다. ▷로 한 줄씩 실행하거나 ▶로 전체 실행하세요.";
+        purchaseMessage="재료는 반복 구매, 기능은 한 번 구매해 해금합니다.";
+        progressLoaded=persist;if(persist)SaveProgress();
     }
     void OnApplicationQuit(){SaveProgress();}
     bool CommitExtraMaterials(Step step)
@@ -82,6 +118,9 @@ public partial class ForgeMvp
         GUI.Box(new Rect(0,0,Screen.width,Screen.height),"");
         GUILayout.BeginArea(new Rect(20,20,Mathf.Max(100,Screen.width-40),Mathf.Max(100,Screen.height-40)));
         if(GUILayout.Button("← 대장간으로 돌아가기")){showProgress=false;}
+        bool canReturn=GUI.enabled;GUI.enabled=canReturn&&!busy&&executionSession==null;
+        if(GUILayout.Button("저장하고 타이틀로"))ReturnToTitle();
+        GUI.enabled=canReturn;
         progressScroll=GUILayout.BeginScrollView(progressScroll);
         GUILayout.Label("공방 기록 · Day "+DayCycle.Day+" · "+((int)DayCycle.CurrentHour).ToString("00")+":"+((int)(DayCycle.CurrentHour*60)%60).ToString("00"));
         GUILayout.Label("골드 "+gold+"G · 다이아몬드 "+diamonds+" · 판매 "+totalSales+"개 · 누적 판매액 "+earnedGold+"G");
@@ -134,5 +173,119 @@ public static class ForgeCodeTranslation
         var tokens=BlueprintLexer.Scan(source,true);var result=new System.Text.StringBuilder(source);
         for(int i=tokens.Count-1;i>=0;i--){var t=tokens[i];var alias=BlueprintAliases.Find(t.Feature);if(alias==null||alias.Symbol.Length==0)continue;result.Remove(t.Start,t.Length).Insert(t.Start,english?alias.English:alias.Symbol);}
         return result.ToString();
+    }
+}
+
+public partial class ForgeMvp
+{
+    bool showTitle=true;
+    int titlePage,confirmSlot;
+    string titleMessage="";
+    Vector2 titleScroll;
+    float masterVolume=1;
+    GUIStyle menuTitle,menuText,menuButton;
+    void InitializeTitle()
+    {
+        // Keep the legacy copy intact; migrating never overwrites an existing slot.
+        if(PlayerPrefs.HasKey(LegacySaveKey)&&!PlayerPrefs.HasKey(SlotKey(1))){
+            PlayerPrefs.SetString(SlotKey(1),PlayerPrefs.GetString(LegacySaveKey));PlayerPrefs.Save();
+        }
+        masterVolume=Mathf.Clamp01(PlayerPrefs.GetFloat("MakeYourItem.Settings.Volume",1));
+        AudioListener.volume=masterVolume;
+        if(PlayerPrefs.HasKey("MakeYourItem.Settings.Fullscreen"))Screen.fullScreen=PlayerPrefs.GetInt("MakeYourItem.Settings.Fullscreen")==1;
+        showTitle=true;titlePage=0;progressLoaded=false;activeSaveSlot=0;DayCycle.Paused=true;
+    }
+    string SlotSummary(int slot)
+    {
+        if(!PlayerPrefs.HasKey(SlotKey(slot)))return "빈 슬롯";
+        try {
+            var saved=JsonUtility.FromJson<SavedProgress>(PlayerPrefs.GetString(SlotKey(slot)));
+            if(saved==null||saved.version!=1||saved.day<1)throw new Exception();
+            return "Day "+saved.day+" · "+saved.gold+"G · 다이아 "+saved.diamonds+"\n"+(string.IsNullOrEmpty(saved.savedAt)?"기존 저장 데이터":saved.savedAt);
+        }catch{return "읽을 수 없는 저장 데이터";}
+    }
+    void EnterSavedSlot(int slot)
+    {
+        activeSaveSlot=slot;
+        if(LoadProgress()){showTitle=false;DayCycle.Paused=false;titleMessage="";}
+        else {titleMessage=saveMessage;activeSaveSlot=0;}
+        if(Event.current!=null)GUI.FocusControl(null);
+    }
+    void StartNewSlot(int slot)
+    {
+        activeSaveSlot=slot;ResetProgressForDebug();
+        if(saveMessage.StartsWith("저장 실패")){titleMessage=saveMessage;progressLoaded=false;return;}
+        showTitle=false;DayCycle.Paused=false;titleMessage="";if(Event.current!=null)GUI.FocusControl(null);
+    }
+    void ReturnToTitle()
+    {
+        if(busy||executionSession!=null)return;
+        SaveProgress();
+        if(saveMessage.StartsWith("저장 실패"))return;
+        showProgress=false;showTitle=true;titlePage=0;titleMessage="";DayCycle.Paused=true;progressLoaded=false;
+        if(Event.current!=null)GUI.FocusControl(null);
+    }
+    void QuitFromTitle()
+    {
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying=false;
+#else
+        Application.Quit();
+#endif
+    }
+    void DrawTitle()
+    {
+        if(menuTitle==null){
+            menuTitle=new GUIStyle(GUI.skin.label){font=codeStyle.font,fontSize=36,fontStyle=FontStyle.Bold,alignment=TextAnchor.MiddleCenter,wordWrap=true};
+            menuTitle.normal.textColor=new Color(1,.85f,.54f);
+            menuText=new GUIStyle(GUI.skin.label){font=codeStyle.font,fontSize=18,wordWrap=true,alignment=TextAnchor.MiddleCenter};
+            menuText.normal.textColor=new Color(.93f,.90f,.82f);
+            menuButton=new GUIStyle(GUI.skin.button){font=codeStyle.font,fontSize=22,wordWrap=true,padding=new RectOffset(12,12,10,10)};
+        }
+        Color old=GUI.color;GUI.color=new Color(.075f,.085f,.10f);GUI.DrawTexture(new Rect(0,0,Screen.width,Screen.height),Texture2D.whiteTexture);GUI.color=old;
+        float width=Mathf.Min(560,Mathf.Max(1,Screen.width-32));
+        Rect panel=new Rect((Screen.width-width)/2,Mathf.Max(12,(Screen.height-650)/2),width,Mathf.Max(1,Mathf.Min(650,Screen.height-24)));
+        GUILayout.BeginArea(panel);
+        titleScroll=GUILayout.BeginScrollView(titleScroll);
+        GUILayout.Space(18);GUILayout.Label("MAKE YOUR ITEM",menuTitle);GUILayout.Space(8);
+        GUILayout.Label("숫자로 도면을 그리고, 나만의 무기를 만드세요.",menuText);GUILayout.Space(24);
+        if(titlePage==0){
+            if(GUILayout.Button("게임 시작",menuButton,GUILayout.MinHeight(58))){titlePage=1;titleMessage="";}
+            if(GUILayout.Button("이어하기",menuButton,GUILayout.MinHeight(58))){titlePage=2;titleMessage="";}
+            if(GUILayout.Button("설정",menuButton,GUILayout.MinHeight(58)))titlePage=4;
+            if(GUILayout.Button("종료",menuButton,GUILayout.MinHeight(58)))QuitFromTitle();
+        }else if(titlePage==1||titlePage==2){
+            bool fresh=titlePage==1;
+            GUILayout.Label(fresh?"새 게임을 저장할 슬롯을 선택하세요.":"이어할 슬롯을 선택하세요.",menuText);
+            for(int slot=1;slot<=SlotCount;slot++){
+                bool enabled=GUI.enabled;GUI.enabled=enabled&&(fresh||PlayerPrefs.HasKey(SlotKey(slot)));
+                if(GUILayout.Button("슬롯 "+slot+" · "+SlotSummary(slot),menuButton,GUILayout.MinHeight(86))){
+                    if(fresh){confirmSlot=slot;titlePage=3;}else EnterSavedSlot(slot);
+                }
+                GUI.enabled=enabled;
+            }
+            if(GUILayout.Button("뒤로",menuButton))titlePage=0;
+        }else if(titlePage==3){
+            GUILayout.Label("슬롯 "+confirmSlot+"에서 새 게임을 시작할까요?",menuTitle);
+            GUILayout.Space(16);
+            GUILayout.Label(PlayerPrefs.HasKey(SlotKey(confirmSlot))?"이 슬롯의 기존 진행 상황과 작성한 도면을 덮어씁니다. 되돌릴 수 없습니다. 다른 슬롯은 유지됩니다.":"100G와 철 10개로 Day 1 오전 8시에 시작합니다. 진행 상황은 선택한 슬롯에 저장됩니다.",menuText);
+            GUILayout.Space(20);
+            if(GUILayout.Button("확인 · 새 게임 시작",menuButton,GUILayout.MinHeight(58)))StartNewSlot(confirmSlot);
+            if(GUILayout.Button("취소",menuButton,GUILayout.MinHeight(58)))titlePage=1;
+        }else if(titlePage==4){
+            GUILayout.Label("설정",menuTitle);GUILayout.Space(20);
+            GUILayout.Label("전체 음량 · "+Mathf.RoundToInt(masterVolume*100)+"%",menuText);
+            float volume=GUILayout.HorizontalSlider(masterVolume,0,1,GUILayout.Height(28));
+            if(!Mathf.Approximately(volume,masterVolume)){
+                masterVolume=volume;AudioListener.volume=volume;PlayerPrefs.SetFloat("MakeYourItem.Settings.Volume",volume);PlayerPrefs.Save();
+            }
+            GUILayout.Space(16);
+            if(GUILayout.Button("화면 모드 · "+(Screen.fullScreen?"전체 화면":"창 모드"),menuButton,GUILayout.MinHeight(58))){
+                bool fullscreen=!Screen.fullScreen;Screen.fullScreen=fullscreen;PlayerPrefs.SetInt("MakeYourItem.Settings.Fullscreen",fullscreen?1:0);PlayerPrefs.Save();
+            }
+            GUILayout.Space(16);if(GUILayout.Button("뒤로",menuButton))titlePage=0;
+        }
+        if(!string.IsNullOrEmpty(titleMessage)){GUILayout.Space(12);GUILayout.Label(titleMessage,menuText);}
+        GUILayout.EndScrollView();GUILayout.EndArea();
     }
 }

@@ -136,6 +136,7 @@ public sealed class ForgeShop
     public ForgeShop() { view = entries.AsReadOnly(); }
     public IReadOnlyList<Entry> Items => view;
     public int Count => entries.Count;
+    public void Clear(){entries.Clear();nextId=1;}
     public int Add(ForgeProduct product)
     {
         ForgePricing.Quote(product); // Reject incomplete/unpriceable records before listing.

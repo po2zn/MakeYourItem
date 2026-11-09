@@ -7,9 +7,17 @@ using UnityEngine;
 public partial class ForgeMvp : MonoBehaviour
 {
     [SerializeField] Color reservedColor = new Color(197f/255f, 134f/255f, 192f/255f, 1f);
-    const string Example = "Material = 1\nBlade = 1(Material)\n2(Blade, 7)\n3(Blade)\n4(Blade, 0)\n!Blade";
-    string source = Example, report = "▷로 한 줄씩 실행하거나 ▶로 전체 실행하세요. 실제 재료가 소비됩니다.", hover = "";
+    const string InitialSource = "";
+    string source = InitialSource, report = "▷로 한 줄씩 실행하거나 ▶로 전체 실행하세요. 실제 재료가 소비됩니다.", hover = "";
     Rect workspaceWindow = new Rect(30, 135, 360, 240);
+    Rect InitialCodeWindow {
+        get {
+            Vector3 smith=workspaceCamera?workspaceCamera.WorldToScreenPoint(new Vector3(1.2f,.9f,0)):new Vector3(Screen.width*.65f,Screen.height*.5f,0);
+            float x=Mathf.Clamp(smith.x-360-104,12,Mathf.Max(12,Screen.width-372));
+            float y=Mathf.Clamp(Screen.height-smith.y-180,ToolbarHeight+15,Mathf.Max(ToolbarHeight+15,Screen.height-252));
+            return new Rect(x,y,360,240);
+        }
+    }
     Vector2 workspaceOffset;
     float workspaceZoom = 1f;
     class CodeWindow
@@ -42,7 +50,7 @@ public partial class ForgeMvp : MonoBehaviour
     int dragButton = -1, dragControl;
     int codePointerControl;
     Vector2 dragStartMouse, dragStartPosition;
-    bool showSalesPanel = true;
+    bool showSalesPanel = false;
     bool showGuideBook,showTechTree;
     readonly ForgeTechTreeScreen techTree=new ForgeTechTreeScreen();
     readonly ForgeTechnology technology=new ForgeTechnology();
@@ -107,7 +115,9 @@ public partial class ForgeMvp : MonoBehaviour
         new ForgeMaterialStock{material=4},new ForgeMaterialStock{material=5},
         new ForgeMaterialStock{material=6},new ForgeMaterialStock{material=7},
         new ForgeMaterialStock{material=8},new ForgeMaterialStock{material=9}};
-    float ToolbarHeight => Mathf.Max(120,materialHud.Height(Mathf.Max(144,Screen.width-496),materialStocks));
+    float StatusTop => Screen.width>=960?4:124;
+    float MaterialTop => StatusTop+124;
+    float ToolbarHeight => Mathf.Max(156,materialHud.Height(Mathf.Max(144,Screen.width-496),materialStocks,MaterialTop));
     int products => shop.Count;
     int selectedProductId = -1;
     bool busy;
@@ -260,8 +270,9 @@ public partial class ForgeMvp : MonoBehaviour
         workspaceCamera = Camera.main;
         if (workspaceCamera)
         {
-            workspaceCamera.transform.position = new Vector3(0, 5, -9);
-            workspaceCamera.transform.LookAt(new Vector3(0, 1, 0));
+            Vector3 smithCenter = new Vector3(1.2f, .9f, 0);
+            workspaceCamera.transform.position = smithCenter + new Vector3(0, 4, -9);
+            workspaceCamera.transform.LookAt(smithCenter);
             workspaceCamera.orthographic = true;
             workspaceCamera.clearFlags = CameraClearFlags.SolidColor;
             workspaceCamera.backgroundColor = new Color(.24f, .25f, .27f, 1f);
@@ -270,7 +281,7 @@ public partial class ForgeMvp : MonoBehaviour
         }
         DayCycle = GetComponent<ForgeDayCycle>();
         if (!DayCycle) DayCycle = gameObject.AddComponent<ForgeDayCycle>();
-        LoadProgress();
+        InitializeTitle();
         var bench = GameObject.CreatePrimitive(PrimitiveType.Cube);
         bench.name = "Temporary Workbench";
         bench.transform.position = new Vector3(2, .5f, 0);
@@ -360,9 +371,10 @@ public partial class ForgeMvp : MonoBehaviour
     void OnGUI()
     {
         InitializeCodeStyle();
+        if(showTitle){DrawTitle();return;}
         if(showProgress){DrawProgress();return;}
         if(showTechTree){if(techTree.Draw(codeStyle.font,technology,gold,iron,materialStocks,busy||executionSession!=null,purchaseMessage,PurchaseTechnology)){showTechTree=false;GUI.FocusControl(null);}return;}
-        if (!windowsInitialized) { windowsInitialized = true; nextWindowId = 1; codeWindows.Add(new CodeWindow { rect = workspaceWindow, id = 0, name = "f1" }); }
+        if (!windowsInitialized) { workspaceWindow=InitialCodeWindow; windowsInitialized = true; nextWindowId = 1; codeWindows.Add(new CodeWindow { rect = workspaceWindow, id = 0, name = "f1" }); }
         EventType resourceEvent = Event.current.type;
         bool maskResources = deleteWindowId < 0 && DebugResourcesRect.Contains(Event.current.mousePosition) && (Event.current.isMouse || Event.current.type == EventType.ScrollWheel);
         if(maskResources)Event.current.type=EventType.Ignore;
@@ -599,10 +611,11 @@ public partial class ForgeMvp : MonoBehaviour
         debugResourceScroll=GUI.BeginScrollView(viewport,debugResourceScroll,new Rect(0,0,780,594));
         bool enabled=GUI.enabled;
         GUI.enabled=enabled&&!busy&&executionSession==null;
-        for(int i=0;i<11;i++){
-            string name=i==10?"하루 넘기기":(i==0?"골드":ForgeMaterialGuide.Find(i).Name)+" +1,000";
+        for(int i=0;i<12;i++){
+            string name=i==11?"게임 초기화":i==10?"하루 넘기기":(i==0?"골드":ForgeMaterialGuide.Find(i).Name)+" +1,000";
             Rect button=new Rect((i%2)*390,(i/2)*99,378,87);
-            if(GUI.Button(button,new GUIContent(name,i==10?"현재 시각을 유지하며 다음 날로 이동합니다.":"제작을 멈춘 상태에서 자원을 추가합니다."),debugButtonStyle)){
+            if(GUI.Button(button,new GUIContent(name,i==11?"자원·날짜·해금·완성품·기록·작성한 도면을 초기화하고 저장합니다.":i==10?"현재 시각을 유지하며 다음 날로 이동합니다.":"제작을 멈춘 상태에서 자원을 추가합니다."),debugButtonStyle)){
+                if(i==11){ResetProgressForDebug();continue;}
                 if(i==10){
                     if(DayCycle!=null&&DayCycle.Day<int.MaxValue)DayCycle.Clock.Restore(DayCycle.Day+1,DayCycle.CurrentHour);
                     SaveProgress();
@@ -626,18 +639,28 @@ public partial class ForgeMvp : MonoBehaviour
         GUI.enabled=enabled;
         GUI.EndScrollView();
     }
+    GUIStyle statusTextStyle;
+    void DrawStatusTile(Rect rect,string title,string value,string tooltip)
+    {
+        if(statusTextStyle==null)statusTextStyle=new GUIStyle(GUI.skin.label){font=codeStyle.font,fontSize=28,alignment=TextAnchor.MiddleCenter,padding=new RectOffset(0,0,0,0),richText=false};
+        // Same 112px footprint and button skin as the action icons on the right.
+        GUI.Box(rect,new GUIContent("",tooltip),GUI.skin.button);
+        GUI.Label(new Rect(rect.x+4,rect.y+12,rect.width-8,36),title,statusTextStyle);
+        GUI.Label(new Rect(rect.x+4,rect.y+58,rect.width-8,36),value,statusTextStyle);
+    }
     void DrawToolbar()
     {
         DrawProgressButton();
-        GUI.Box(new Rect(0,0,Screen.width,40),"");
-        GUI.Label(new Rect(12,8,Mathf.Max(0,Screen.width-610),28),"자금 "+gold+"G · 완성품 "+products+" · 확대 "+Mathf.RoundToInt(workspaceZoom*100)+"%");
-        materialHud.Draw(iron,materialStocks,codeStyle.font,Mathf.Max(144,Screen.width-496));
+        DrawStatusTile(new Rect(12,StatusTop,112,112),"자금",ForgeMaterialHud.FormatCount(gold)+"G",gold.ToString("N0")+"G");
+        DrawStatusTile(new Rect(132,StatusTop,112,112),"완성품",ForgeMaterialHud.FormatCount(products),products.ToString("N0")+"개");
+        DrawStatusTile(new Rect(252,StatusTop,112,112),"확대",Mathf.RoundToInt(workspaceZoom*100)+"%","현재 작업 화면 배율");
+        materialHud.Draw(iron,materialStocks,codeStyle.font,Mathf.Max(144,Screen.width-496),MaterialTop);
         Rect tech=new Rect(Screen.width-122,4,112,112);
         if(ForgeGuideUI.IconButton(tech,ForgeGuideUI.Icon.TechTree,"테크 트리")){OpenTechTree();return;}
         Rect book=new Rect(Screen.width-242,4,112,112);
         Rect shopButton=new Rect(Screen.width-362,4,112,112);
         Rect add=new Rect(Screen.width-482,4,112,112);
-        if(GUI.Button(new Rect(Screen.width-580,6,90,28),"디버그 창"))showDebugWindow=!showDebugWindow;
+        if(GUI.Button(new Rect(Screen.width-122,124,112,28),"디버그 창"))showDebugWindow=!showDebugWindow;
         if(ForgeGuideUI.IconButton(add,ForgeGuideUI.Icon.Add,"코드 창 추가"))
         {
             CommitName();
