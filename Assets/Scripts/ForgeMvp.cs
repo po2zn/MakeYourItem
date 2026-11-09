@@ -42,6 +42,10 @@ public class ForgeMvp : MonoBehaviour
     bool showSalesPanel = true;
     bool showGuideBook,showTechTree;
     readonly ForgeTechTreeScreen techTree=new ForgeTechTreeScreen();
+    readonly ForgeTechnology technology=new ForgeTechnology();
+    string purchaseMessage="재료는 반복 구매, 기능은 한 번 구매해 해금합니다.";
+    void PurchaseTechnology(ForgeTechnology.Offer offer)
+    {technology.TryPurchase(offer,ref gold,ref iron,ref materialStocks,busy,out purchaseMessage);}
     [SerializeField, Tooltip("안내서의 영문 문법 표시 여부. 추후 구매/저장 상태에서 설정합니다.")]
     bool englishGuideUnlocked;
     public bool EnglishGuideUnlocked => englishGuideUnlocked;
@@ -262,15 +266,15 @@ public class ForgeMvp : MonoBehaviour
         bench.transform.position = new Vector3(2, .5f, 0);
         bench.transform.localScale = new Vector3(3, .3f, 2);
     }
-    public static Evaluation Evaluate(string source, int availableGold = int.MaxValue, int availableIron = int.MaxValue, string owner = "", uint seed = 1, IReadOnlyDictionary<int,long> materialStocks = null)
-    { return BlueprintRuntime.Evaluate(source, availableGold, availableIron, owner, seed, materialStocks); }
+    public static Evaluation Evaluate(string source, int availableGold = int.MaxValue, int availableIron = int.MaxValue, string owner = "", uint seed = 1, IReadOnlyDictionary<int,long> materialStocks = null, ForgeTechnology technology = null)
+    { return BlueprintRuntime.Evaluate(source, availableGold, availableIron, owner, seed, materialStocks, technology); }
     void Execute(bool preview)
     {
         if (busy) return;
         var owner = codeWindows[activeWindow];
         var availableMaterials=new Dictionary<int,long>();
         foreach(var stock in materialStocks??Array.Empty<ForgeMaterialStock>())if(stock!=null&&stock.unlocked)availableMaterials[stock.material]=stock.count;
-        var evaluation = Evaluate(source, gold, iron, owner.name, owner.seed,availableMaterials);
+        var evaluation = Evaluate(source, gold, iron, owner.name, owner.seed,availableMaterials,technology);
         if (evaluation.compileError)
         {
             owner.diagnostic = new ForgeCompileDiagnostic(source, evaluation.errorLine, evaluation.errorMessage);
@@ -434,7 +438,7 @@ public class ForgeMvp : MonoBehaviour
     void OnGUI()
     {
         InitializeCodeStyle();
-        if(showTechTree){if(techTree.Draw(codeStyle.font)){showTechTree=false;GUI.FocusControl(null);}return;}
+        if(showTechTree){if(techTree.Draw(codeStyle.font,technology,gold,iron,materialStocks,busy,purchaseMessage,PurchaseTechnology)){showTechTree=false;GUI.FocusControl(null);}return;}
         if (!windowsInitialized) { windowsInitialized = true; nextWindowId = 1; codeWindows.Add(new CodeWindow { rect = workspaceWindow, id = 0, name = "f1" }); }
         EventType modalEvent = Event.current.type;
         bool modalOpen = deleteWindowId >= 0;

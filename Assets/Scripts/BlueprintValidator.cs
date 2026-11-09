@@ -15,10 +15,14 @@ public sealed class BlueprintValidator
     int expressionDepth;
     readonly Dictionary<string,int> callDepths=new Dictionary<string,int>();
     bool hasFinish;
-    public BlueprintValidator(List<BlueprintStatement> body) {program=new BlueprintProgram {Body=body};}
+    readonly ForgeTechnology technology;
+    public BlueprintValidator(List<BlueprintStatement> body,ForgeTechnology technology=null) {program=new BlueprintProgram {Body=body};this.technology=technology;}
     void Error(BlueprintToken token,string message) {throw new BlueprintException(token.Line,message);}
     public BlueprintProgram Validate()
     {
+        if(technology!=null)foreach(var call in Calls(program.Body))
+            if(ForgeTechnology.RequiresPurchase(call.Feature)&&!technology.Owns(call.Feature))
+                Error(call.Token,"테크 트리에서 먼저 구매해야 하는 기능입니다: "+BlueprintAliases.Find(call.Feature).Symbol+"()");
         foreach(var s in program.Body) if(s.Kind==BlueprintStatementKind.Def) {
             if(BlueprintAliases.Find(s.Name)!=null || program.Functions.ContainsKey(s.Name)) Error(s.Token,"중복 또는 내장 함수 이름: "+s.Name);
             program.Functions.Add(s.Name,s);

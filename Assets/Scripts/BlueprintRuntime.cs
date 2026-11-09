@@ -19,10 +19,10 @@ public sealed class BlueprintRuntime
     struct Signal { public Flow Flow; public object Value; public Signal(Flow flow,object value=null){Flow=flow;Value=value;} }
     BlueprintRuntime(BlueprintProgram program,int gold,int iron,string owner,uint seed,IReadOnlyDictionary<int,long> materialStocks=null)
     {stocks=materialStocks==null?null:new Dictionary<int,long>();if(materialStocks!=null)foreach(var item in materialStocks)stocks[item.Key]=item.Value;this.program=program;this.gold=gold;this.iron=iron;this.owner=owner;randomState=seed;result.debugOnly=program.DebugOnly;}
-    public static ForgeMvp.Evaluation Evaluate(string source,int gold,int iron,string owner,uint seed,IReadOnlyDictionary<int,long> materialStocks=null)
+    public static ForgeMvp.Evaluation Evaluate(string source,int gold,int iron,string owner,uint seed,IReadOnlyDictionary<int,long> materialStocks=null,ForgeTechnology technology=null)
     {
         BlueprintProgram program;
-        try {program=new BlueprintValidator(new BlueprintParser(source).Parse()).Validate();}
+        try {program=new BlueprintValidator(new BlueprintParser(source).Parse(),technology).Validate();}
         catch(BlueprintException e){return Failure(new ForgeMvp.Evaluation(),e,true);}
         var runtime=new BlueprintRuntime(program,gold,iron,owner,seed,materialStocks);
         try {

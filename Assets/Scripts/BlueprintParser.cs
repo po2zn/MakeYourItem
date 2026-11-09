@@ -25,6 +25,7 @@ public sealed class BlueprintStatement
 public sealed class BlueprintParser
 {
     readonly List<BlueprintToken> tokens;
+    readonly HashSet<string> functionNames = new HashSet<string>(StringComparer.Ordinal);
     int cursor, depth, conditionDepth;
     BlueprintToken Current => tokens[Math.Min(cursor,tokens.Count-1)];
     BlueprintToken Take() { return tokens[cursor++]; }
@@ -89,7 +90,15 @@ public sealed class BlueprintParser
             case BlueprintFeature.Def:
                 Take(); statement.Kind=BlueprintStatementKind.Def;
                 if(token.Raw=="333"&&Current.Raw=="(")Fail("함수 정의는 333 함수명(매개변수): 형식으로 작성하세요.");
+                var nameToken=Current;
+                if(BlueprintAliases.Find(nameToken.Raw)!=null ||
+                   (nameToken.Kind==BlueprintTokenKind.Number && int.TryParse(nameToken.Raw,out int process) && process>=1 && process<=4))
+                    throw new BlueprintException(nameToken.Line,"기존 게임 함수 또는 예약된 이름은 함수명으로 사용할 수 없습니다: "+nameToken.Raw);
                 statement.Name=Identifier();
+                if(BlueprintAliases.Find(statement.Name)!=null)
+                    throw new BlueprintException(nameToken.Line,"기존 게임 함수 또는 예약된 이름은 함수명으로 사용할 수 없습니다: "+nameToken.Raw);
+                if(!functionNames.Add(statement.Name))
+                    throw new BlueprintException(nameToken.Line,"이미 정의된 함수명은 다시 사용할 수 없습니다: "+nameToken.Raw);
                 Need("("); if(!Match(")")) { do { statement.Parameters.Add(Identifier()); } while(Match(",")); Need(")"); }
                 if(statement.Parameters.Count>8) throw new BlueprintException(token.Line,"매개변수는 최대8개입니다.");
                 statement.Body=Block(); return statement;
