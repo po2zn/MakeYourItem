@@ -51,11 +51,11 @@ public static class BlueprintPrintChecks
             var r=ForgeMvp.Evaluate("value = '"+value+"'\nprint('before')\nprint(value, value)");
             Require(r.error!=null&&!r.compileError&&r.steps.Count==1&&r.errorMessage.Contains("출력 한도"),r.error);
         });
-        check("prints cannot bypass missing completion for crafting",()=>{
-            var r=ForgeMvp.Evaluate("print('start')\nBlade = 1(1)");Require(r.compileError&&r.steps.Count==0&&r.errorMessage.Contains("!Blade"),r.error);
+        check("prints and crafting run without submission",()=>{
+            var r=ForgeMvp.Evaluate("print('start')\nBlade = 1(1)");Require(r.error==null&&r.steps.Count==2&&r.product==null&&r.cost==10,r.error);
         });
-        check("failure excludes later prints and keeps previous production cost",()=>{
-            var r=ForgeMvp.Evaluate("print('start')\nBlade = 1(1)\n3(Blade)\nprint('after')\n!Blade");Require(r.error!=null&&!r.compileError&&r.cost==10&&r.product==null&&r.steps.Count(s=>s.debugOutput)==1,r.error);
+        check("cold strike permits later prints and zero-value submission",()=>{
+            var r=ForgeMvp.Evaluate("print('start')\nBlade = 1(1)\n3(Blade)\nprint('after')\n!Blade");Require(r.error==null&&r.cost==10&&r.product!=null&&ForgePricing.Quote(r.product).SalePrice==0&&r.steps.Count(s=>s.debugOutput)==2,r.error);
         });
         check("print is yellow with tooltip; strings and comments stay opaque",()=>{
             const string source="print('print(<color=red>text</color>)') # print()";

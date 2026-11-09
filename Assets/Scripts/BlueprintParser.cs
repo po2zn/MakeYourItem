@@ -1,24 +1,30 @@
 using System;
 using System.Collections.Generic;
 
-public enum BlueprintExprKind { Literal, Name, Unary, Binary, Call, List, Tuple, Set, Dict, Index }
+public enum BlueprintExprKind { Literal, Name, Unary, Binary, Call, List, Tuple, Set, Dict, Index, Attribute }
 public sealed class BlueprintExpr
 {
     public BlueprintExprKind Kind;
     public BlueprintToken Token;
     public object Value;
+    public BlueprintExpr Callee;
     public string Name;
     public BlueprintFeature Feature;
     public int Process;
     public List<BlueprintExpr> Args = new List<BlueprintExpr>();
 }
-public enum BlueprintStatementKind { Assign, Call, If, For, While, Def, Return, Break, Continue, Finish }
+public enum BlueprintStatementKind { Assign, Call, If, For, While, Def, Return, Break, Continue, Finish, Import, FromImport }
+public sealed class BlueprintImportName
+{
+    public string Name, Alias;
+}
 public sealed class BlueprintStatement
 {
     public BlueprintStatementKind Kind;
     public BlueprintToken Token;
     public string Name;
     public BlueprintExpr Expr, Target;
+    public List<BlueprintImportName> Imports = new List<BlueprintImportName>();
     public List<string> Parameters = new List<string>();
     public List<BlueprintStatement> Body = new List<BlueprintStatement>(), Other = new List<BlueprintStatement>();
 }
@@ -78,6 +84,7 @@ public sealed class BlueprintParser
     BlueprintStatement Statement()
     {
         var token=Current; var statement=new BlueprintStatement { Token=token };
+        if(token.Raw=="import" || token.Raw=="from")return ImportStatement();
         switch(token.Feature)
         {
             case BlueprintFeature.If:
@@ -122,6 +129,32 @@ public sealed class BlueprintParser
             statement.Kind=BlueprintStatementKind.Call; statement.Expr=value;
         }
         EndLine(); return statement;
+    }
+    string ImportName()
+    {
+        string name=Identifier();
+        if(BlueprintAliases.Find(name)!=null)Fail("가져올 이름이나 별칭은 게임 내장 함수명과 겹칠 수 없습니다: "+name);
+        return name;
+    }
+    BlueprintStatement ImportStatement()
+    {
+        var token=Take();
+        var statement=new BlueprintStatement{Token=token,Kind=token.Raw=="import"?BlueprintStatementKind.Import:BlueprintStatementKind.FromImport};
+        if(statement.Kind==BlueprintStatementKind.FromImport){statement.Name=Identifier();Need("import");}
+        bool wrapped=statement.Kind==BlueprintStatementKind.FromImport&&Match("(");
+        if(statement.Kind==BlueprintStatementKind.FromImport&&Match("*")){
+            if(wrapped)Fail("import *에는 괄호를 사용할 수 없습니다.");
+            statement.Imports.Add(new BlueprintImportName{Name="*"});
+        }else{
+            do {
+                string name=Identifier();
+                string alias=Match("as")?ImportName():name;
+                if(BlueprintAliases.Find(alias)!=null)Fail("별칭은 게임 내장 함수명과 겹칠 수 없습니다: "+alias);
+                statement.Imports.Add(new BlueprintImportName{Name=name,Alias=alias});
+            }while(Match(",")&&(!wrapped||Current.Raw!=")"));
+        }
+        if(wrapped)Need(")");
+        EndLine();return statement;
     }
     BlueprintExpr Node(BlueprintExprKind kind, BlueprintToken token, params BlueprintExpr[] args)
     { var node=new BlueprintExpr { Kind=kind,Token=token }; node.Args.AddRange(args); return node; }
@@ -190,7 +223,19 @@ public sealed class BlueprintParser
             }
         }
         else throw new BlueprintException(token.Line,"표현식이 필요합니다: "+token.Raw);
-        while(Match("[")) {var index=Expression();Need("]");value=Node(BlueprintExprKind.Index,token,value,index);}
+        while(true) {
+            if(Match("[")){var index=Expression();Need("]");value=Node(BlueprintExprKind.Index,token,value,index);}
+            else if(Match(".")){
+                var member=Take();
+                if(member.Kind!=BlueprintTokenKind.Name)throw new BlueprintException(member.Line,"점 뒤에는 가져올 함수나 변수 이름이 필요합니다.");
+                string name;try{name=PythonIdentifier.Parse(member.Raw);}catch(Exception ex){throw new BlueprintException(member.Line,ex.Message);}
+                value=Node(BlueprintExprKind.Attribute,member,value);value.Name=name;
+            }else if(Match("(")){
+                var call=Node(BlueprintExprKind.Call,token);call.Callee=value;
+                if(!Match(")")){do{call.Args.Add(Expression());}while(Match(","));Need(")");}
+                value=call;
+            }else break;
+        }
         return value;
     }
     static string Decode(BlueprintToken token)

@@ -4,7 +4,7 @@ using System.Globalization;
 using System.Text;
 
 // The interpreter owns preview state only. Craft replays successful process receipts.
-public sealed class BlueprintRuntime
+public sealed partial class BlueprintRuntime
 {
     public const int CommandLimit=10000, CallLimit=32, CollectionLimit=1024;
     readonly BlueprintProgram program;
@@ -14,28 +14,28 @@ public sealed class BlueprintRuntime
     int gold, iron, commands, calls, allocated, printCount, printCharacters;
     readonly Dictionary<int,long> stocks;
     uint randomState;
-    int currentLine=1;
+    int currentLine=1, nextPieceId;
     enum Flow { Next, Break, Continue, Return, Finish }
     struct Signal { public Flow Flow; public object Value; public Signal(Flow flow,object value=null){Flow=flow;Value=value;} }
-    BlueprintRuntime(BlueprintProgram program,int gold,int iron,string owner,uint seed,IReadOnlyDictionary<int,long> materialStocks=null)
-    {stocks=materialStocks==null?null:new Dictionary<int,long>();if(materialStocks!=null)foreach(var item in materialStocks)stocks[item.Key]=item.Value;this.program=program;this.gold=gold;this.iron=iron;this.owner=owner;randomState=seed;result.debugOnly=program.DebugOnly;}
-    public static ForgeMvp.Evaluation Evaluate(string source,int gold,int iron,string owner,uint seed,IReadOnlyDictionary<int,long> materialStocks=null,ForgeTechnology technology=null)
+    BlueprintRuntime(BlueprintProgram program,int gold,int iron,string owner,uint seed,IReadOnlyDictionary<int,long> materialStocks=null,IReadOnlyDictionary<string,string> modules=null,ForgeTechnology technology=null)
+    {InitializeModules(modules,technology,program);stocks=materialStocks==null?null:new Dictionary<int,long>();if(materialStocks!=null)foreach(var item in materialStocks)stocks[item.Key]=item.Value;this.program=program;this.gold=gold;this.iron=iron;this.owner=owner;randomState=seed;result.debugOnly=program.DebugOnly;}
+    public static ForgeMvp.Evaluation Evaluate(string source,int gold,int iron,string owner,uint seed,IReadOnlyDictionary<int,long> materialStocks=null,ForgeTechnology technology=null,IReadOnlyDictionary<string,string> modules=null)
     {
         BlueprintProgram program;
         try {program=new BlueprintValidator(new BlueprintParser(source).Parse(),technology).Validate();}
         catch(BlueprintException e){return Failure(new ForgeMvp.Evaluation(),e,true);}
-        var runtime=new BlueprintRuntime(program,gold,iron,owner,seed,materialStocks);
+        var runtime=new BlueprintRuntime(program,gold,iron,owner,seed,materialStocks,modules,technology);
         try {
             runtime.Block(program.Body,runtime.result.values);
-            if(runtime.result.product==null && runtime.result.steps.Exists(step=>step.process>0))runtime.Fail("실행한 공정에 완성품 판정이 없습니다.");
             runtime.result.skipped=runtime.result.steps.Count==0;
+            runtime.result.debugOnly=runtime.result.product==null&&runtime.result.steps.Count>0&&runtime.result.steps.TrueForAll(step=>step.debugOutput);
         }catch(BlueprintException e){Failure(runtime.result,e,false);}
         catch(OverflowException){Failure(runtime.result,new BlueprintException(runtime.currentLine,"정수 범위 초과"),false);}
         return runtime.result;
     }
     static ForgeMvp.Evaluation Failure(ForgeMvp.Evaluation r,BlueprintException e,bool compile)
-    {r.compileError=compile;r.errorLine=e.Line;r.errorMessage=e.Message;r.error=(compile?"컴파일 오류":"공정 오류")+" · "+e.Line+"줄: "+e.Message;return r;}
-    void Fail(string message){throw new BlueprintException(currentLine,message);}
+    {r.compileError=compile;r.errorLine=e.Line;r.errorModule=e.ModuleName;r.errorMessage=e.Message;r.error=(compile?"컴파일 오류":"공정 오류")+" · "+(e.ModuleName==null?"":e.ModuleName+" · ")+e.Line+"줄: "+e.Message;return r;}
+    void Fail(string message){throw new BlueprintException(currentLine,message){ModuleName=currentModule.IsMain?null:currentModule.Name};}
     void Tick(BlueprintToken token){currentLine=token.Line;if(++commands>CommandLimit)Fail("도면 실행 명령 수 제한(10000)에 도달했습니다.");}
     int Int(object value){if(!(value is int))Fail("정수 인자가 필요합니다.");return (int)value;}
     bool Bool(object value){if(!(value is bool))Fail("조건은 bool이어야 합니다.");return (bool)value;}
@@ -52,6 +52,8 @@ public sealed class BlueprintRuntime
     Signal Block(List<BlueprintStatement> body,Dictionary<string,object> env)
     {
         foreach(var s in body){Tick(s.Token);switch(s.Kind){
+            case BlueprintStatementKind.Import:
+            case BlueprintStatementKind.FromImport:Import(s,env);break;
             case BlueprintStatementKind.Def:break;
             case BlueprintStatementKind.Assign:
                 var value=Eval(s.Expr,env);
@@ -74,11 +76,11 @@ public sealed class BlueprintRuntime
             case BlueprintStatementKind.Continue:return new Signal(Flow.Continue);
             case BlueprintStatementKind.Return:return new Signal(Flow.Return,s.Expr==null?null:Copy(Eval(s.Expr,env)));
             case BlueprintStatementKind.Finish:
-                var piece=Piece(Eval(s.Expr,env));currentLine=s.Token.Line;
-                if(piece.material!=1)Fail("이 재료의 완성품 제작법은 아직 없습니다: "+ForgeMaterialGuide.Find(piece.material).Name);
-                if(!piece.shaped||piece.heat!=0)Fail("완성품 검사 실패: 타격과 냉각이 필요합니다.");
-                AddStep(0,piece,0,0,"철 검날 완성품 판정 성공",true);
-                result.product=ledger.Complete(owner,piece.heat,piece.shaped,piece.traits);return new Signal(Flow.Finish);
+                if(!currentModule.IsMain)Fail("가져온 코드창에서는 !로 제출할 수 없습니다. 작업물을 반환하고 실행한 창에서 제출하세요. 직접 실행 전용 코드는 if __name__ == \"__main__\": 안에 작성하세요.");
+                var submitted=Eval(s.Expr,env);currentLine=s.Token.Line;
+                var piece=submitted is int material?LoadMaterial(material,0):Piece(submitted);
+                result.product=ledger.Complete(owner,piece.heat,piece.shaped,piece.traits,piece.material);
+                AddStep(0,piece,0,0,result.product.DisplayName+" 제출 · 평가 "+ForgePricing.Quote(result.product).SalePrice+"G",true);return new Signal(Flow.Finish);
         }}return new Signal(Flow.Next);
     }
     IList<int> Sequence(object value){if(value is List<int> l)return l;if(value is int[] t)return t;Fail("정수 리스트 또는 튜플이 필요합니다.");return null;}
@@ -88,11 +90,14 @@ public sealed class BlueprintRuntime
         Tick(e.Token);
         switch(e.Kind){
             case BlueprintExprKind.Literal:return e.Value;
-            case BlueprintExprKind.Name:if(!env.TryGetValue(e.Name,out var value))Fail("변수 '"+e.Name+"'에 아직 값이 없습니다. 이 줄 실행 전에 값을 대입하세요.");return value;
+            case BlueprintExprKind.Name:return Lookup(e.Name,env);
+            case BlueprintExprKind.Attribute:
+                var target=Eval(e.Args[0],env);currentLine=e.Token.Line;return Member(target,e.Name);
             case BlueprintExprKind.Unary:var unary=Eval(e.Args[0],env);currentLine=e.Token.Line;return e.Token.Raw=="not"?(object)!Bool(unary):checked(-Int(unary));
             case BlueprintExprKind.Binary:return Binary(e,env);
             case BlueprintExprKind.Call:
-                var args=new List<object>();foreach(var a in e.Args)args.Add(Eval(a,env));currentLine=e.Token.Line;return Call(e,args);
+                object callable=e.Callee!=null?Eval(e.Callee,env):e.Process==0&&e.Feature==BlueprintFeature.None?Lookup(e.Name,env):null;
+                var args=new List<object>();foreach(var a in e.Args)args.Add(Eval(a,env));currentLine=e.Token.Line;return e.Callee!=null||e.Process==0&&e.Feature==BlueprintFeature.None?Invoke(callable,args):Call(e,args);
             case BlueprintExprKind.Index:
                 var container=Eval(e.Args[0],env);int key=Int(Eval(e.Args[1],env));currentLine=e.Token.Line;
                 if(container is Dictionary<int,int> dict){if(!dict.TryGetValue(key,out int n))Fail("딕셔너리에 키가 없습니다: "+key);return n;}
@@ -131,6 +136,8 @@ public sealed class BlueprintRuntime
     static string PrintValue(object value)
     {
         if(value==null)return "None";
+        if(value is Module module)return "<module "+module.Name+">";
+        if(value is Function function)return "<function "+function.Module.Name+"."+function.Definition.Name+">";
         if(value is string text)return text;
         if(value is bool flag)return flag?"True":"False";
         if(value is int number)return number.ToString(CultureInfo.InvariantCulture);
@@ -166,7 +173,7 @@ public sealed class BlueprintRuntime
                 string message=output.ToString();
                 if(printCount>=256 || message.Length>65536-printCharacters)Fail("한 실행의 출력 한도(256개/65536자)를 초과했습니다.");
                 printCount++;printCharacters+=message.Length;
-                result.steps.Add(new ForgeMvp.Step{line=currentLine,debugOutput=true,text=message});return null;
+                result.steps.Add(new ForgeMvp.Step{line=currentLine,module=currentModule.IsMain?null:currentModule.Name,debugOutput=true,text=message});return null;
             case BlueprintFeature.Heat:return Piece(args[0]).heat;
             case BlueprintFeature.Abs:int n=Int(args[0]);return n<0?checked(-n):n;
             case BlueprintFeature.Len:if(args[0] is IList<int> l)return l.Count;if(args[0] is HashSet<int> s)return s.Count;if(args[0] is Dictionary<int,int> d)return d.Count;Fail("len에는 컬렉션이 필요합니다.");break;
@@ -179,32 +186,32 @@ public sealed class BlueprintRuntime
                 do {Tick(e.Token);randomState=unchecked(randomState*1664525u+1013904223u);sample=randomState;}while((ulong)sample>=bound);
                 return (int)((long)low+(long)((ulong)sample%span));
         }
-        if(++calls>CallLimit)Fail("함수 호출 깊이 제한(32)에 도달했습니다.");
-        try {var f=program.Functions[e.Name];var local=new Dictionary<string,object>();for(int i=0;i<args.Count;i++)local[f.Parameters[i]]=Copy(args[i]);return Block(f.Body,local).Value;}
-        finally{calls--;}
+        Fail("지원하지 않는 함수입니다.");return null;
     }
     object Process(int id,List<object> args)
     {
-        if(id==1){
-            int material=Int(args[0]);var entry=ForgeMaterialGuide.Find(material);
-            if(entry==null)Fail("등록되지 않은 재료 번호: "+material);
-            if(material>1&&stocks!=null&&(!stocks.TryGetValue(material,out long amount)||amount<1))Fail(entry.Name+" 재료가 잠겨 있거나 보유량이 부족합니다.");
-            var p=new ForgeMvp.Piece{material=material};
-            AddStep(1,p,10,material==1?1:0,entry.Name+" 올리기 · 10G");
-            if(material>1&&stocks!=null)stocks[material]--;
-            return p;
-        }
+        if(id==1)return LoadMaterial(Int(args[0]),10);
         var piece=Piece(args[0]);int heat=piece.heat;bool shaped=piece.shaped;var traits=piece.traits;
         if(id==2){heat=Int(args[1]);if(heat<1||heat>9)Fail("열 단계 범위: 1~9");traits&=~ForgeTraits.AirCooled;}
-        if(id==3){if(heat<6)Fail("실행 오류: 타격 전에 2(작업물, 6 이상)으로 가열해야 합니다.");shaped=true;}
+        if(id==3 && heat>=6)shaped=true;
         if(id==4){if(Int(args[1])!=0)Fail("현재 지원하는 냉각 재료는 공기(0)입니다.");heat=0;traits|=ForgeTraits.AirCooled;}
         // Validate and pay before committing state. Failed calls leave no receipt.
         if(!ledger.TrySpend(id==2?2:0,0,ref gold,ref iron))Fail("자금 또는 철 부족");
         piece.heat=heat;piece.shaped=shaped;piece.traits=traits;
-        Record(id,piece,id==2?2:0,0,id==2?"가열 · 연료 2G":id==3?"타격 · 검날 성형":"공기 냉각 · 0G",false);return null;
+        Record(id,piece,id==2?2:0,0,id==2?"가열 · 연료 2G":id==3?(heat>=6?"타격 · 검날 성형":"타격 · 열 부족으로 성형 효과 없음"):"공기 냉각 · 0G",false);return null;
+    }
+    ForgeMvp.Piece LoadMaterial(int material,int cost)
+    {
+        var entry=ForgeMaterialGuide.Find(material);
+        if(entry==null)Fail("등록되지 않은 재료 번호: "+material);
+        if(material>1&&stocks!=null&&(!stocks.TryGetValue(material,out long amount)||amount<1))Fail(entry.Name+" 재료가 잠겨 있거나 보유량이 부족합니다.");
+        var piece=new ForgeMvp.Piece{id=++nextPieceId,material=material};
+        AddStep(1,piece,cost,material==1?1:0,entry.Name+" 올리기 · "+cost+"G");
+        if(material>1&&stocks!=null)stocks[material]--;
+        return piece;
     }
     void AddStep(int process,ForgeMvp.Piece piece,int cost,int ironCost,string text,bool finished=false)
     {if(!ledger.TrySpend(cost,ironCost,ref gold,ref iron))Fail("자금 또는 철 부족");Record(process,piece,cost,ironCost,text,finished);}
     void Record(int process,ForgeMvp.Piece piece,int cost,int ironCost,string text,bool finished)
-    {result.steps.Add(new ForgeMvp.Step{line=currentLine,process=process,material=piece.material,materialCount=process==1&&piece.material!=0?1:0,heat=piece.heat,shaped=piece.shaped,traits=piece.traits,cost=cost,iron=ironCost,text=text,finished=finished});result.cost=ledger.CashCost;result.ironConsumed=ledger.IronConsumed;}
+    {result.steps.Add(new ForgeMvp.Step{line=currentLine,module=currentModule.IsMain?null:currentModule.Name,process=process,pieceId=piece.id,material=piece.material,materialCount=process==1&&piece.material!=0?1:0,heat=piece.heat,shaped=piece.shaped,traits=piece.traits,cost=cost,iron=ironCost,text=text,finished=finished});result.cost=ledger.CashCost;result.ironConsumed=ledger.IronConsumed;}
 }

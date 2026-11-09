@@ -39,7 +39,7 @@ BlueprintAliases.All이 식별자, 양쪽 표기, 문법 종류, 설명, 서명,
 - 영문 if condition:, while condition:, for x in values:, def name(args):와 괄호 조건을 지원한다. 숫자 반복문은 888(condition):, 123(x in values):를 사용한다. else/0?에는 조건 괄호가 없다.
 - 비교 == != < <= > >= in, 논리 and/or/not, True/False/None, Int32 + - * // %를 지원한다. 조건은 bool이다. //와 %는 Python 음수 내림 규칙이다. 연쇄 비교 대신 and를 사용한다.
 - !!와 ~~는 가장 가까운 반복문에만 작용한다. 함수 안의 break/continue로 호출자 반복문을 제어할 수 없다. <<는 중첩된 루프를 벗어나 현재 함수만 종료한다. 반환 생략/본문 끝은 None이다.
-- 함수는 최상위 정의, 최대8개 매개변수, 지역 변수만 사용한다. 글로벌 변수 캡처, 재귀(직접/간접), 함수값은 지원하지 않는다. 호출 깊이32 초과는 정적 검사와 실행기에서 제한한다.
+- 함수는 최상위에서 정의하며 최대8개 매개변수를 받는다. 호출별 지역 변수와 정의 모듈의 전역 변수 조회, 함수값, 직접·상호 재귀를 지원한다. 실제 동시 호출 깊이32와 전체 실행10000명령 한도를 실행기에서 검사한다. 실행하지 않은 재귀 정의나 긴 호출 체인은 컴파일 오류가 아니다.
 - 공정을 포함한 함수는 독립 호출 또는 변수 대입의 전체 우변에서만 호출한다. 조건식/공정 인자/중첩 수식에 숨겨서 실행할 수 없다. 숫자1 반환은 변수에 저장하며2~4의 반환값은 없다. !는 최상위 또는 그 if 안에서만 허용하며 도면 전체를 종료한다. 각 실행에서 최대1개 완성품이다.
 - 리스트 [9,7,5], 튜플 (6,7), 집합 {0,1}, 딕셔너리 {1:3}은 평면 정수 컬렉션이다. 빈 집합은 set()/1010(), {}는 딕셔너리다. 집합 중복은 제거하고 딕셔너리 중복 키는 뒤 값이 덮어쓴다.
 - 리스트/딕셔너리의 name[index] = integer만 변경할 수 있다. 리스트/튜플 인덱스는0부터 시작하고 음수는 오류다. 없는 딕셔너리 키를 읽으면 해당 접근 줄에서 오류, 대입은 키를 추가한다. for는 리스트/튜플의 시작 시점 복사본을 순회한다. 대입·인자·반환 시 컬렉션은 복사하고 작업물은 같은 참조를 공유한다.
@@ -124,7 +124,7 @@ Forge MVP Inspector의 Reserved Color 기본값은 #C586C0이다. 제어문과 �
 | Assets/Scripts/BlueprintAliases.cs | All/Find, 공통16개 매핑과 Tooltip |
 | Assets/Scripts/BlueprintLexer.cs | Scan, 원문/줄/범위/Feature와 최장 복합 토큰 우선 |
 | Assets/Scripts/BlueprintParser.cs | Parse/Statement/Expression/Block, AST 생성 |
-| Assets/Scripts/BlueprintValidator.cs | Validate/Statements/Expr/VisitCalls, 정적 오류·재귀/효과 검사 |
+| Assets/Scripts/BlueprintValidator.cs | Validate/Statements/Expr, 정적 오류·공정 효과 검사 |
 | Assets/Scripts/BlueprintRuntime.cs | Evaluate/Block/Eval/Call/Process, 공통 실행·제한·난수·원장 |
 | Assets/Scripts/BlueprintHelp.cs | Describe, 토큰과 호출 인자 문맥 툴팁 |
 | Assets/Scripts/ForgeSyntax.cs | Scan, 동일 lexer 기반 토큰 색상 분류 |

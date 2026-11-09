@@ -13,8 +13,8 @@ public sealed class BlueprintValidator
 {
     readonly BlueprintProgram program;
     int expressionDepth;
-    readonly Dictionary<string,int> callDepths=new Dictionary<string,int>();
-    bool hasFinish;
+    bool hasFinish, hasImports, hasStarImport;
+    readonly HashSet<string> dynamicNames=new HashSet<string>(StringComparer.Ordinal);
     readonly ForgeTechnology technology;
     public BlueprintValidator(List<BlueprintStatement> body,ForgeTechnology technology=null) {program=new BlueprintProgram {Body=body};this.technology=technology;}
     void Error(BlueprintToken token,string message) {throw new BlueprintException(token.Line,message);}
@@ -27,8 +27,9 @@ public sealed class BlueprintValidator
             if(BlueprintAliases.Find(s.Name)!=null || program.Functions.ContainsKey(s.Name)) Error(s.Token,"중복 또는 내장 함수 이름: "+s.Name);
             program.Functions.Add(s.Name,s);
         }
-        // Effects and recursion are resolved from the same canonical calls used by execution.
-        foreach(var pair in program.Functions) VisitCalls(pair.Key,new HashSet<string>());
+        CollectBindings(program.Body);
+        // Monotone effect propagation also terminates for recursive call graphs.
+        // Call depth is checked on the actual runtime path, not the static graph.
         bool changed;
         do { changed=false;foreach(var pair in program.Functions) if(!program.Effectful.Contains(pair.Key)&&HasEffects(pair.Value.Body)){program.Effectful.Add(pair.Key);changed=true;} }while(changed);
         foreach(var f in program.Functions.Values) {
@@ -38,26 +39,25 @@ public sealed class BlueprintValidator
         }
         Statements(program.Body,new Dictionary<string,BlueprintType>(),false,0,true);
         bool hasPrint=false;foreach(var call in Calls(program.Body))if(call.Feature==BlueprintFeature.Print)hasPrint=true;
-        program.DebugOnly=!hasFinish&&hasPrint&&!HasEffects(program.Body);
-        if(!hasFinish&&!program.DebugOnly) throw new BlueprintException(program.Body.Count==0?1:program.Body[program.Body.Count-1].Token.Line,"완성품 반환 !Blade가 필요합니다. 마지막 명령 뒤에 추가하세요.");
+        program.DebugOnly=!hasImports&&!hasFinish&&hasPrint&&!HasEffects(program.Body);
         return program;
     }
-    int VisitCalls(string name,HashSet<string> path)
+    void CollectBindings(List<BlueprintStatement> body)
     {
-        if(path.Contains(name))Error(program.Functions[name].Token,"재귀 호출은 지원하지 않습니다: "+name);
-        if(path.Count>=32)Error(program.Functions[name].Token,"함수 호출 체인은32단계 이하여야 합니다.");
-        if(callDepths.TryGetValue(name,out int cached))return cached;
-        path.Add(name);int depth=1;
-        foreach(var call in Calls(program.Functions[name].Body))if(call.Name!=null&&program.Functions.ContainsKey(call.Name))depth=Math.Max(depth,1+VisitCalls(call.Name,path));
-        path.Remove(name);if(depth>32)Error(program.Functions[name].Token,"함수 호출 체인은32단계 이하여야 합니다.");
-        callDepths[name]=depth;return depth;
+        foreach(var s in body){
+            if(s.Kind==BlueprintStatementKind.Assign&&s.Target.Kind==BlueprintExprKind.Name)dynamicNames.Add(s.Target.Name);
+            if(s.Kind==BlueprintStatementKind.For)dynamicNames.Add(s.Name);
+            foreach(var parameter in s.Parameters)dynamicNames.Add(parameter);
+            if(s.Kind==BlueprintStatementKind.Import||s.Kind==BlueprintStatementKind.FromImport){hasImports=true;foreach(var item in s.Imports)if(item.Name=="*")hasStarImport=true;else dynamicNames.Add(item.Alias);}
+            CollectBindings(s.Body);CollectBindings(s.Other);
+        }
     }
     IEnumerable<BlueprintExpr> ExprCalls(BlueprintExpr e)
     {
         if(e==null)yield break;
         // Iterative traversal also handles long malformed arithmetic without overflowing the host stack.
         var stack=new Stack<BlueprintExpr>();stack.Push(e);
-        while(stack.Count>0){var next=stack.Pop();if(next.Kind==BlueprintExprKind.Call)yield return next;foreach(var arg in next.Args)stack.Push(arg);}
+        while(stack.Count>0){var next=stack.Pop();if(next.Kind==BlueprintExprKind.Call)yield return next;foreach(var arg in next.Args)stack.Push(arg);if(next.Callee!=null)stack.Push(next.Callee);}
     }
     IEnumerable<BlueprintExpr> Calls(List<BlueprintStatement> body)
     {
@@ -72,10 +72,13 @@ public sealed class BlueprintValidator
         foreach(var s in body) {
             if(ended)Error(s.Token,"완성품 반환 뒤에는 명령을 쓸 수 없습니다.");
             switch(s.Kind) {
+                case BlueprintStatementKind.Import:
+                case BlueprintStatementKind.FromImport:
+                    foreach(var item in s.Imports){if(item.Name=="*"&&function)Error(s.Token,"import *는 함수 밖에서만 사용할 수 있습니다.");if(item.Alias!=null)names[item.Alias]=BlueprintType.Unknown;}break;
                 case BlueprintStatementKind.Def:if(!root)Error(s.Token,"함수는 최상위에서만 정의하세요.");break;
                 case BlueprintStatementKind.Assign:
                     var assigned=Expr(s.Expr,names,s.Target.Kind==BlueprintExprKind.Name);
-                    if(assigned==BlueprintType.Void)Error(s.Token,"공정 함수2~4는 반환값이 없습니다.");
+
                     if(s.Target.Kind==BlueprintExprKind.Name) {
                         try{PythonIdentifier.ParseAssignment(s.Target.Token.Raw);}catch(Exception ex){Error(s.Target.Token,ex.Message);}
                         names[s.Target.Name]=assigned;
@@ -86,7 +89,7 @@ public sealed class BlueprintValidator
                         if(!Known(assigned,BlueprintType.Int))Error(s.Token,"컬렉션 값은 정수여야 합니다.");
                     }break;
                 case BlueprintStatementKind.Call:
-                    Expr(s.Expr,names,true);if(s.Expr.Process==1)Error(s.Token,"작업물 참조를 변수에 저장하세요.");break;
+                    Expr(s.Expr,names,true);break;
                 case BlueprintStatementKind.If:
                     if(!Known(Expr(s.Expr,names,false),BlueprintType.Bool))Error(s.Token,"조건은 bool이어야 합니다.");
                     var yes=new Dictionary<string,BlueprintType>(names);var no=new Dictionary<string,BlueprintType>(names);
@@ -108,7 +111,7 @@ public sealed class BlueprintValidator
                     if(!function)Error(s.Token,"return은 함수 안에서만 사용할 수 있습니다.");if(s.Expr!=null)Expr(s.Expr,names,false);break;
                 case BlueprintStatementKind.Finish:
                     if(function||loops>0)Error(s.Token,"!는 최상위 또는 그 조건문 안에서만 사용할 수 있습니다.");
-                    if(!Known(Expr(s.Expr,names,false),BlueprintType.Piece))Error(s.Token,"완성품에는 작업물 변수가 필요합니다.");
+                    if(!Known(Expr(s.Expr,names,false),BlueprintType.Piece,BlueprintType.Int))Error(s.Token,"제출에는 작업물 또는 재료 번호가 필요합니다.");
                     hasFinish=true;ended=true;break;
             }
         }
@@ -127,19 +130,20 @@ public sealed class BlueprintValidator
         // Keep syntax/literal/arity checks here; Eval resolves names and types when read.
         if(e.Kind==BlueprintExprKind.Name)return BlueprintType.Unknown;
         var args=new List<BlueprintType>();foreach(var a in e.Args)args.Add(Expr(a,names,false));
+        if(e.Kind==BlueprintExprKind.Attribute)return BlueprintType.Unknown;
         if(e.Kind==BlueprintExprKind.Call) {
-            if(e.Process>0 || e.Name!=null&&program.Effectful.Contains(e.Name))if(!allowProcess)Error(e.Token,"공정 포함 함수는 별도의 대입 또는 호출 줄에서 실행하세요.");
+            if(e.Callee!=null){Expr(e.Callee,names,false);return BlueprintType.Unknown;}
             int arity;
             if(e.Process>0)arity=e.Process==1||e.Process==3?1:2;
             else if(e.Feature!=BlueprintFeature.None)arity=BlueprintAliases.Find(e.Feature).Arity;
-            else {if(!program.Functions.TryGetValue(e.Name,out var f)) {Error(e.Token,"정의되지 않은 함수 "+e.Name);return BlueprintType.Unknown;} arity=f.Parameters.Count;}
+            else {if(dynamicNames.Contains(e.Name)||hasStarImport)return BlueprintType.Unknown;if(!program.Functions.TryGetValue(e.Name,out var f)) {Error(e.Token,"정의되지 않은 함수 "+e.Name);return BlueprintType.Unknown;} arity=f.Parameters.Count;}
             if(arity>=0&&args.Count!=arity)Error(e.Token,(e.Feature!=BlueprintFeature.None?BlueprintAliases.Find(e.Feature).English:e.Process>0?e.Process.ToString():e.Name)+"에 필요한 인자 수: "+arity);
             if(e.Process>0){
                 if(!Known(args[0],e.Process==1?BlueprintType.Int:BlueprintType.Piece))Error(e.Token,e.Process==1?"재료 번호는 정수여야 합니다.":"첫 인자는 작업물이어야 합니다.");
                 if(args.Count==2&&!Known(args[1],BlueprintType.Int))Error(e.Token,"두 번째 인자는 정수여야 합니다.");
                 if(e.Process==1 && e.Args[0].Kind==BlueprintExprKind.Literal && e.Args[0].Value is int material && ForgeMaterialGuide.Find(material)==null)Error(e.Token,"등록되지 않은 재료 번호: "+material);
                 if(e.Process==4 && e.Args[1].Kind==BlueprintExprKind.Literal && !Equals(e.Args[1].Value,0))Error(e.Token,"현재 지원하는 냉각 재료는 공기(0)입니다.");
-                return e.Process==1?BlueprintType.Piece:BlueprintType.Void;
+                return e.Process==1?BlueprintType.Piece:BlueprintType.None;
             }
             switch(e.Feature){
                 case BlueprintFeature.Print:return BlueprintType.None;

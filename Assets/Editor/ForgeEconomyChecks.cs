@@ -43,17 +43,17 @@ public static class ForgeEconomyChecks
             var b = ForgeMvp.Evaluate(Basic, gold, iron);
             Require(gold == 100 && iron == 10 && shop.Count == 1 && a.product.CashCost == 14 && b.product.CashCost == 12, "isolation");
         });
-        check("completion fails while hot: no product, previous cost remains 12", () => {
+        check("hot submission: zero value, cost remains 12", () => {
             var e = ForgeMvp.Evaluate(Basic.Replace("4(Blade, 0)\n", ""), 100, 10);
-            Require(e.error != null && e.product == null && e.cost == 12 && e.ironConsumed == 1, "hot finish");
+            Require(e.error == null && e.product != null && ForgePricing.Quote(e.product).SalePrice == 0 && e.cost == 12 && e.ironConsumed == 1, "hot finish");
         });
-        check("completion fails unshaped: no product", () => {
+        check("unshaped submission: zero value", () => {
             var e = ForgeMvp.Evaluate("Blade = 1(1)\n4(Blade, 0)\n!Blade", 100, 10);
-            Require(e.error != null && e.product == null && e.cost == 10, "unshaped finish");
+            Require(e.error == null && e.product != null && ForgePricing.Quote(e.product).SalePrice == 0 && e.cost == 10, "unshaped finish");
         });
-        check("failed strike does not add a step or completion", () => {
+        check("cold strike executes without shaping", () => {
             var e = ForgeMvp.Evaluate(Basic.Replace("2(Blade, 7)", "2(Blade, 5)"), 100, 10);
-            Require(e.product == null && e.error != null && e.cost == 12 && !e.steps.Exists(s => s.process == 3), "strike failure");
+            Require(e.product != null && e.error == null && e.cost == 12 && e.steps.Exists(s => s.process == 3) && !e.product.Shaped && ForgePricing.Quote(e.product).SalePrice == 0, "strike failure");
         });
         check("insufficient funds: only earlier successful cost 10", () => {
             var e = ForgeMvp.Evaluate(Basic, 11, 10);

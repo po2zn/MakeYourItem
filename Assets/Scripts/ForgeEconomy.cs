@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 
-public enum ForgeProductKind { IronBlade }
+public enum ForgeProductKind { IronBlade, Unfinished }
 [Flags]
 public enum ForgeTraits { None = 0, AirCooled = 1 }
 
@@ -16,14 +16,16 @@ public sealed class ForgeProduct
     public int CashCost { get; }
     public int IronConsumed { get; }
     public string BlueprintName { get; }
-    public string DisplayName => "철 검날";
-    public string StateText => "성형 완료 · 열 " + FinalHeat + ((Traits & ForgeTraits.AirCooled) != 0 ? " · 공기 냉각" : "");
+    public int Material { get; }
+    public string DisplayName => Kind == ForgeProductKind.IronBlade ? "철 검날" : ForgeMaterialGuide.Find(Material).Name + (Shaped ? " 미완성품" : " 원재료");
+    public string StateText => (Shaped ? "성형 완료" : "미성형") + " · 열 " + FinalHeat + ((Traits & ForgeTraits.AirCooled) != 0 ? " · 공기 냉각" : "");
 
-    public ForgeProduct(string blueprintName, int finalHeat, bool shaped, ForgeTraits traits, int cashCost, int ironConsumed)
+    public ForgeProduct(string blueprintName, int finalHeat, bool shaped, ForgeTraits traits, int cashCost, int ironConsumed, int material = 1)
     {
-        if (!shaped || finalHeat != 0) throw new ArgumentException("판매할 수 없는 작업물 상태입니다.");
+        if (ForgeMaterialGuide.Find(material) == null) throw new ArgumentException("등록되지 않은 재료입니다.");
         if (cashCost < 0 || ironConsumed < 0) throw new ArgumentOutOfRangeException(nameof(cashCost));
-        Kind = ForgeProductKind.IronBlade;
+        Material = material;
+        Kind = material == 1 && shaped && finalHeat == 0 ? ForgeProductKind.IronBlade : ForgeProductKind.Unfinished;
         BlueprintName = blueprintName ?? "";
         FinalHeat = finalHeat; Shaped = shaped; Traits = traits;
         CashCost = cashCost; IronConsumed = ironConsumed;
@@ -47,8 +49,8 @@ public sealed class ForgeProductionLedger
         return true;
     }
 
-    public ForgeProduct Complete(string owner, int heat, bool shaped, ForgeTraits traits)
-        => new ForgeProduct(owner, heat, shaped, traits, CashCost, IronConsumed);
+    public ForgeProduct Complete(string owner, int heat, bool shaped, ForgeTraits traits, int material = 1)
+        => new ForgeProduct(owner, heat, shaped, traits, CashCost, IronConsumed, material);
 }
 
 public sealed class ForgeQuote
@@ -67,11 +69,11 @@ public static class ForgePricing
     public static ForgeQuote Quote(ForgeProduct product)
     {
         if (product == null) throw new ArgumentNullException(nameof(product));
-        if (product.Kind != ForgeProductKind.IronBlade) throw new ArgumentException("미지원 완성품 종류");
+
         if ((product.Traits & ~ForgeTraits.AirCooled) != 0) throw new ArgumentException("미지원 완성품 특성");
         // Future quenching/handle bonuses belong here, keyed by traits earned by successful processes.
         // Air cooling has no bonus. Never infer a bonus from cost, heat calls or blueprint names.
-        return new ForgeQuote(28, 0, product.CashCost);
+        return new ForgeQuote(product.Kind == ForgeProductKind.IronBlade ? 28 : 0, 0, product.CashCost);
     }
 
     public static string Describe(ForgeProduct product, bool preview)

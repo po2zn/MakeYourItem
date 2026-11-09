@@ -14,11 +14,12 @@ public sealed class BlueprintToken
 public sealed class BlueprintException : Exception
 {
     public int Line { get; }
+    public string ModuleName { get; set; }
     public BlueprintException(int line, string message) : base(message) { Line=line; }
 }
 public static class BlueprintLexer
 {
-    static bool IsSymbol(char c) => "()[]{}:,=+-*/%<>!~?".IndexOf(c)>=0;
+    static bool IsSymbol(char c) => "()[]{}:,.=+-*/%<>!~?".IndexOf(c)>=0;
     public static List<BlueprintToken> Scan(string source, bool tolerant = false)
     {
         source = source ?? "";

@@ -9,7 +9,7 @@ public static class BlueprintMaterialChecks
             string code="Item = 1("+material.Number+")\nprint(Item)\n!Item";
             var stock=new Dictionary<int,long>{{material.Number,2}};
             var r=ForgeMvp.Evaluate(code,100,10,materialStocks:stock);
-            Require(!r.compileError&&r.steps.Count==2,"material "+material.Number+": "+r.error);
+            Require(r.error==null&&r.steps.Count==3&&ForgePricing.Quote(r.product).SalePrice==0,"material "+material.Number+": "+r.error);
             Require(r.steps[0].material==material.Number&&r.cost==10&&r.ironConsumed==(material.Number==1?1:0),"receipt");
             Require(((ForgeMvp.Piece)r.values["Item"]).material==material.Number,"identity");
             Require(stock[material.Number]==2,"preview mutates inventory");

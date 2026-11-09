@@ -29,7 +29,7 @@ public static class BlueprintAliases
         new BlueprintAlias(BlueprintFeature.If,"if","1?",BlueprintSyntaxKind.Block,"조건이 참이면 블록을 실행합니다.","1?(조건): · 조건은 bool"),
         new BlueprintAlias(BlueprintFeature.Elif,"elif","01?",BlueprintSyntaxKind.Branch,"앞선 분기가 선택되지 않았고 조건이 참이면 블록을 실행합니다.","01?(조건): · 조건은 bool"),
         new BlueprintAlias(BlueprintFeature.Else,"else","0?",BlueprintSyntaxKind.Branch,"연결된 앞 조건 분기에서 실행할 블록이 선택되지 않았을 때 실행합니다.","0?:"),
-        new BlueprintAlias(BlueprintFeature.Def,"def","333",BlueprintSyntaxKind.Block,"재사용할 사용자 함수를 정의합니다.","333 이름(매개변수): · 최대8개 · 재귀 미지원"),
+        new BlueprintAlias(BlueprintFeature.Def,"def","333",BlueprintSyntaxKind.Block,"재사용할 사용자 함수를 정의합니다.","333 이름(매개변수): · 최대8개 · 재귀 지원 · 호출 깊이32"),
         new BlueprintAlias(BlueprintFeature.Return,"return","<<",BlueprintSyntaxKind.Control,"현재 함수를 종료하고 호출한 위치로 결과를 돌려줍니다.","<< 값 · 생략하면 None"),
         new BlueprintAlias(BlueprintFeature.Heat,"heat","100",BlueprintSyntaxKind.Builtin,"작업물의 현재 열 단계를 읽습니다.","작업물1개 → 정수0~9 · 비용0G",1),
         new BlueprintAlias(BlueprintFeature.Abs,"abs","101",BlueprintSyntaxKind.Builtin,"정수의 절댓값을 구합니다.","정수1개 → 정수 · Int32 범위 초과 시 오류",1),

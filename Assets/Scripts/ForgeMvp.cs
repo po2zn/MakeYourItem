@@ -239,9 +239,10 @@ public class ForgeMvp : MonoBehaviour
         if (thumbFill) Destroy(thumbFill);
     }
     GameObject work;
-    public class Piece { public int material=1; public int heat; public bool shaped; public ForgeTraits traits; }
-    public class Step { public int line, cost, iron, heat, process, material, materialCount; public bool shaped, finished, debugOutput; public ForgeTraits traits; public string text; }
-    public class Evaluation { public List<Step> steps = new List<Step>(); public string error; public int cost, ironConsumed, errorLine; public string errorMessage; public bool compileError; public ForgeProduct product; public bool skipped, debugOnly; public Dictionary<string, object> values = new Dictionary<string, object>(); }
+    ForgeCraftMotion craftMotion;
+    public class Piece { public int id; public int material=1; public int heat; public bool shaped; public ForgeTraits traits; }
+    public class Step { public int line, cost, iron, heat, process, material, materialCount, pieceId; public bool shaped, finished, debugOutput; public ForgeTraits traits; public string text, module; }
+    public class Evaluation { public List<Step> steps = new List<Step>(); public string error; public int cost, ironConsumed, errorLine; public string errorMessage, errorModule; public bool compileError; public ForgeProduct product; public bool skipped, debugOnly; public Dictionary<string, object> values = new Dictionary<string, object>(); }
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void Boot() { if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == "SampleScene" && FindAnyObjectByType<ForgeMvp>() == null) new GameObject("Forge MVP").AddComponent<ForgeMvp>(); }
     readonly ForgeShop shop = new ForgeShop();
@@ -250,6 +251,8 @@ public class ForgeMvp : MonoBehaviour
         work = GameObject.CreatePrimitive(PrimitiveType.Cube);
         work.name = "Workpiece"; work.transform.position = new Vector3(2, 1, 0);
         work.transform.localScale = new Vector3(1, .4f, .5f);
+        craftMotion = gameObject.AddComponent<ForgeCraftMotion>();
+        craftMotion.Initialize(work);
         workspaceCamera = Camera.main;
         if (workspaceCamera)
         {
@@ -266,15 +269,21 @@ public class ForgeMvp : MonoBehaviour
         bench.transform.position = new Vector3(2, .5f, 0);
         bench.transform.localScale = new Vector3(3, .3f, 2);
     }
-    public static Evaluation Evaluate(string source, int availableGold = int.MaxValue, int availableIron = int.MaxValue, string owner = "", uint seed = 1, IReadOnlyDictionary<int,long> materialStocks = null, ForgeTechnology technology = null)
-    { return BlueprintRuntime.Evaluate(source, availableGold, availableIron, owner, seed, materialStocks, technology); }
+    public static Evaluation Evaluate(string source, int availableGold = int.MaxValue, int availableIron = int.MaxValue, string owner = "", uint seed = 1, IReadOnlyDictionary<int,long> materialStocks = null, ForgeTechnology technology = null, IReadOnlyDictionary<string,string> modules = null)
+    { return BlueprintRuntime.Evaluate(source, availableGold, availableIron, owner, seed, materialStocks, technology, modules); }
     void Execute(bool preview)
     {
         if (busy) return;
         var owner = codeWindows[activeWindow];
         var availableMaterials=new Dictionary<int,long>();
         foreach(var stock in materialStocks??Array.Empty<ForgeMaterialStock>())if(stock!=null&&stock.unlocked)availableMaterials[stock.material]=stock.count;
-        var evaluation = Evaluate(source, gold, iron, owner.name, owner.seed,availableMaterials,technology);
+        owner.text=source;
+        var modules=new Dictionary<string,string>(StringComparer.Ordinal);
+        foreach(var window in codeWindows){
+            string moduleName;try{moduleName=PythonIdentifier.Parse(window.name);}catch{continue;}
+            if(modules.ContainsKey(moduleName))modules[moduleName]=null;else modules.Add(moduleName,window.text);
+        }
+        var evaluation = Evaluate(source, gold, iron, owner.name, owner.seed,availableMaterials,technology,modules);
         if (evaluation.compileError)
         {
             owner.diagnostic = new ForgeCompileDiagnostic(source, evaluation.errorLine, evaluation.errorMessage);
@@ -295,14 +304,14 @@ public class ForgeMvp : MonoBehaviour
         reportError = evaluation.error != null;
         showSalesPanel = true;
         report = "";
-        if (evaluation.skipped) { report = "조건에 맞지 않아 제작하지 않았습니다. 비용 0G"; return; }
+        if (evaluation.skipped) { report = "실행 완료 · 실행된 공정과 제출 결과물이 없습니다. 비용 0G"; return; }
         if (preview)
         {
             foreach (var step in evaluation.steps)
-                if(step.debugOutput)AppendDebug(step.text);else report += step.line + "줄: " + step.text + "\n";
+                if(step.debugOutput)AppendDebug(step.text);else report += (step.module==null?"":step.module+" · ") + step.line + "줄: " + step.text + "\n";
             report += evaluation.product != null
                 ? "\n시험 견적\n" + ForgePricing.Describe(evaluation.product, true)
-                : "예상 제작비 " + evaluation.cost + "G · 소비 예정 재료 · 철 " + evaluation.ironConsumed + "개\n" + evaluation.error;
+                : "예상 제작비 " + evaluation.cost + "G · 소비 예정 재료 · 철 " + evaluation.ironConsumed + "개\n" + (evaluation.error ?? "실행 완료 · 결과물 미제출");
             return;
         }
         if (evaluation.error != null && evaluation.steps.Count == 0) { report = evaluation.error; return; }
@@ -315,6 +324,7 @@ public class ForgeMvp : MonoBehaviour
         var ledger = new ForgeProductionLedger();
         ForgeProduct completed = null;
         bool seedConsumed = false;
+        craftMotion.BeginRun();
         foreach (var step in evaluation.steps)
         {
             if(step.debugOutput){AppendDebug(step.text);continue;}
@@ -328,22 +338,17 @@ public class ForgeMvp : MonoBehaviour
             if(stock!=null)stock.count-=step.materialCount;
             if (!seedConsumed && step.process > 0) { codeOwner.seed = unchecked(codeOwner.seed * 1664525u + 1013904223u); seedConsumed = true; }
             report += step.line + "줄: " + step.text + "\n";
-            if (step.process > 0 || step.finished)
-            {
-                work.name = "Workpiece · "+ForgeMaterialGuide.Find(step.material).Name;
-                work.transform.localScale = step.shaped ? new Vector3(.25f, .15f, 2) : new Vector3(1, .4f, .5f);
-                work.GetComponent<Renderer>().material.color = step.heat > 0 ? Color.red : Color.gray;
-            }
+            yield return craftMotion.Play(step);
             if (step.finished)
             {
-                completed = ledger.Complete(owner, step.heat, step.shaped, step.traits);
+                completed = ledger.Complete(owner, step.heat, step.shaped, step.traits, step.material);
                 selectedProductId = shop.Add(completed);
             }
-            yield return new WaitForSeconds(.65f);
+
         }
         reportError = evaluation.error != null;
         report += completed != null ? "\n제작 완료\n" + ForgePricing.Describe(completed, false)
-            : evaluation.error + "\n실제 제작비 " + ledger.CashCost + "G · 소비 재료 · 철 " + ledger.IronConsumed + "개";
+            : (evaluation.error ?? "실행 완료 · 결과물 미제출") + "\n실제 제작비 " + ledger.CashCost + "G · 소비 재료 · 철 " + ledger.IronConsumed + "개";
         busy = false;
     }
     bool SellProduct(int id)

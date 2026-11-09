@@ -15,14 +15,15 @@ public static class BlueprintGuideChecks {
  default:return entry.IsFunctionReference?code+"\nprint(\"검증\")":code;
  }
  }
+ static ForgeMvp.Evaluation EvaluateGuide(string source)=>ForgeMvp.Evaluate(source,100,10,modules:new System.Collections.Generic.Dictionary<string,string>{{"smith",BlueprintImportChecks.Smith}});
  public static string Run(){var log=new StringBuilder();var entries=BlueprintGuide.Entries;
  Require(entries.Select(e=>e.Id).Distinct().Count()==entries.Count,"duplicate guide IDs");
  foreach(BlueprintFeature feature in Enum.GetValues(typeof(BlueprintFeature)))if(feature!=BlueprintFeature.None)Require(entries.Count(e=>e.Feature==feature)==1,"missing/duplicate feature "+feature);
- foreach(var e in entries){Require(e.Body.Length>0&&e.Expected.Length>0&&e.Example.Length>0,"empty guide "+e.Id);var r=ForgeMvp.Evaluate(Runnable(e,true),100,10);Require(r.error==null,e.Id+": "+r.error);log.AppendLine("PASS guide "+e.Id);if(new[]{"start","stages","choose"}.Contains(e.Id)){var q=ForgePricing.Quote(r.product);Require(r.cost==12&&r.ironConsumed==1&&q.SalePrice==28&&q.Profit==16,"guide economy "+e.Id);}}
+ foreach(var e in entries){Require(e.Body.Length>0&&e.Expected.Length>0&&e.Example.Length>0,"empty guide "+e.Id);var r=EvaluateGuide(Runnable(e,true));Require(r.error==null,e.Id+": "+r.error);log.AppendLine("PASS guide "+e.Id);if(new[]{"start","stages","choose"}.Contains(e.Id)){var q=ForgePricing.Quote(r.product);Require(r.cost==12&&r.ironConsumed==1&&q.SalePrice==28&&q.Profit==16,"guide economy "+e.Id);}}
  var noCandidate=ForgeMvp.Evaluate(entries.Single(e=>e.Id=="choose").Example.Replace("choose([9, 7, 5], 7)","choose([9, 8], 7)"),100,10);Require(noCandidate.error==null&&noCandidate.cost==0&&noCandidate.ironConsumed==0&&noCandidate.product==null,"no candidate must not craft");
  Require(entries.Single(e=>e.Id=="min").Matches("000")&&entries.Single(e=>e.Id=="min").Matches("MIN")&&entries.Single(e=>e.Id=="2").Matches("가열")&&entries.All(e=>e.Matches(" ")),"guide search");
  foreach(var e in entries){
- var numeric=e.ExampleFor(false);var r=ForgeMvp.Evaluate(Runnable(e,false),100,10);var original=ForgeMvp.Evaluate(Runnable(e,true),100,10);
+ var numeric=e.ExampleFor(false);var r=EvaluateGuide(Runnable(e,false));var original=EvaluateGuide(Runnable(e,true));
  Require(r.error==null,"numeric guide "+e.Id+": "+r.error);
  Require(r.cost==original.cost&&r.ironConsumed==original.ironConsumed&&r.steps.Select(x=>x.text).SequenceEqual(original.steps.Select(x=>x.text)),"numeric result mismatch "+e.Id);
  Require(e.HeadingFor(true)==e.Heading&&e.DescriptionFor(true)==e.Description&&e.ExampleFor(true)==e.Example&&e.NoteFor(true)==e.Note,"unlock restoration "+e.Id);
