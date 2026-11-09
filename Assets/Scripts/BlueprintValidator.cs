@@ -16,11 +16,12 @@ public sealed class BlueprintValidator
     bool hasFinish, hasImports, hasStarImport;
     readonly HashSet<string> dynamicNames=new HashSet<string>(StringComparer.Ordinal);
     readonly ForgeTechnology technology;
-    public BlueprintValidator(List<BlueprintStatement> body,ForgeTechnology technology=null) {program=new BlueprintProgram {Body=body};this.technology=technology;}
+    readonly bool deferErrors;
+    public BlueprintValidator(List<BlueprintStatement> body,ForgeTechnology technology=null,bool deferErrors=false) {program=new BlueprintProgram {Body=body};this.technology=technology;this.deferErrors=deferErrors;}
     void Error(BlueprintToken token,string message) {throw new BlueprintException(token.Line,message);}
     public BlueprintProgram Validate()
     {
-        if(technology!=null)foreach(var call in Calls(program.Body))
+        if(!deferErrors&&technology!=null)foreach(var call in Calls(program.Body))
             if(ForgeTechnology.RequiresPurchase(call.Feature)&&!technology.Owns(call.Feature))
                 Error(call.Token,"테크 트리에서 먼저 구매해야 하는 기능입니다: "+BlueprintAliases.Find(call.Feature).Symbol+"()");
         foreach(var s in program.Body) if(s.Kind==BlueprintStatementKind.Def) {
@@ -34,7 +35,7 @@ public sealed class BlueprintValidator
         do { changed=false;foreach(var pair in program.Functions) if(!program.Effectful.Contains(pair.Key)&&HasEffects(pair.Value.Body)){program.Effectful.Add(pair.Key);changed=true;} }while(changed);
         foreach(var f in program.Functions.Values) {
             var names=new Dictionary<string,BlueprintType>();
-            foreach(var arg in f.Parameters) {if(names.ContainsKey(arg))Error(f.Token,"중복 매개변수: "+arg);names[arg]=BlueprintType.Unknown;}
+            foreach(var arg in f.Parameters) {if(names.ContainsKey(arg)){if(!deferErrors)Error(f.Token,"중복 매개변수: "+arg);f.Error=new BlueprintException(f.Token.Line,"중복 매개변수: "+arg);}names[arg]=BlueprintType.Unknown;}
             Statements(f.Body,names,true,0,false);
         }
         Statements(program.Body,new Dictionary<string,BlueprintType>(),false,0,true);
@@ -70,6 +71,8 @@ public sealed class BlueprintValidator
     {
         bool ended=false;
         foreach(var s in body) {
+            if(s.Error!=null)continue;
+            try {
             if(ended)Error(s.Token,"완성품 반환 뒤에는 명령을 쓸 수 없습니다.");
             switch(s.Kind) {
                 case BlueprintStatementKind.Import:
@@ -114,6 +117,7 @@ public sealed class BlueprintValidator
                     if(!Known(Expr(s.Expr,names,false),BlueprintType.Piece,BlueprintType.Int))Error(s.Token,"제출에는 작업물 또는 재료 번호가 필요합니다.");
                     hasFinish=true;ended=true;break;
             }
+            }catch(BlueprintException error){if(!deferErrors)throw;s.Error=error;}
         }
     }
     BlueprintType Expr(BlueprintExpr e,Dictionary<string,BlueprintType> names,bool allowProcess)
@@ -132,6 +136,7 @@ public sealed class BlueprintValidator
         var args=new List<BlueprintType>();foreach(var a in e.Args)args.Add(Expr(a,names,false));
         if(e.Kind==BlueprintExprKind.Attribute)return BlueprintType.Unknown;
         if(e.Kind==BlueprintExprKind.Call) {
+            if(deferErrors&&technology!=null&&ForgeTechnology.RequiresPurchase(e.Feature)&&!technology.Owns(e.Feature))Error(e.Token,"테크 트리에서 먼저 구매해야 하는 기능입니다: "+BlueprintAliases.Find(e.Feature).Symbol+"()");
             if(e.Callee!=null){Expr(e.Callee,names,false);return BlueprintType.Unknown;}
             int arity;
             if(e.Process>0)arity=e.Process==1||e.Process==3?1:2;
@@ -142,10 +147,16 @@ public sealed class BlueprintValidator
                 if(!Known(args[0],e.Process==1?BlueprintType.Int:BlueprintType.Piece))Error(e.Token,e.Process==1?"재료 번호는 정수여야 합니다.":"첫 인자는 작업물이어야 합니다.");
                 if(args.Count==2&&!Known(args[1],BlueprintType.Int))Error(e.Token,"두 번째 인자는 정수여야 합니다.");
                 if(e.Process==1 && e.Args[0].Kind==BlueprintExprKind.Literal && e.Args[0].Value is int material && ForgeMaterialGuide.Find(material)==null)Error(e.Token,"등록되지 않은 재료 번호: "+material);
-                if(e.Process==4 && e.Args[1].Kind==BlueprintExprKind.Literal && !Equals(e.Args[1].Value,0))Error(e.Token,"현재 지원하는 냉각 재료는 공기(0)입니다.");
+                if(e.Process==4 && e.Args[1].Kind==BlueprintExprKind.Literal && !Equals(e.Args[1].Value,0) && !Equals(e.Args[1].Value,3) && !Equals(e.Args[1].Value,8))Error(e.Token,"냉각 재료는 공기(0), 물(3), 서리수(8)입니다.");
                 return e.Process==1?BlueprintType.Piece:BlueprintType.None;
             }
+            if(ForgeExpansion.IsExtended(e.Feature))return ForgeExpansion.ReturnType(e.Feature);
             switch(e.Feature){
+                case BlueprintFeature.IsDay:return BlueprintType.Int;
+                case BlueprintFeature.NightTime:
+                    if(args.Count>1)Error(e.Token,"24는 인자 없이 호출하거나 24(60)으로 사용하세요.");
+                    if(args.Count==1 && (!Known(args[0],BlueprintType.Int) || e.Args[0].Kind==BlueprintExprKind.Literal && !Equals(e.Args[0].Value,60)))Error(e.Token,"시각 조회의 인자는 정수 60이어야 합니다.");
+                    return BlueprintType.Int;
                 case BlueprintFeature.Print:return BlueprintType.None;
                 case BlueprintFeature.Heat:if(!Known(args[0],BlueprintType.Piece))Error(e.Token,"heat에는 작업물이 필요합니다.");return BlueprintType.Int;
                 case BlueprintFeature.Abs:case BlueprintFeature.Random:foreach(var a in args)if(!Known(a,BlueprintType.Int))Error(e.Token,"정수 인자가 필요합니다.");return BlueprintType.Int;

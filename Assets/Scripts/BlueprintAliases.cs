@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 
-public enum BlueprintFeature { None, While, For, Break, Continue, If, Else, Def, Return, Heat, Abs, Len, Min, Max, Random, Set, Elif, Print }
+public enum BlueprintFeature { None, While, For, Break, Continue, If, Else, Def, Return, Heat, Abs, Len, Min, Max, Random, Set, Elif, Print, IsDay, NightTime, Attach, Polish, Plate, Fuel, Charge, Refine, Inspect, Lucky, LuckyCode, Speed, AutoSell, Curse, Protect, Recover, Wrap, Unwrap, SealCount, Rune, RuneList, RuneFamily, RuneGrade, Slots, Append, Pop, SetAdd, Magic, Strength, Wait, Resonate }
 public enum BlueprintSyntaxKind { Block, Branch, Control, Builtin }
 public sealed class BlueprintAlias
 {
@@ -21,6 +21,8 @@ public sealed class BlueprintAlias
 public static class BlueprintAliases
 {
     static readonly BlueprintAlias[] definitions = {
+        new BlueprintAlias(BlueprintFeature.IsDay,"is_day","12",BlueprintSyntaxKind.Builtin,"낮(06:00 이상 18:00 미만)이면 정수 1, 밤이면 0을 반환합니다.","12() → 정수 0 또는 1 · 호출 비용 0G",0),
+        new BlueprintAlias(BlueprintFeature.NightTime,"night_time","24",BlueprintSyntaxKind.Builtin,"24()는 밤이면 정수 1, 낮이면 0을 반환합니다. 24(60)은 자정부터 지난 정수 분을 반환합니다.","24() → 0 또는 1 · 24(60) → 0~1439분 · 호출 비용 0G",-1),
         new BlueprintAlias(BlueprintFeature.Print,"print","",BlueprintSyntaxKind.Builtin,"여러 값을 공백으로 구분해 디버그 출력 창에 출력합니다. print()는 빈 줄을 출력합니다.","print(값, ...) → None · 비용0G",-1),
         new BlueprintAlias(BlueprintFeature.While,"while","888",BlueprintSyntaxKind.Block,"조건이 참인 동안 블록을 반복합니다.","888(조건): · 조건은 bool"),
         new BlueprintAlias(BlueprintFeature.For,"for","123",BlueprintSyntaxKind.Block,"리스트 또는 튜플을 순서대로 순회합니다.","123(이름 in 대상):"),
@@ -39,7 +41,7 @@ public static class BlueprintAliases
         new BlueprintAlias(BlueprintFeature.Random,"random","66",BlueprintSyntaxKind.Builtin,"지정한 범위에서 무작위 정수를 구합니다.","정수 최솟값, 최댓값 → 정수 · 양쪽 경계 포함 · 최솟값 ≤ 최댓값",2),
         new BlueprintAlias(BlueprintFeature.Set,"set","1010",BlueprintSyntaxKind.Builtin,"중복 원소를 허용하지 않는 빈 정수 집합을 만듭니다.","인자 없음 → 빈 집합 · 원소는 {0, 3}으로 지정",0)
     };
-    public static readonly ReadOnlyCollection<BlueprintAlias> All = Array.AsReadOnly(definitions);
-    public static BlueprintAlias Find(BlueprintFeature id) { foreach(var a in definitions) if(a.Id==id) return a; return null; }
-    public static BlueprintAlias Find(string spelling) { foreach(var a in definitions) if(a.English==spelling || a.Symbol.Length>0 && a.Symbol==spelling) return a; return null; }
+    public static readonly ReadOnlyCollection<BlueprintAlias> All = Array.AsReadOnly(ForgeExpansion.Combine(definitions));
+    public static BlueprintAlias Find(BlueprintFeature id) { foreach(var a in All) if(a.Id==id) return a; return null; }
+    public static BlueprintAlias Find(string spelling) { foreach(var a in All) if(a.English==spelling || a.Symbol.Length>0 && a.Symbol==spelling) return a; return null; }
 }

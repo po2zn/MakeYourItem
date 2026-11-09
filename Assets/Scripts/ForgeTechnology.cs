@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 
@@ -21,9 +22,12 @@ public sealed class ForgeTechnology
         new Offer(6,30),new Offer(7,40),new Offer(8,25),new Offer(9,50),
         new Offer(BlueprintFeature.Heat,20),new Offer(BlueprintFeature.Abs,15),
         new Offer(BlueprintFeature.Len,15),new Offer(BlueprintFeature.Min,20),
-        new Offer(BlueprintFeature.Max,20),new Offer(BlueprintFeature.Random,30),new Offer(BlueprintFeature.Set,25)
-    });
+        new Offer(BlueprintFeature.Max,20),new Offer(BlueprintFeature.Random,30),new Offer(BlueprintFeature.Set,25),
+        new Offer(BlueprintFeature.IsDay,20),new Offer(BlueprintFeature.NightTime,20)
+    }.Concat(ForgeExpansion.Definitions.Where(d=>d.Price>0).Select(d=>new Offer(d.Alias.Id,d.Price))).ToArray());
     readonly HashSet<BlueprintFeature> purchased=new HashSet<BlueprintFeature>();
+    public BlueprintFeature[] Export()=>purchased.ToArray();
+    public void Restore(BlueprintFeature[] features){purchased.Clear();foreach(var f in features??Array.Empty<BlueprintFeature>())if(RequiresPurchase(f))purchased.Add(f);}
     public bool Owns(BlueprintFeature feature) => purchased.Contains(feature);
     public static bool RequiresPurchase(BlueprintFeature feature)
     {foreach(var offer in Offers)if(offer.Kind==ForgePurchaseKind.Function&&offer.Feature==feature)return true;return false;}

@@ -14,15 +14,15 @@ public static class ForgeEconomyChecks
         Action<string, Action> check = (name, test) => { test(); passed++; log.AppendLine("PASS " + name); };
         var baseline = ForgeMvp.Evaluate(Basic, 100, 10, "basic");
         var extra = ForgeMvp.Evaluate(ExtraHeat, 100, 10, "extra");
-        check("basic: iron 1 / cost 12 / base 28 / bonus 0 / profit 16", () => {
+        check("basic: iron 1 / cost 0 / base 28 / bonus 0 / profit 28", () => {
             Require(baseline.error == null && baseline.product != null, "basic completion");
             var q = ForgePricing.Quote(baseline.product);
-            Require(baseline.product.IronConsumed == 1 && q.CashCost == 12 && q.BasePrice == 28 && q.TraitBonus == 0 && q.SalePrice == 28 && q.Profit == 16, "basic quote");
+            Require(baseline.product.IronConsumed == 1 && q.CashCost == 0 && q.BasePrice == 28 && q.TraitBonus == 0 && q.SalePrice == 28 && q.Profit == 28, "basic quote");
             Require(baseline.product.FinalHeat == 0 && baseline.product.Shaped && baseline.product.Traits == ForgeTraits.AirCooled, "final state");
         });
-        check("extra successful heat: cost 14 / same state / sale 28 / profit 14", () => {
+        check("extra successful heat: cost 0 / same state / sale 28 / profit 28", () => {
             var q = ForgePricing.Quote(extra.product);
-            Require(q.CashCost == 14 && q.SalePrice == 28 && q.Profit == 14 && extra.product.Traits == baseline.product.Traits, "extra heat");
+            Require(q.CashCost == 0 && q.SalePrice == 28 && q.Profit == 28 && extra.product.Traits == baseline.product.Traits, "extra heat");
         });
         check("preview versus committed ledger and balances", () => {
             foreach (var e in new[] { baseline, extra }) {
@@ -41,23 +41,23 @@ public static class ForgeEconomyChecks
             int gold = 100, iron = 10;
             var a = ForgeMvp.Evaluate(ExtraHeat, gold, iron);
             var b = ForgeMvp.Evaluate(Basic, gold, iron);
-            Require(gold == 100 && iron == 10 && shop.Count == 1 && a.product.CashCost == 14 && b.product.CashCost == 12, "isolation");
+            Require(gold == 100 && iron == 10 && shop.Count == 1 && a.product.CashCost == 0 && b.product.CashCost == 0, "isolation");
         });
-        check("hot submission: zero value, cost remains 12", () => {
+        check("hot submission: zero value, cost remains 0", () => {
             var e = ForgeMvp.Evaluate(Basic.Replace("4(Blade, 0)\n", ""), 100, 10);
-            Require(e.error == null && e.product != null && ForgePricing.Quote(e.product).SalePrice == 0 && e.cost == 12 && e.ironConsumed == 1, "hot finish");
+            Require(e.error == null && e.product != null && ForgePricing.Quote(e.product).SalePrice == 0 && e.cost == 0 && e.ironConsumed == 1, "hot finish");
         });
         check("unshaped submission: zero value", () => {
             var e = ForgeMvp.Evaluate("Blade = 1(1)\n4(Blade, 0)\n!Blade", 100, 10);
-            Require(e.error == null && e.product != null && ForgePricing.Quote(e.product).SalePrice == 0 && e.cost == 10, "unshaped finish");
+            Require(e.error == null && e.product != null && ForgePricing.Quote(e.product).SalePrice == 0 && e.cost == 0, "unshaped finish");
         });
         check("cold strike executes without shaping", () => {
             var e = ForgeMvp.Evaluate(Basic.Replace("2(Blade, 7)", "2(Blade, 5)"), 100, 10);
-            Require(e.product != null && e.error == null && e.cost == 12 && e.steps.Exists(s => s.process == 3) && !e.product.Shaped && ForgePricing.Quote(e.product).SalePrice == 0, "strike failure");
+            Require(e.product != null && e.error == null && e.cost == 0 && e.steps.Exists(s => s.process == 3) && !e.product.Shaped && ForgePricing.Quote(e.product).SalePrice == 0, "strike failure");
         });
-        check("insufficient funds: only earlier successful cost 10", () => {
-            var e = ForgeMvp.Evaluate(Basic, 11, 10);
-            Require(e.product == null && e.error != null && e.cost == 10 && e.ironConsumed == 1 && !e.compileError, "funds");
+        check("zero gold: all forging processes succeed", () => {
+            var e = ForgeMvp.Evaluate(ExtraHeat, 0, 10);
+            Require(e.product != null && e.error == null && e.cost == 0 && e.ironConsumed == 1 && e.steps.TrueForAll(step => step.cost == 0), "zero gold");
         });
         check("no iron: no money or material consumed", () => {
             var e = ForgeMvp.Evaluate(Basic, 100, 0);
@@ -75,8 +75,8 @@ public static class ForgeEconomyChecks
         });
         check("select second product: retain first cost and identity", () => {
             var shop = new ForgeShop(); int first = shop.Add(baseline.product), second = shop.Add(extra.product); int gold = 74;
-            Require(shop.TrySell(second, ref gold, out var sold) && sold.CashCost == 14 && gold == 102, "second sale");
-            Require(shop.Count == 1 && shop.Find(first).Product.CashCost == 12, "first retained");
+            Require(shop.TrySell(second, ref gold, out var sold) && sold.CashCost == 0 && gold == 102, "second sale");
+            Require(shop.Count == 1 && shop.Find(first).Product.CashCost == 0, "first retained");
         });
         check("failed spend changes neither ledger nor balances", () => {
             int gold = 1, iron = 10; var ledger = new ForgeProductionLedger();

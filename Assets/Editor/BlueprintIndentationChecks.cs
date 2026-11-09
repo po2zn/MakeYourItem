@@ -48,7 +48,7 @@ public static class BlueprintIndentationChecks
         check("automatically indented function produces valid crafting source",()=>{
             string source="333 warm(p):";var e=BlueprintIndentation.Enter(source,source.Length,source.Length);source=e.Text+"2(p, 7)";
             e=BlueprintIndentation.Enter(source,source.Length,source.Length);source=e.Text+"<< 100(p)";
-            source+="\n"+ForgeEconomyChecks.Basic.Replace("2(Blade, 7)","H = warm(Blade)");var r=ForgeMvp.Evaluate(source);Require(r.error==null&&r.cost==12&&Equals(r.values["H"],7),r.error);
+            source+="\n"+ForgeEconomyChecks.Basic.Replace("2(Blade, 7)","H = warm(Blade)");var r=ForgeMvp.Evaluate(source);Require(r.error==null&&r.cost==0&&Equals(r.values["H"],7),r.error);
         });
         check("split Return key and character input produces one newline",()=>{
             string text="def warm(p):";

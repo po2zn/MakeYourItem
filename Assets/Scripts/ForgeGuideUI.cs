@@ -3,6 +3,8 @@ using UnityEngine;
 // Code-drawn icons avoid depending on emoji glyphs in the user's installed fonts.
 public static class ForgeGuideUI
 {
+    public const float HeaderHeight=54;
+    public const float HeaderControlsWidth=140;
     public enum Icon { Add, Shop, Book, TechTree }
     static void Fill(Rect rect,Color color)
     {Color old=GUI.color;GUI.color=color;GUI.DrawTexture(rect,Texture2D.whiteTexture);GUI.color=old;}
@@ -46,17 +48,36 @@ public static class ForgeGuideUI
         GUI.matrix=previousMatrix;
         return clicked;
     }
+    static void DrawPageStack(Rect book)
+    {
+        // Exposed page edges sit between the cover and the reading margin.
+        // Each sheet starts a little farther inward and higher than the one below.
+        Fill(new Rect(book.x+2,book.y+8,14,Mathf.Max(1,book.height-14)),new Color(.12f,.08f,.04f,.32f));
+        for(int i=0;i<6;i++){
+            float x=book.x+2+i*2;
+            float top=book.y+10-i*.8f;
+            float bottom=book.yMax-5-i*.8f;
+            Rect sheet=new Rect(x,top,14-i*2,Mathf.Max(1,bottom-top));
+            float shade=i/5f;
+            Fill(sheet,Color.Lerp(new Color(.73f,.67f,.53f),new Color(.96f,.92f,.81f),shade));
+            Fill(new Rect(x,top,.65f,sheet.height),new Color(.49f,.42f,.29f,.65f));
+            Fill(new Rect(x+.7f,top,.65f,sheet.height),new Color(1f,.98f,.89f,.8f));
+            Fill(new Rect(x,top,sheet.width,.7f),new Color(1f,.97f,.86f,.85f));
+            Fill(new Rect(x,bottom-.8f,sheet.width,.8f),new Color(.46f,.37f,.23f,.65f));
+        }
+    }
     public static void DrawBook(Rect window,ref bool open,ref bool collapsed,Font font,int fontSize,ForgeGuideReader reader,bool englishGuideUnlocked)
     {
         if(!open)return;
-        Rect book=new Rect(window.x,window.y+30,window.width,window.height-30);
-        Fill(new Rect(window.x,window.y,window.width,30),new Color(.16f,.18f,.22f,.98f));
+        Rect book=new Rect(window.x,window.y+HeaderHeight,window.width,window.height-HeaderHeight);
+        Fill(new Rect(window.x,window.y,window.width,HeaderHeight),new Color(.16f,.18f,.22f,.98f));
         var title=new GUIStyle(GUI.skin.label){font=font,fontSize=fontSize+4,fontStyle=FontStyle.Bold,alignment=TextAnchor.MiddleLeft,richText=false};
         title.hover.textColor=title.normal.textColor;
-        GUI.Label(new Rect(window.x+10,window.y+2,window.width-78,26),"도면 안내서",title);
+        GUI.Label(new Rect(window.x+10,window.y+2,Mathf.Max(1,window.width-HeaderControlsWidth-12),HeaderHeight-4),"도면 안내서",title);
+        if(GUI.Button(new Rect(window.xMax-134,window.y+6,40,42),new GUIContent(reader.ShowBookmarks?"◀":"▶",reader.ShowBookmarks?"책갈피 숨기기":"책갈피 표시")))reader.ShowBookmarks=!reader.ShowBookmarks;
         bool wasCollapsed=collapsed;
-        if(GUI.Button(new Rect(window.xMax-60,window.y+3,26,24),new GUIContent("−",collapsed?"안내서 펼치기":"안내서 접기")))collapsed=!collapsed;
-        if(GUI.Button(new Rect(window.xMax-30,window.y+3,26,24),new GUIContent("×","안내서 닫기")))open=false;
+        if(GUI.Button(new Rect(window.xMax-90,window.y+6,40,42),new GUIContent("−",collapsed?"안내서 펼치기":"안내서 접기")))collapsed=!collapsed;
+        if(GUI.Button(new Rect(window.xMax-46,window.y+6,40,42),new GUIContent("×","안내서 닫기")))open=false;
         if(collapsed||wasCollapsed||!open)return;
         Fill(new Rect(book.x+4,book.y+5,book.width,book.height),new Color(0,0,0,.25f));
         Fill(book,new Color(.25f,.16f,.11f));
@@ -70,5 +91,6 @@ public static class ForgeGuideUI
         Fill(new Rect(right.x,right.y,4,right.height),new Color(.88f,.82f,.70f));
         Fill(new Rect(book.center.x-2,book.y+8,4,book.height-16),new Color(.36f,.25f,.16f));
         reader.Draw(new Rect(book.x+10,book.y+10,book.width-20,book.height-20),font,fontSize,englishGuideUnlocked);
+        DrawPageStack(book);
     }
 }

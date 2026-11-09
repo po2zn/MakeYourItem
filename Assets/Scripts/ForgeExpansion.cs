@@ -1,0 +1,41 @@
+using System;
+using System.Collections.Generic;
+
+public static class ForgeExpansion
+{
+    public sealed class Definition { public BlueprintAlias Alias; public int Price; public string Example; public Definition(BlueprintAlias a,int p,string e){Alias=a;Price=p;Example=e;} }
+    public static readonly Definition[] Definitions = {
+        new Definition(new BlueprintAlias(BlueprintFeature.Attach,"attach","5",BlueprintSyntaxKind.Builtin,"손잡이 제작 · 5(Item, Material). 성형하고 식힌 검날에 선택한 재료 1개로 손잡이를 만듭니다. 재료 번호: 철(1), 나무(2), 은(5), 별철(7). 기존 정제 용뼈·공명 수정 작업물 장착도 지원합니다.","5(Item, Material) → None · 재료 1개 · 골드 소비 없음",2),0,"p = 1(1)\n2(p, 7)\n3(p)\n4(p, 0)\nMaterial = 2\n5(p, Material)\n!p"),
+        new Definition(new BlueprintAlias(BlueprintFeature.Polish,"polish","6",BlueprintSyntaxKind.Builtin,"연마 · 식은 성형 검날을 연마합니다.","6() · 인자 1개 · 공정 골드 비용 없음",1),25,"p = 1(1)\n2(p,7)\n3(p)\n4(p,0)\n6(p)"),
+        new Definition(new BlueprintAlias(BlueprintFeature.Plate,"plate","7",BlueprintSyntaxKind.Builtin,"은도금 · 은 1개를 사용합니다. 먼저 연마해야 도금 보너스를 얻습니다.","7() · 인자 1개 · 공정 골드 비용 없음",1),30,"p = 1(1)\n2(p,7)\n3(p)\n4(p,0)\n6(p)\n7(p)"),
+        new Definition(new BlueprintAlias(BlueprintFeature.Fuel,"fuel","8",BlueprintSyntaxKind.Builtin,"석탄 가열 · 8(작업물, 목표 열). 석탄 한 개로 열 +2. 목표보다 2 이상 높으면 균열.","8() · 인자 2개 · 공정 골드 비용 없음",2),25,"p = 1(1)\n8(p, 7)"),
+        new Definition(new BlueprintAlias(BlueprintFeature.Charge,"charge","9",BlueprintSyntaxKind.Builtin,"수정 충전 · 손잡이가 있는 식은 검에 수정 1개를 넣습니다. 약한 세기 1로 세 번 충전해야 완성됩니다.","9() · 인자 2개 · 공정 골드 비용 없음",2),40,"p = 1(1)\n2(p,7)\n3(p)\n4(p,0)\n5(p,2)\n9(p,1)\n9(p,1)\n9(p,1)"),
+        new Definition(new BlueprintAlias(BlueprintFeature.Refine,"refine","10",BlueprintSyntaxKind.Builtin,"용뼈 정제 · 10(용뼈 작업물, 연마한 무균열 검날, 수온 100, 설정 13). 정제에 3초가 걸립니다.","10() · 인자 4개 · 공정 골드 비용 없음",4),50,"p = 1(1)\n2(p,7)\n3(p)\n4(p,0)\n6(p)\nb = 1(9)\n10(b,p,100,13)\n5(p,b)"),
+        new Definition(new BlueprintAlias(BlueprintFeature.Inspect,"inspect","102",BlueprintSyntaxKind.Builtin,"작업물 상태 · 102(p,항목): 0 재료, 1 경도, 2 손잡이, 3 균열, 4 연마, 5 충전, 6 공명 활성, 7 마력 등급.","102() · 인자 2개 · 공정 골드 비용 없음",2),15,"p = 1(1)\nprint(102(p,0))"),
+        new Definition(new BlueprintAlias(BlueprintFeature.Lucky,"lucky","777",BlueprintSyntaxKind.Builtin,"오늘의 행운 적용 · 777(오늘 코드, 완성 검). 코드 조회 778()로 얻습니다. 완성 검에 추가 판매 골드와 다이아몬드 1개.","777() · 인자 2개 · 공정 골드 비용 없음",2),50,"p = 1(1)\n2(p,7)\n3(p)\n4(p,0)\n5(p,2)\np = 777(778(),p)\n!p"),
+        new Definition(new BlueprintAlias(BlueprintFeature.LuckyCode,"lucky_code","778",BlueprintSyntaxKind.Builtin,"오늘 행운 코드 조회 · 게임 날짜마다 다른 세 자리 코드를 반환합니다. 같은 날 재조회해도 같습니다.","778() · 인자 0개 · 공정 골드 비용 없음",0),50,"print(778())"),
+        new Definition(new BlueprintAlias(BlueprintFeature.Speed,"speed","222",BlueprintSyntaxKind.Builtin,"제작 가속 · 222(단계): 1~5배 가속. 공정 시간과 대기에 적용됩니다.","222() · 인자 1개 · 공정 골드 비용 없음",1),100,"222(2)"),
+        new Definition(new BlueprintAlias(BlueprintFeature.AutoSell,"auto_sell","225",BlueprintSyntaxKind.Builtin,"자동판매 · 225(1) 자동판매 켜기, 225(0) 끄기. 이후 완성품을 자동 판매합니다.","225() · 인자 1개 · 공정 골드 비용 없음",1),100,"225(1)"),
+        new Definition(new BlueprintAlias(BlueprintFeature.Curse,"curse","666",BlueprintSyntaxKind.Builtin,"저주 · 작업물에 한 번 적용. 25% 확률로 파괴, 성공하면 판매가 10배.","666() · 인자 1개 · 공정 골드 비용 없음",1),80,"p = 1(1)\n667(p)\n666(p)"),
+        new Definition(new BlueprintAlias(BlueprintFeature.Protect,"protect","667",BlueprintSyntaxKind.Builtin,"파괴 보호 · 수정 1개로 다음 저주 파괴를 한 번 막습니다.","667() · 인자 1개 · 공정 골드 비용 없음",1),50,"p = 1(1)\n667(p)"),
+        new Definition(new BlueprintAlias(BlueprintFeature.Recover,"recover","404",BlueprintSyntaxKind.Builtin,"재료 회수 · 제출 전 작업물을 폐기하고 바탕 재료 1개를 돌려받습니다. 중복 회수 불가.","404() · 인자 1개 · 공정 골드 비용 없음",1),40,"p = 1(1)\n404(p)"),
+        new Definition(new BlueprintAlias(BlueprintFeature.Wrap,"wrap","201",BlueprintSyntaxKind.Builtin,"봉인층 쌓기 · 201(p,종류): 1 열(석탄), 2 수(물), 3 충격(나무). 최대 6층.","201() · 인자 2개 · 공정 골드 비용 없음",2),40,"p = 1(1)\n2(p,7)\n3(p)\n4(p,0)\n201(p,1)\n202(p,1)"),
+        new Definition(new BlueprintAlias(BlueprintFeature.Unwrap,"unwrap","202",BlueprintSyntaxKind.Builtin,"봉인층 해제 · 202(p,종류): 마지막 층과 같은 종류로 해제. 틀리면 그 층의 보너스를 잃습니다.","202() · 인자 2개 · 공정 골드 비용 없음",2),0,"p = 1(1)\n2(p,7)\n3(p)\n4(p,0)\n201(p,3)\n202(p,3)"),
+        new Definition(new BlueprintAlias(BlueprintFeature.SealCount,"seal_count","203",BlueprintSyntaxKind.Builtin,"봉인 개수 · 남아 있는 봉인층 수를 반환합니다.","203() · 인자 1개 · 공정 골드 비용 없음",1),0,"p = 1(1)\nprint(203(p))"),
+        new Definition(new BlueprintAlias(BlueprintFeature.Rune,"rune","211",BlueprintSyntaxKind.Builtin,"룬 각인 · 211(p,룬 번호): 번호 1~9, 계열은 1~3 반복. 수정 1개 소비, 중복 계열 금지, 최대 3슬롯.","211() · 인자 2개 · 공정 골드 비용 없음",2),50,"p = 1(1)\n2(p,7)\n3(p)\n4(p,0)\n211(p,1)"),
+        new Definition(new BlueprintAlias(BlueprintFeature.RuneList,"rune_list","212",BlueprintSyntaxKind.Builtin,"룬 후보 목록 · 구매한 수정으로 각인할 수 있는 룬 번호 1~9 목록. 각인은 수정 한 개를 소비합니다.","212() · 인자 0개 · 공정 골드 비용 없음",0),0,"print(212())"),
+        new Definition(new BlueprintAlias(BlueprintFeature.RuneFamily,"rune_family","213",BlueprintSyntaxKind.Builtin,"룬 계열 · 룬 번호 1~9의 계열 1~3을 반환합니다.","213() · 인자 1개 · 공정 골드 비용 없음",1),0,"print(213(4))"),
+        new Definition(new BlueprintAlias(BlueprintFeature.RuneGrade,"rune_grade","214",BlueprintSyntaxKind.Builtin,"룬 등급 · 룬 번호 1~9의 등급 1~3을 반환합니다.","214() · 인자 1개 · 공정 골드 비용 없음",1),0,"print(214(7))"),
+        new Definition(new BlueprintAlias(BlueprintFeature.Slots,"slots","215",BlueprintSyntaxKind.Builtin,"남은 룬 슬롯 · 작업물의 남은 룬 슬롯 수입니다.","215() · 인자 1개 · 공정 골드 비용 없음",1),0,"p = 1(1)\nprint(215(p))"),
+        new Definition(new BlueprintAlias(BlueprintFeature.Append,"append","301",BlueprintSyntaxKind.Builtin,"목록 끝에 추가 · 301(목록,정수). 목록을 직접 변경합니다.","301() · 인자 2개 · 공정 골드 비용 없음",2),0,"a = []\n301(a,3)\nprint(a)"),
+        new Definition(new BlueprintAlias(BlueprintFeature.Pop,"pop","302",BlueprintSyntaxKind.Builtin,"목록 마지막 제거 · 302(목록). 마지막 원소를 제거하고 반환합니다. 빈 목록은 오류.","302() · 인자 1개 · 공정 골드 비용 없음",1),0,"a = [1,2]\nprint(302(a))"),
+        new Definition(new BlueprintAlias(BlueprintFeature.SetAdd,"set_add","303",BlueprintSyntaxKind.Builtin,"집합 원소 추가 · 303(집합,정수). 집합에 원소를 추가합니다. 중복은 무시합니다.","303() · 인자 2개 · 공정 골드 비용 없음",2),0,"a = {1}\n303(a,2)\nprint(a)"),
+        new Definition(new BlueprintAlias(BlueprintFeature.Magic,"magic","401",BlueprintSyntaxKind.Builtin,"마력 단조 활성화 · 수정 1개로 단조 활성화. 타격 +3, 1초 유지 후 초당 1 감소. 냉각 시 등급 확정.","401() · 인자 1개 · 공정 골드 비용 없음",1),50,"p = 1(1)\n401(p)\n2(p,7)\n3(p)\n4(p,0)"),
+        new Definition(new BlueprintAlias(BlueprintFeature.Strength,"strength","402",BlueprintSyntaxKind.Builtin,"단조 강도 조회 · 임시 강도 0~9를 정수로 읽습니다.","402() · 인자 1개 · 공정 골드 비용 없음",1),0,"p = 1(1)\nprint(402(p))"),
+        new Definition(new BlueprintAlias(BlueprintFeature.Wait,"wait","400",BlueprintSyntaxKind.Builtin,"대기 · 400(초): 0~30초 대기. 시간 기반 단조 제어에 사용합니다.","400() · 인자 1개 · 공정 골드 비용 없음",1),0,"400(1)"),
+        new Definition(new BlueprintAlias(BlueprintFeature.Resonate,"resonate","501",BlueprintSyntaxKind.Builtin,"공명 검사 · 수정의 숨은 열과 비교해 낮으면 -1, 같으면 0, 높으면 1. 성공 후 식혀 검에 장착합니다.","501() · 인자 1개 · 공정 골드 비용 없음",1),50,"c = 1(6)\nprint(501(c))"),
+    };
+    public static BlueprintAlias[] Combine(BlueprintAlias[] original){var list=new List<BlueprintAlias>(original);foreach(var d in Definitions)list.Add(d.Alias);return list.ToArray();}
+    public static bool IsExtended(BlueprintFeature f)=>f>=BlueprintFeature.Attach;
+    public static BlueprintType ReturnType(BlueprintFeature f)=> f==BlueprintFeature.Lucky?BlueprintType.Piece:f==BlueprintFeature.Inspect||f==BlueprintFeature.LuckyCode||f==BlueprintFeature.Pop||f==BlueprintFeature.SealCount||f==BlueprintFeature.RuneFamily||f==BlueprintFeature.RuneGrade||f==BlueprintFeature.Slots||f==BlueprintFeature.Strength||f==BlueprintFeature.Resonate?BlueprintType.Int:f==BlueprintFeature.RuneList?BlueprintType.List:BlueprintType.None;
+}

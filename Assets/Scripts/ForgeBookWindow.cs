@@ -15,12 +15,15 @@ public sealed class ForgeBookWindow
     {
         if(initialized)return;
         initialized=true;
+        position.y-=ForgeGuideUI.HeaderHeight-30;
         Rect=new Rect(position,new Vector2(420,ForgeGuideReader.DefaultWindowHeight));
     }
     public bool Contains(Vector2 mouse)
     {
-        return new Rect(Rect.x-4,Rect.y,Rect.width+8,Rect.height+4).Contains(mouse);
+        return new Rect(Rect.x-4,Rect.y,Rect.width+8,Rect.height+4).Contains(mouse)
+            || !collapsed && reader.ShowBookmarks && BookmarkRail.Contains(mouse);
     }
+    Rect BookmarkRail => ForgeGuideReader.BookmarkRail(new Rect(Rect.x+10,Rect.y+ForgeGuideUI.HeaderHeight+10,Rect.width-20,Mathf.Max(1,Rect.height-ForgeGuideUI.HeaderHeight-20)));
     public void CancelDrag()
     {
         if(gesture>=0 && GUIUtility.hotControl==control)GUIUtility.hotControl=0;
@@ -28,9 +31,9 @@ public sealed class ForgeBookWindow
     }
     int ResizeEdge(Vector2 mouse)
     {
-        if(collapsed)return -1;
-        if(new Rect(Rect.x-4,Rect.y+30,8,Rect.height-30).Contains(mouse))return 0;
-        if(new Rect(Rect.xMax-4,Rect.y+30,8,Rect.height-30).Contains(mouse))return 1;
+        if(collapsed||reader.ShowBookmarks&&BookmarkRail.Contains(mouse))return -1;
+        if(new Rect(Rect.x-4,Rect.y+ForgeGuideUI.HeaderHeight,8,Rect.height-ForgeGuideUI.HeaderHeight).Contains(mouse))return 0;
+        if(new Rect(Rect.xMax-4,Rect.y+ForgeGuideUI.HeaderHeight,8,Rect.height-ForgeGuideUI.HeaderHeight).Contains(mouse))return 1;
         if(new Rect(Rect.x,Rect.yMax-4,Rect.width,8).Contains(mouse))return 2;
         return -1;
     }
@@ -45,7 +48,7 @@ public sealed class ForgeBookWindow
         var ev=Event.current;
         control=GUIUtility.GetControlID("GuideBookWindowDrag".GetHashCode(),FocusType.Passive);
         int hit=ResizeEdge(ev.mousePosition);
-        if(hit<0&&new Rect(Rect.x,Rect.y,Rect.width-66,30).Contains(ev.mousePosition))hit=3;
+        if(hit<0&&new Rect(Rect.x,Rect.y,Rect.width-ForgeGuideUI.HeaderControlsWidth,ForgeGuideUI.HeaderHeight).Contains(ev.mousePosition))hit=3;
         if(ev.type==EventType.MouseDown&&ev.button==0&&hit>=0){
             gesture=hit;startMouse=ev.mousePosition;startRect=Rect;GUIUtility.hotControl=control;ev.Use();
         }
@@ -62,7 +65,7 @@ public sealed class ForgeBookWindow
         ForgeGuideUI.DrawBook(Rect,ref open,ref collapsed,font,fontSize,reader,englishGuideUnlocked);
         if(wasCollapsed!=collapsed){
             Rect resized=Rect;
-            if(collapsed){expandedHeight=resized.height;resized.height=30;}
+            if(collapsed){expandedHeight=resized.height;resized.height=ForgeGuideUI.HeaderHeight;}
             else resized.height=expandedHeight;
             Rect=resized;CancelDrag();
         }

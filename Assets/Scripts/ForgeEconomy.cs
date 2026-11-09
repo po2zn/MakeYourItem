@@ -2,13 +2,17 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 
-public enum ForgeProductKind { IronBlade, Unfinished }
+public enum ForgeProductKind { IronBlade, Unfinished, Sword, StarBlade }
 [Flags]
 public enum ForgeTraits { None = 0, AirCooled = 1 }
 
 // Immutable completion snapshot; prices never depend on the source text or extra heating.
 public sealed class ForgeProduct
 {
+    readonly ForgeItemData data;
+    public ForgeItemData Data => data.Clone();
+    public double ProductionSeconds { get; }
+    public int DiamondReward => Kind==ForgeProductKind.Sword && data.luckyDay>0 && !data.cracked && !data.destroyed ? 1 : 0;
     public ForgeProductKind Kind { get; }
     public ForgeTraits Traits { get; }
     public int FinalHeat { get; }
@@ -17,15 +21,16 @@ public sealed class ForgeProduct
     public int IronConsumed { get; }
     public string BlueprintName { get; }
     public int Material { get; }
-    public string DisplayName => Kind == ForgeProductKind.IronBlade ? "철 검날" : ForgeMaterialGuide.Find(Material).Name + (Shaped ? " 미완성품" : " 원재료");
+    public string DisplayName => Kind == ForgeProductKind.Sword ? "완성 검" : Kind == ForgeProductKind.StarBlade ? "별철 검날" : Kind == ForgeProductKind.IronBlade ? "철 검날" : ForgeMaterialGuide.Find(Material).Name + (Shaped ? " 미완성품" : " 원재료");
     public string StateText => (Shaped ? "성형 완료" : "미성형") + " · 열 " + FinalHeat + ((Traits & ForgeTraits.AirCooled) != 0 ? " · 공기 냉각" : "");
 
-    public ForgeProduct(string blueprintName, int finalHeat, bool shaped, ForgeTraits traits, int cashCost, int ironConsumed, int material = 1)
+    public ForgeProduct(string blueprintName, int finalHeat, bool shaped, ForgeTraits traits, int cashCost, int ironConsumed, int material = 1, ForgeItemData itemData = null, double productionSeconds = 0)
     {
         if (ForgeMaterialGuide.Find(material) == null) throw new ArgumentException("등록되지 않은 재료입니다.");
         if (cashCost < 0 || ironConsumed < 0) throw new ArgumentOutOfRangeException(nameof(cashCost));
+        data=(itemData??new ForgeItemData()).Clone();ProductionSeconds=productionSeconds;
         Material = material;
-        Kind = material == 1 && shaped && finalHeat == 0 ? ForgeProductKind.IronBlade : ForgeProductKind.Unfinished;
+        Kind = !data.destroyed && !data.recovered && data.seals.Count==0 && (material==1||material==7) && shaped && finalHeat==0 ? data.handle>0?ForgeProductKind.Sword:material==7?ForgeProductKind.StarBlade:ForgeProductKind.IronBlade : ForgeProductKind.Unfinished;
         BlueprintName = blueprintName ?? "";
         FinalHeat = finalHeat; Shaped = shaped; Traits = traits;
         CashCost = cashCost; IronConsumed = ironConsumed;
@@ -49,8 +54,8 @@ public sealed class ForgeProductionLedger
         return true;
     }
 
-    public ForgeProduct Complete(string owner, int heat, bool shaped, ForgeTraits traits, int material = 1)
-        => new ForgeProduct(owner, heat, shaped, traits, CashCost, IronConsumed, material);
+    public ForgeProduct Complete(string owner, int heat, bool shaped, ForgeTraits traits, int material = 1, ForgeItemData data = null, double seconds = 0)
+        => new ForgeProduct(owner, heat, shaped, traits, CashCost, IronConsumed, material, data, seconds);
 }
 
 public sealed class ForgeQuote
@@ -73,17 +78,46 @@ public static class ForgePricing
         if ((product.Traits & ~ForgeTraits.AirCooled) != 0) throw new ArgumentException("미지원 완성품 특성");
         // Future quenching/handle bonuses belong here, keyed by traits earned by successful processes.
         // Air cooling has no bonus. Never infer a bonus from cost, heat calls or blueprint names.
-        return new ForgeQuote(product.Kind == ForgeProductKind.IronBlade ? 28 : 0, 0, product.CashCost);
+        int basePrice=product.Kind==ForgeProductKind.Unfinished?0:product.Material==7?40:28;
+        int bonus=0;foreach(var line in Bonuses(product))bonus+=line.Value;
+        return new ForgeQuote(basePrice,bonus,product.CashCost);
     }
 
+    public static Dictionary<string,int> Bonuses(ForgeProduct product)
+    {
+        var result=new Dictionary<string,int>();if(product.Kind==ForgeProductKind.Unfinished)return result;var d=product.Data;
+        if(d.hardness>=7)result["담금질 경도 7"]=19;
+        if(d.handle>0)result["손잡이"]=d.handle==9?65:22;
+        if(d.plated)result["은도금"]=35;
+        if(d.star)result["별무늬"]=45;
+        if(d.frost)result["서리 문양"]=35;
+        if(d.charge>=3)result["마력 전도"]=45;
+        if(d.charge>=3&&d.handle==9)result["용의 맥동"]=60;
+        if(d.activated)result["공명 수정"]=60;
+        if(d.sealBonus>0)result["결계"]=d.sealBonus*12;
+        if(d.magicGrade>0)result["마력 단조"]=d.magicGrade*5;
+        foreach(int rune in d.runes)result["룬 "+rune]=((rune-1)/3+1)*12;
+        if(d.runes.Count==3)result["삼중 공명"]=40;
+        if(d.luckyDay>0)result["오늘의 행운"]=30;
+        int value=product.Material==7?40:28;foreach(int b in result.Values)value+=b;
+        if(d.cracked){result["균열 감점"]=-value/2;value-=value/2;}
+        if(d.cursed)result["저주 배율"]=value*9;
+        return result;
+    }
     public static string Describe(ForgeProduct product, bool preview)
     {
         var quote = Quote(product);
         string prefix = preview ? "예상 " : "";
-        return product.DisplayName + " · " + product.StateText
+        int materialValue=0;string materials="";var used=product.Data.materials;
+        foreach(var offer in ForgeTechnology.Offers)if(offer.Kind==ForgePurchaseKind.Material&&used[offer.Material]>0){materialValue+=offer.Price*used[offer.Material];materials+=(materials.Length>0?", ":"")+ForgeMaterialGuide.Find(offer.Material).Name+" "+used[offer.Material];}
+        string details=product.Data.handle>0?"\n손잡이 재료 · "+ForgeMaterialGuide.Find(product.Data.handle).Name:"";foreach(var bonus in Bonuses(product))details+="\n"+bonus.Key+" "+(bonus.Value>=0?"+":"")+bonus.Value+"G";
+        return product.DisplayName + " · " + product.StateText+details
             + "\n기본가 " + quote.BasePrice + "G · 특성 보너스 +" + quote.TraitBonus + "G"
             + "\n" + prefix + "판매가 " + quote.SalePrice + "G"
-            + "\n" + prefix + "제작비 " + quote.CashCost + "G · " + prefix + "순이익 " + quote.Profit + "G"
+            + "\n" + prefix + "제작비 " + quote.CashCost + "G · " + prefix + "공정비 차감 판매액 " + quote.Profit + "G"
+            + "\n소비 재료: "+(materials.Length==0?"없음":materials)+" · 재구매 기준 "+materialValue+"G · 재료가 차감 예상 이익 "+(quote.Profit-materialValue)+"G"
+            + "\n제작 시간 " + product.ProductionSeconds.ToString("0.0") + "초 · 시간당 판매액 " + (product.ProductionSeconds>0?(quote.SalePrice*3600/product.ProductionSeconds).ToString("0"):"—") + "G"
+            + "\n행운 부산물 · 다이아몬드 " + product.DiamondReward + "개"
             + "\n" + (preview ? "소비 예정 재료" : "소비 재료") + " · 철 " + product.IronConsumed + "개";
     }
 }

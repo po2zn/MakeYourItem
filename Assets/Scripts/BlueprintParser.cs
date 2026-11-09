@@ -13,7 +13,7 @@ public sealed class BlueprintExpr
     public int Process;
     public List<BlueprintExpr> Args = new List<BlueprintExpr>();
 }
-public enum BlueprintStatementKind { Assign, Call, If, For, While, Def, Return, Break, Continue, Finish, Import, FromImport }
+public enum BlueprintStatementKind { Assign, Call, If, For, While, Def, Return, Break, Continue, Finish, Import, FromImport, Error }
 public sealed class BlueprintImportName
 {
     public string Name, Alias;
@@ -24,6 +24,7 @@ public sealed class BlueprintStatement
     public BlueprintToken Token;
     public string Name;
     public BlueprintExpr Expr, Target;
+    public BlueprintException Error;
     public List<BlueprintImportName> Imports = new List<BlueprintImportName>();
     public List<string> Parameters = new List<string>();
     public List<BlueprintStatement> Body = new List<BlueprintStatement>(), Other = new List<BlueprintStatement>();
@@ -33,6 +34,7 @@ public sealed class BlueprintParser
     readonly List<BlueprintToken> tokens;
     readonly HashSet<string> functionNames = new HashSet<string>(StringComparer.Ordinal);
     int cursor, depth, conditionDepth;
+    readonly bool deferErrors;
     BlueprintToken Current => tokens[Math.Min(cursor,tokens.Count-1)];
     BlueprintToken Take() { return tokens[cursor++]; }
     bool Match(string raw) { if(Current.Raw!=raw)return false; cursor++; return true; }
@@ -46,20 +48,45 @@ public sealed class BlueprintParser
         if(token.Kind!=BlueprintTokenKind.Name || token.Feature!=BlueprintFeature.None) throw new BlueprintException(token.Line,"이름이 필요합니다: "+token.Raw);
         try { return PythonIdentifier.ParseAssignment(token.Raw); } catch(Exception ex) { throw new BlueprintException(token.Line,ex.Message); }
     }
-    public BlueprintParser(string source)
-    { tokens=BlueprintLexer.Scan(source).FindAll(t=>t.Kind!=BlueprintTokenKind.Comment); }
+    public BlueprintParser(string source,bool deferErrors=false)
+    { this.deferErrors=deferErrors;tokens=(deferErrors?BlueprintLexer.ScanDeferred(source):BlueprintLexer.Scan(source)).FindAll(t=>t.Kind!=BlueprintTokenKind.Comment); }
     public List<BlueprintStatement> Parse()
     {
         var body=new List<BlueprintStatement>(); Lines();
-        while(Current.Kind!=BlueprintTokenKind.End) { body.Add(Statement()); Lines(); }
+        while(Current.Kind!=BlueprintTokenKind.End) { body.Add(ReadStatement()); Lines(); }
         return body;
+    }
+    BlueprintStatement Fault(BlueprintToken start,BlueprintException error)
+    {
+        return new BlueprintStatement{Kind=BlueprintStatementKind.Error,Token=new BlueprintToken(BlueprintTokenKind.Error,"",start.Start,0,error.Line),Error=error};
+    }
+    void Recover(BlueprintToken start,BlueprintException error)
+    {
+        while(Current.Kind!=BlueprintTokenKind.End&&Current.Kind!=BlueprintTokenKind.Dedent&&Current.Line<=Math.Max(start.Line,error.Line))Take();
+        // A malformed header cannot donate its indented body to the parent scope.
+        if(Current.Kind==BlueprintTokenKind.Indent){
+            int nested=0;
+            do{var token=Take();if(token.Kind==BlueprintTokenKind.Indent)nested++;else if(token.Kind==BlueprintTokenKind.Dedent)nested--;}
+            while(nested>0&&Current.Kind!=BlueprintTokenKind.End);
+        }
+    }
+    BlueprintStatement ReadStatement()
+    {
+        if(!deferErrors)return Statement();
+        var start=Current;int before=cursor;
+        try{return Statement();}
+        catch(BlueprintException error){
+            Recover(start,error);if(cursor==before&&Current.Kind!=BlueprintTokenKind.End)Take();
+            return Fault(start,error);
+        }
     }
     List<BlueprintStatement> Block()
     {
         Need(":"); EndLine(); Lines();
+        if(deferErrors&&Current.Kind==BlueprintTokenKind.Error)return new List<BlueprintStatement>{ReadStatement()};
         if(Current.Kind!=BlueprintTokenKind.Indent) Fail("들여쓴 블록 본문이 필요합니다."); Take();
         var body=new List<BlueprintStatement>(); Lines();
-        while(Current.Kind!=BlueprintTokenKind.Dedent && Current.Kind!=BlueprintTokenKind.End) { body.Add(Statement()); Lines(); }
+        while(Current.Kind!=BlueprintTokenKind.Dedent && Current.Kind!=BlueprintTokenKind.End) { body.Add(ReadStatement()); Lines(); }
         if(body.Count==0) Fail("빈 블록은 사용할 수 없습니다.");
         if(Current.Kind!=BlueprintTokenKind.Dedent) Fail("블록이 끝나지 않았습니다."); Take();
         return body;
@@ -67,23 +94,35 @@ public sealed class BlueprintParser
     BlueprintStatement Conditional()
     {
         int initialDepth=conditionDepth;
-        BlueprintStatement first=null, previous=null;
+        BlueprintStatement first=null,previous=null;
         try {
             do {
-                if(++conditionDepth>32) Fail("조건 분기 중첩은32단계 이하여야 합니다.");
-                var branch=new BlueprintStatement {Token=Take(),Kind=BlueprintStatementKind.If};
-                branch.Expr=Expression(); branch.Body=Block(); Lines();
-                if(first==null)first=branch; else previous.Other.Add(branch);
+                var start=Current;BlueprintStatement branch;
+                try {
+                    if(++conditionDepth>32)Fail("조건 분기 중첩은32단계 이하여야 합니다.");
+                    branch=new BlueprintStatement{Token=Take(),Kind=BlueprintStatementKind.If};
+                    branch.Expr=Expression();branch.Body=Block();Lines();
+                }catch(BlueprintException error){
+                    if(!deferErrors)throw;
+                    Recover(start,error);branch=Fault(start,error);
+                    if(first==null)return branch;
+                    previous.Other.Add(branch);return first;
+                }
+                if(first==null)first=branch;else previous.Other.Add(branch);
                 previous=branch;
-            } while(Current.Feature==BlueprintFeature.Elif);
-            if(Current.Feature==BlueprintFeature.Else) {Take();previous.Other=Block();}
-            // elif lowers to an if in the preceding false branch; evaluation stays shared.
+            }while(Current.Feature==BlueprintFeature.Elif);
+            if(Current.Feature==BlueprintFeature.Else){
+                var start=Take();
+                try{previous.Other=Block();}
+                catch(BlueprintException error){if(!deferErrors)throw;Recover(start,error);previous.Other.Add(Fault(start,error));}
+            }
             return first;
-        } finally {conditionDepth=initialDepth;}
+        }finally{conditionDepth=initialDepth;}
     }
     BlueprintStatement Statement()
     {
         var token=Current; var statement=new BlueprintStatement { Token=token };
+        if(token.Kind==BlueprintTokenKind.Error){Take();EndLine();return Fault(token,new BlueprintException(token.Line,token.Raw));}
         if(token.Raw=="import" || token.Raw=="from")return ImportStatement();
         switch(token.Feature)
         {

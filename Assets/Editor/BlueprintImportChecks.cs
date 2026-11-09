@@ -15,17 +15,17 @@ public static class BlueprintImportChecks
         Action<string,Action> check=(name,test)=>{test();count++;log.AppendLine("PASS "+name);};
         check("import module, qualified call and craft receipts",()=>{
             var r=Good("import smith\nblade = smith.forge(1)\n!blade");
-            Require(r.cost==12&&r.ironConsumed==1&&ForgePricing.Quote(r.product).SalePrice==28,"economy");
+            Require(r.cost==0&&r.ironConsumed==1&&ForgePricing.Quote(r.product).SalePrice==28,"economy");
             Require(r.steps.Take(4).All(s=>s.module=="smith")&&r.steps.Select(s=>s.process).SequenceEqual(new[]{1,2,3,4,0}),"motion order");
             Require(r.steps[0].line==3&&r.steps.Last().line==3&&r.steps.Last().module==null,"source lines");
         });
         check("module and function aliases match Python forms",()=>{
-            foreach(var source in new[]{"import smith as s\np = s.forge(1)\n!p","from smith import forge\np = forge(1)\n!p","from smith import forge as make\np = make(1)\n!p"})Require(Good(source).cost==12,source);
+            foreach(var source in new[]{"import smith as s\np = s.forge(1)\n!p","from smith import forge\np = forge(1)\n!p","from smith import forge as make\np = make(1)\n!p"})Require(Good(source).cost==0,source);
         });
         check("comma imports and parenthesized from imports",()=>{
             var modules=Sources();modules["other"]="def value():\n    return 3";
             var r=Good("import smith as s, other as o\nfrom smith import (forge as make, TARGET,)\nprint(TARGET, o.value())\np = make(1)\n!p",modules);
-            Require(r.steps[0].text=="7 3"&&r.cost==12,"multiple");
+            Require(r.steps[0].text=="7 3"&&r.cost==0,"multiple");
         });
         check("module globals stay with defining module and helpers",()=>{
             var modules=Sources();modules["helper"]="TARGET = 8\ndef get():\n    return TARGET\ndef outer():\n    return get()";
@@ -41,8 +41,8 @@ public static class BlueprintImportChecks
         });
         check("import initialization and function effects share budgets",()=>{
             var modules=Sources();modules["smith"]="print('init')\nprepared = 1(1)\n"+Smith;
-            var r=Good("import smith\nimport smith as again\np = again.forge(1)\n!p",modules);Require(r.cost==22&&r.ironConsumed==2&&r.steps.Count(s=>s.process==1)==2,"cost");
-            var shortFunds=ForgeMvp.Evaluate("import smith\np = smith.forge(1)",11,10,modules:modules);Require(shortFunds.error!=null&&shortFunds.cost==10&&shortFunds.steps.Count==2&&shortFunds.errorModule=="smith","partial effects");
+            var r=Good("import smith\nimport smith as again\np = again.forge(1)\n!p",modules);Require(r.cost==0&&r.ironConsumed==2&&r.steps.Count(s=>s.process==1)==2,"cost");
+            var shortStock=ForgeMvp.Evaluate("import smith\np = smith.forge(1)",0,1,modules:modules);Require(shortStock.error!=null&&shortStock.cost==0&&shortStock.steps.Count==2&&shortStock.errorModule=="smith","partial effects");
         });
         check("from import binds only requested names",()=>{
             var r=ForgeMvp.Evaluate("from smith import forge\nprint(smith)",modules:Sources());Require(r.error!=null&&!r.compileError&&r.errorLine==2,"namespace");
@@ -53,19 +53,19 @@ public static class BlueprintImportChecks
             Require(ForgeMvp.Evaluate("def f():\n    from m import *\nf()",modules:modules).compileError,"function wildcard");
         });
         check("conditional and function local imports execute lazily",()=>{
-            var r=Good("if False:\n    import missing\ndef create():\n    from smith import forge as make\n    return make(1)\np = create()\n!p");Require(r.cost==12&&!r.values.ContainsKey("make"),"local import");
+            var r=Good("if False:\n    import missing\ndef create():\n    from smith import forge as make\n    return make(1)\np = create()\n!p");Require(r.cost==0&&!r.values.ContainsKey("make"),"local import");
         });
         check("import module main guard and __name__",()=>{
             var modules=Sources();modules["smith"]=Smith+"\nif __name__ == '__main__':\n    !forge(1)";
             var imported=Good("import smith\nprint(smith.__name__, __name__)",modules);Require(imported.cost==0&&imported.steps.Single().text=="smith __main__","guard");
-            Require(Good(modules["smith"],modules).cost==12,"direct main");
+            Require(Good(modules["smith"],modules).cost==0,"direct main");
         });
         check("imported module submission gives source-aware error",()=>{
-            var r=ForgeMvp.Evaluate("import m",modules:new Dictionary<string,string>{{"m","p = 1(1)\n!p"}});Require(r.errorModule=="m"&&r.errorLine==2&&r.cost==10&&r.product==null,"module submission");
+            var r=ForgeMvp.Evaluate("import m",modules:new Dictionary<string,string>{{"m","p = 1(1)\n!p"}});Require(r.errorModule=="m"&&r.errorLine==2&&r.cost==0&&r.product==null,"module submission");
         });
         check("function references and re-export keep defining globals",()=>{
             var modules=Sources();modules["exports"]="from smith import forge as make";
-            var r=Good("import exports\nf = exports.make\np = f(1)\n!p",modules);Require(r.cost==12&&r.steps[1].module=="smith","function reference");
+            var r=Good("import exports\nf = exports.make\np = f(1)\n!p",modules);Require(r.cost==0&&r.steps[1].module=="smith","function reference");
         });
         check("missing module member and wrong arity remain controlled errors",()=>{
             foreach(var source in new[]{"import missing","import smith\nsmith.unknown()","from smith import missing","import smith\nsmith.forge()","from smith import forge\nforge(1, 2)","import smith\nsmith()"}){var r=ForgeMvp.Evaluate(source,modules:Sources());Require(r.error!=null&&r.cost==0,source);}
@@ -77,7 +77,7 @@ public static class BlueprintImportChecks
             foreach(string expr in new[]{"missing","2147483647 + 1"}){
                 var r=ForgeMvp.Evaluate("import m\nm.bad()",modules:new Dictionary<string,string>{{"m","def bad():\n    return "+expr}});Require(r.errorModule=="m"&&r.errorLine==2,"function error");
             }
-            var caller=ForgeMvp.Evaluate("import smith\np = smith.forge(1)\nprint(Missing)",modules:Sources());Require(caller.errorModule==null&&caller.errorLine==3&&caller.cost==12,"caller restored");
+            var caller=ForgeMvp.Evaluate("import smith\np = smith.forge(1)\nprint(Missing)",modules:Sources());Require(caller.errorModule==null&&caller.errorLine==3&&caller.cost==0,"caller restored");
         });
         check("cyclic imports and ambiguous names fail clearly",()=>{
             var r=ForgeMvp.Evaluate("import a",modules:new Dictionary<string,string>{{"a","import b"},{"b","import a"}});Require(r.error!=null&&r.errorMessage.Contains("순환")&&r.errorModule=="b","cycle");

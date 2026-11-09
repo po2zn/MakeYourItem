@@ -22,7 +22,7 @@ public sealed class ForgeTechTreeScreen
             var offer=ForgeTechnology.Offers[i];
             bool material=offer.Kind==ForgePurchaseKind.Material;
             bool owned=!material&&technology.Owns(offer.Feature);
-            details[i]=material?"보유 "+technology.Stock(offer,iron,stocks)+"개 · "+(offer.Material==1?"검날 제작 재료":"작업대 배치용 · 전용 제작법 미지원"):(owned?"해금 완료 · 숫자/영문 이름 모두 사용 가능":"미구매 · 구매 후 도면에서 사용 가능");
+            details[i]=material?"보유 "+technology.Stock(offer,iron,stocks)+"개 · "+(offer.Material==1?"검날 제작 재료":"전용 가공은 도면 안내서를 확인하세요"):(owned?"해금 완료 · 숫자/영문 이름 모두 사용 가능":"미구매 · 구매 후 도면에서 사용 가능");
             titleHeights[i]=TextHeight(offer.Title,TextWidth);
             detailHeights[i]=TextHeight(details[i],TextWidth);
             float height=12+titleHeights[i]+8+detailHeights[i]+12+36+12;
@@ -50,9 +50,9 @@ public sealed class ForgeTechTreeScreen
         float footerHeight=messageHeight+hintHeight+16;
         float headingHeight=Mathf.Ceil(Mathf.Max(label.CalcHeight(new GUIContent("재료 구매 · 1개씩 반복 구매"),350),label.CalcHeight(new GUIContent("기능 구매 · 한 번 구매해 해금"),350)))+4;
         float descriptionY=12+headingHeight+8;
-        float descriptionHeight=Mathf.Max(TextHeight("구매한 재료는 보유 재고에 추가됩니다.",350),TextHeight("기본 공정 1~4와 print는 무료입니다.",350));
+        float descriptionHeight=Mathf.Max(TextHeight("구매한 재료는 보유 재고에 추가됩니다.",350),TextHeight("기본 공정과 자료구조 조작은 무료이며, 특수 공정은 구매해 해금합니다.",350));
         LayoutCards(technology,iron,stocks,descriptionY+descriptionHeight+16);
-        Rect canvas=new Rect(0,56,Screen.width,Mathf.Max(1,Screen.height-56-footerHeight));
+        Rect canvas=new Rect(0,104,Screen.width,Mathf.Max(1,Screen.height-104-footerHeight));
         if(ev.type==EventType.ScrollWheel&&canvas.Contains(ev.mousePosition)&&dragButton<0){
             Vector2 anchor=(ev.mousePosition-canvas.position-offset)/zoom;
             zoom=Mathf.Clamp(zoom*Mathf.Pow(1.05f,-ev.delta.y),.4f,2f);
@@ -77,7 +77,7 @@ public sealed class ForgeTechTreeScreen
         GUI.Label(new Rect(24,12,350,headingHeight),"재료 구매 · 1개씩 반복 구매",label);
         GUI.Label(new Rect(406,12,350,headingHeight),"기능 구매 · 한 번 구매해 해금",label);
         GUI.Label(new Rect(24,descriptionY,350,descriptionHeight),"구매한 재료는 보유 재고에 추가됩니다.",body);
-        GUI.Label(new Rect(406,descriptionY,350,descriptionHeight),"기본 공정 1~4와 print는 무료입니다.",body);
+        GUI.Label(new Rect(406,descriptionY,350,descriptionHeight),"기본 공정과 자료구조 조작은 무료이며, 특수 공정은 구매해 해금합니다.",body);
         ForgeTechnology.Offer selected=null;
         for(int i=0;i<cards.Length;i++){
             var offer=ForgeTechnology.Offers[i];
@@ -95,9 +95,23 @@ public sealed class ForgeTechTreeScreen
         }
         GUI.matrix=previous;
         GUI.EndGroup();
-        Fill(new Rect(0,0,Screen.width,56),new Color(.14f,.16f,.2f));
+        Fill(new Rect(0,0,Screen.width,104),new Color(.14f,.16f,.2f));
         GUI.Label(new Rect(16,8,Mathf.Max(1,Screen.width-200),40),"테크 트리 · "+gold+"G",label);
         bool back=GUI.Button(new Rect(Mathf.Max(0,Screen.width-172),10,156,36),"← 대장간",button);
+        // Keep the daily luck purchases visible independently of canvas pan/zoom.
+        float quickWidth=Mathf.Max(1,Mathf.Min(320,(Screen.width-40)/2f));
+        foreach(var offer in ForgeTechnology.Offers){
+            if(offer.Feature!=BlueprintFeature.Lucky&&offer.Feature!=BlueprintFeature.LuckyCode)continue;
+            int column=offer.Feature==BlueprintFeature.Lucky?0:1;
+            string symbol=column==0?"777() 행운 적용":"778() 행운 코드 조회";
+            bool owned=technology.Owns(offer.Feature);
+            string reason=technology.BlockReason(offer,gold,iron,stocks,busy);
+            string caption=symbol+" · "+(owned?"구매 완료":busy?"제작 중":gold<offer.Price?offer.Price+"G 부족":offer.Price+"G 구매");
+            bool enabled=GUI.enabled;
+            GUI.enabled=enabled&&reason==null;
+            if(GUI.Button(new Rect(16+column*(quickWidth+8),58,quickWidth,36),new GUIContent(caption,reason??""),button))selected=offer;
+            GUI.enabled=enabled;
+        }
         GUI.Label(new Rect(16,Screen.height-footerHeight+8,footerWidth,messageHeight),message,body);
         GUI.Label(new Rect(16,Screen.height-footerHeight+8+messageHeight,footerWidth,hintHeight),NavigationHint,body);
         if(selected!=null)purchase(selected);

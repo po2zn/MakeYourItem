@@ -18,7 +18,7 @@ public static class BlueprintPrintChecks
         });
         check("print receipts preserve craft order and economics",()=>{
             string source="print('start')\n"+ForgeEconomyChecks.Basic.Replace("3(Blade)","print('hot')\n3(Blade)").Replace("!Blade","print('ready')\n!Blade");
-            var r=ForgeMvp.Evaluate(source,100,10);Require(r.error==null&&r.cost==12&&r.ironConsumed==1&&ForgePricing.Quote(r.product).Profit==16,r.error);
+            var r=ForgeMvp.Evaluate(source,100,10);Require(r.error==null&&r.cost==0&&r.ironConsumed==1&&ForgePricing.Quote(r.product).Profit==28,r.error);
             Require(r.steps.Select(s=>s.debugOutput?s.text:s.process.ToString()).SequenceEqual(new[]{"start","1","2","hot","3","4","ready","0"}),"ordered playback");
             Require(ForgeMvp.Evaluate(source,100,10).steps.Select(s=>s.text).SequenceEqual(r.steps.Select(s=>s.text)),"preview parity");
         });
@@ -43,7 +43,7 @@ public static class BlueprintPrintChecks
         check("workpiece output snapshots state without production effects",()=>{
             var r=ForgeMvp.Evaluate(ForgeEconomyChecks.Basic.Replace("2(Blade, 7)","print(Blade)\n2(Blade, 7)").Replace("!Blade","print(Blade)\n!Blade"));
             var messages=r.steps.Where(x=>x.debugOutput).Select(x=>x.text).ToArray();
-            Require(r.error==null&&r.cost==12&&messages.Length==2,r.error);
+            Require(r.error==null&&r.cost==0&&messages.Length==2,r.error);
             Require(messages[0].Contains("성형=False")&&messages[1].Contains("성형=True"),"piece snapshots");
         });
         check("combined arguments obey character cap atomically",()=>{
@@ -52,10 +52,10 @@ public static class BlueprintPrintChecks
             Require(r.error!=null&&!r.compileError&&r.steps.Count==1&&r.errorMessage.Contains("출력 한도"),r.error);
         });
         check("prints and crafting run without submission",()=>{
-            var r=ForgeMvp.Evaluate("print('start')\nBlade = 1(1)");Require(r.error==null&&r.steps.Count==2&&r.product==null&&r.cost==10,r.error);
+            var r=ForgeMvp.Evaluate("print('start')\nBlade = 1(1)");Require(r.error==null&&r.steps.Count==2&&r.product==null&&r.cost==0,r.error);
         });
         check("cold strike permits later prints and zero-value submission",()=>{
-            var r=ForgeMvp.Evaluate("print('start')\nBlade = 1(1)\n3(Blade)\nprint('after')\n!Blade");Require(r.error==null&&r.cost==10&&r.product!=null&&ForgePricing.Quote(r.product).SalePrice==0&&r.steps.Count(s=>s.debugOutput)==2,r.error);
+            var r=ForgeMvp.Evaluate("print('start')\nBlade = 1(1)\n3(Blade)\nprint('after')\n!Blade");Require(r.error==null&&r.cost==0&&r.product!=null&&ForgePricing.Quote(r.product).SalePrice==0&&r.steps.Count(s=>s.debugOutput)==2,r.error);
         });
         check("print is yellow with tooltip; strings and comments stay opaque",()=>{
             const string source="print('print(<color=red>text</color>)') # print()";

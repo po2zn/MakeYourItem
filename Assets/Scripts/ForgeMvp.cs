@@ -4,11 +4,11 @@ using System.Collections.Generic;
 using UnityEngine;
 
 // Temporary single-scene frontend; the evaluator owns no Unity or inventory state.
-public class ForgeMvp : MonoBehaviour
+public partial class ForgeMvp : MonoBehaviour
 {
     [SerializeField] Color reservedColor = new Color(197f/255f, 134f/255f, 192f/255f, 1f);
     const string Example = "Material = 1\nBlade = 1(Material)\n2(Blade, 7)\n3(Blade)\n4(Blade, 0)\n!Blade";
-    string source = Example, report = "시험 실행으로 도면을 확인하세요.", hover = "";
+    string source = Example, report = "▷로 한 줄씩 실행하거나 ▶로 전체 실행하세요. 실제 재료가 소비됩니다.", hover = "";
     Rect workspaceWindow = new Rect(30, 135, 360, 240);
     Vector2 workspaceOffset;
     float workspaceZoom = 1f;
@@ -23,7 +23,10 @@ public class ForgeMvp : MonoBehaviour
         public string name;
         public float clickedAt = -100f;
         public ForgeCompileDiagnostic diagnostic;
-        public bool showDiagnostic, revealDiagnostic;
+        public string diagnosticCaption="컴파일 오류";
+        public bool showDiagnostic, revealDiagnostic, revealExecution;
+        public int executionLine;
+        public string executionSource;
         public Vector2 diagnosticScroll;
         public Vector2 scroll;
         public int pendingCaret = -1;
@@ -45,7 +48,7 @@ public class ForgeMvp : MonoBehaviour
     readonly ForgeTechnology technology=new ForgeTechnology();
     string purchaseMessage="재료는 반복 구매, 기능은 한 번 구매해 해금합니다.";
     void PurchaseTechnology(ForgeTechnology.Offer offer)
-    {technology.TryPurchase(offer,ref gold,ref iron,ref materialStocks,busy,out purchaseMessage);}
+    {if(technology.TryPurchase(offer,ref gold,ref iron,ref materialStocks,busy||executionSession!=null,out purchaseMessage))SaveProgress();}
     [SerializeField, Tooltip("안내서의 영문 문법 표시 여부. 추후 구매/저장 상태에서 설정합니다.")]
     bool englishGuideUnlocked;
     public bool EnglishGuideUnlocked => englishGuideUnlocked;
@@ -61,7 +64,7 @@ public class ForgeMvp : MonoBehaviour
     int renamingWindow = -1;
     string renameDraft = "";
     bool focusRename, draggedTitle;
-    Rect NameRect(Rect r) { return new Rect(r.x + 76, r.y + 5, r.width - 148, 24); }
+    Rect NameRect(Rect r) { return new Rect(r.x + 108, r.y + 5, r.width - 180, 24); }
     void CommitName()
     {
         if (renamingWindow < 0) return;
@@ -163,7 +166,7 @@ public class ForgeMvp : MonoBehaviour
         Cursor.SetCursor(direction==1?horizontalResizeCursor:direction==2?verticalResizeCursor:null, direction!=0?new Vector2(16,16):Vector2.zero, CursorMode.Auto);
         resizeCursorShown = direction;
     }
-    void OnDisable() { techTree.CancelDrag(); SetResizeCursor(0); ReleaseImeKeyboard(); guideBook.CancelDrag(); }
+    void OnDisable() { StopExecution(false); techTree.CancelDrag(); SetResizeCursor(0); ReleaseImeKeyboard(); guideBook.CancelDrag(); }
 #if ENABLE_INPUT_SYSTEM
     UnityEngine.InputSystem.Keyboard imeKeyboard;
     bool imeComposing;
@@ -240,11 +243,12 @@ public class ForgeMvp : MonoBehaviour
     }
     GameObject work;
     ForgeCraftMotion craftMotion;
-    public class Piece { public int id; public int material=1; public int heat; public bool shaped; public ForgeTraits traits; }
-    public class Step { public int line, cost, iron, heat, process, material, materialCount, pieceId; public bool shaped, finished, debugOutput; public ForgeTraits traits; public string text, module; }
+    public class Piece { public ForgeItemData data=new ForgeItemData(); public int id; public int material=1; public int heat; public bool shaped; public ForgeTraits traits; }
+    public class Step { public int day,minute,absorbedPiece; public bool warning; public ForgeItemData data; public Dictionary<int,int> consumed; public float duration=.8f; public int setting, settingValue, refund; public double productionSeconds; public int line, cost, iron, heat, process, material, materialCount, pieceId; public bool shaped, finished, debugOutput; public ForgeTraits traits; public string text, module; }
     public class Evaluation { public List<Step> steps = new List<Step>(); public string error; public int cost, ironConsumed, errorLine; public string errorMessage, errorModule; public bool compileError; public ForgeProduct product; public bool skipped, debugOnly; public Dictionary<string, object> values = new Dictionary<string, object>(); }
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void Boot() { if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == "SampleScene" && FindAnyObjectByType<ForgeMvp>() == null) new GameObject("Forge MVP").AddComponent<ForgeMvp>(); }
+    public ForgeDayCycle DayCycle { get; private set; }
     readonly ForgeShop shop = new ForgeShop();
     void Start()
     {
@@ -264,102 +268,20 @@ public class ForgeMvp : MonoBehaviour
             cameraOrigin = workspaceCamera.transform.position;
             UpdateWorkspaceCamera();
         }
+        DayCycle = GetComponent<ForgeDayCycle>();
+        if (!DayCycle) DayCycle = gameObject.AddComponent<ForgeDayCycle>();
+        LoadProgress();
         var bench = GameObject.CreatePrimitive(PrimitiveType.Cube);
         bench.name = "Temporary Workbench";
         bench.transform.position = new Vector3(2, .5f, 0);
         bench.transform.localScale = new Vector3(3, .3f, 2);
     }
-    public static Evaluation Evaluate(string source, int availableGold = int.MaxValue, int availableIron = int.MaxValue, string owner = "", uint seed = 1, IReadOnlyDictionary<int,long> materialStocks = null, ForgeTechnology technology = null, IReadOnlyDictionary<string,string> modules = null)
-    { return BlueprintRuntime.Evaluate(source, availableGold, availableIron, owner, seed, materialStocks, technology, modules); }
-    void Execute(bool preview)
-    {
-        if (busy) return;
-        var owner = codeWindows[activeWindow];
-        var availableMaterials=new Dictionary<int,long>();
-        foreach(var stock in materialStocks??Array.Empty<ForgeMaterialStock>())if(stock!=null&&stock.unlocked)availableMaterials[stock.material]=stock.count;
-        owner.text=source;
-        var modules=new Dictionary<string,string>(StringComparer.Ordinal);
-        foreach(var window in codeWindows){
-            string moduleName;try{moduleName=PythonIdentifier.Parse(window.name);}catch{continue;}
-            if(modules.ContainsKey(moduleName))modules[moduleName]=null;else modules.Add(moduleName,window.text);
-        }
-        var evaluation = Evaluate(source, gold, iron, owner.name, owner.seed,availableMaterials,technology,modules);
-        if (evaluation.compileError)
-        {
-            owner.diagnostic = new ForgeCompileDiagnostic(source, evaluation.errorLine, evaluation.errorMessage);
-            owner.showDiagnostic = true; owner.revealDiagnostic = true;
-            owner.diagnosticScroll = Vector2.zero;
-            hover = "";
-            return; // Do not open, clear or overwrite the shop/receipt on compilation failure.
-        }
-        owner.diagnostic = null; owner.showDiagnostic = false; owner.revealDiagnostic = false;
-        BeginDebugRun(evaluation,owner.name,preview);
-        if(evaluation.debugOnly)
-        {
-            foreach(var step in evaluation.steps)if(step.debugOutput)AppendDebug(step.text);
-            if(evaluation.error!=null)AppendDebug(evaluation.error);
-            return;
-        }
-        resultOwner = owner.name;
-        reportError = evaluation.error != null;
-        showSalesPanel = true;
-        report = "";
-        if (evaluation.skipped) { report = "실행 완료 · 실행된 공정과 제출 결과물이 없습니다. 비용 0G"; return; }
-        if (preview)
-        {
-            foreach (var step in evaluation.steps)
-                if(step.debugOutput)AppendDebug(step.text);else report += (step.module==null?"":step.module+" · ") + step.line + "줄: " + step.text + "\n";
-            report += evaluation.product != null
-                ? "\n시험 견적\n" + ForgePricing.Describe(evaluation.product, true)
-                : "예상 제작비 " + evaluation.cost + "G · 소비 예정 재료 · 철 " + evaluation.ironConsumed + "개\n" + (evaluation.error ?? "실행 완료 · 결과물 미제출");
-            return;
-        }
-        if (evaluation.error != null && evaluation.steps.Count == 0) { report = evaluation.error; return; }
-        StartCoroutine(Craft(evaluation, owner));
-    }
-    IEnumerator Craft(Evaluation evaluation, CodeWindow codeOwner)
-    {
-        busy = true;
-        string owner = resultOwner;
-        var ledger = new ForgeProductionLedger();
-        ForgeProduct completed = null;
-        bool seedConsumed = false;
-        craftMotion.BeginRun();
-        foreach (var step in evaluation.steps)
-        {
-            if(step.debugOutput){AppendDebug(step.text);continue;}
-            var stock=step.materialCount>0&&step.material>1?Array.Find(materialStocks??Array.Empty<ForgeMaterialStock>(),item=>item!=null&&item.material==step.material&&item.unlocked):null;
-            if ((step.materialCount>0&&step.material>1&&(stock==null||stock.count<step.materialCount)) || !ledger.TrySpend(step.cost, step.iron, ref gold, ref iron))
-            {
-                reportError = true;
-                report += step.line + "줄: 자금 또는 해당 재료 부족\n실제 제작비 " + ledger.CashCost + "G · 소비 재료 · 철 " + ledger.IronConsumed + "개";
-                busy = false; yield break;
-            }
-            if(stock!=null)stock.count-=step.materialCount;
-            if (!seedConsumed && step.process > 0) { codeOwner.seed = unchecked(codeOwner.seed * 1664525u + 1013904223u); seedConsumed = true; }
-            report += step.line + "줄: " + step.text + "\n";
-            yield return craftMotion.Play(step);
-            if (step.finished)
-            {
-                completed = ledger.Complete(owner, step.heat, step.shaped, step.traits, step.material);
-                selectedProductId = shop.Add(completed);
-            }
-
-        }
-        reportError = evaluation.error != null;
-        report += completed != null ? "\n제작 완료\n" + ForgePricing.Describe(completed, false)
-            : (evaluation.error ?? "실행 완료 · 결과물 미제출") + "\n실제 제작비 " + ledger.CashCost + "G · 소비 재료 · 철 " + ledger.IronConsumed + "개";
-        busy = false;
-    }
+    public static Evaluation Evaluate(string source, int availableGold = int.MaxValue, int availableIron = int.MaxValue, string owner = "", uint seed = 1, IReadOnlyDictionary<int,long> materialStocks = null, ForgeTechnology technology = null, IReadOnlyDictionary<string,string> modules = null, Func<double> clockHour = null, ForgeRunContext context = null)
+    { return BlueprintRuntime.Evaluate(source, availableGold, availableIron, owner, seed, materialStocks, technology, modules, clockHour, context); }
     bool SellProduct(int id)
     {
-        if (busy || !shop.TrySell(id, ref gold, out ForgeProduct sold)) return false;
-        selectedProductId = -1; // Never silently sell the next item on a second click.
-        reportError = false;
-        resultOwner = sold.BlueprintName;
-        report = "판매 영수증 · #" + id + "\n" + ForgePricing.Describe(sold, false)
-            + "\n지급액 +" + ForgePricing.Quote(sold).SalePrice + "G (제작비는 제작 때 지불됨)";
-        return true;
+        if(busy||executionSession!=null)return false;
+        bool sold=SellProductInternal(id);if(sold)SaveProgress();return sold;
     }
     readonly ForgeDebugOutput debugOutput=new ForgeDebugOutput();
     Rect debugWindow=new Rect(30,320,480,240);
@@ -369,11 +291,6 @@ public class ForgeMvp : MonoBehaviour
     int debugResizeEdge=-1;
     const float DebugHeaderHeight=34f;
     GUIStyle debugTextStyle,debugTitleStyle;
-    void BeginDebugRun(Evaluation evaluation,string owner,bool preview)
-    {
-        if(!evaluation.debugOnly&&!evaluation.steps.Exists(step=>step.debugOutput))return;
-        AppendDebug("── "+owner+" · "+(preview?"시험 실행":"실제 실행")+" ──");
-    }
     void AppendDebug(string message){debugOutput.Append(message);showDebugWindow=true;debugFollow=true;}
     int DebugResizeEdge(Vector2 mouse)
     {
@@ -443,8 +360,12 @@ public class ForgeMvp : MonoBehaviour
     void OnGUI()
     {
         InitializeCodeStyle();
-        if(showTechTree){if(techTree.Draw(codeStyle.font,technology,gold,iron,materialStocks,busy,purchaseMessage,PurchaseTechnology)){showTechTree=false;GUI.FocusControl(null);}return;}
+        if(showProgress){DrawProgress();return;}
+        if(showTechTree){if(techTree.Draw(codeStyle.font,technology,gold,iron,materialStocks,busy||executionSession!=null,purchaseMessage,PurchaseTechnology)){showTechTree=false;GUI.FocusControl(null);}return;}
         if (!windowsInitialized) { windowsInitialized = true; nextWindowId = 1; codeWindows.Add(new CodeWindow { rect = workspaceWindow, id = 0, name = "f1" }); }
+        EventType resourceEvent = Event.current.type;
+        bool maskResources = deleteWindowId < 0 && DebugResourcesRect.Contains(Event.current.mousePosition) && (Event.current.isMouse || Event.current.type == EventType.ScrollWheel);
+        if(maskResources)Event.current.type=EventType.Ignore;
         EventType modalEvent = Event.current.type;
         bool modalOpen = deleteWindowId >= 0;
         if (modalOpen && Event.current.type != EventType.Layout && Event.current.type != EventType.Repaint) Event.current.type = EventType.Ignore;
@@ -462,7 +383,7 @@ public class ForgeMvp : MonoBehaviour
         }
         if(ev.rawType==EventType.MouseUp)codePointerControl=0;
         EventType toolbarEvent=ev.type;
-        bool maskToolbar=!panning&&ev.mousePosition.y<ToolbarHeight&&(ev.isMouse||ev.type==EventType.ScrollWheel);
+        bool maskToolbar=!panning&&(ev.mousePosition.y<ToolbarHeight||new Rect(12,Screen.height-36,190,28).Contains(ev.mousePosition))&&(ev.isMouse||ev.type==EventType.ScrollWheel);
         if(maskToolbar)ev.type=EventType.Ignore;
         if(showGuideBook)InitializeGuideBook();
         EventType bookUnderlyingEvent=ev.type;
@@ -554,9 +475,10 @@ public class ForgeMvp : MonoBehaviour
                 activeWindow = hit;
                 Rect r = codeWindows[hit].rect; r.position += workspaceOffset;
                 Rect title = new Rect(r.x + 4, r.y + 4, r.width - 8, 30);
-                Rect testButton = new Rect(r.x + 40, r.y + 5, 28, 24);
+                Rect stepButton = new Rect(r.x + 40, r.y + 5, 28, 24);
                 Rect runButton = new Rect(r.x + 8, r.y + 5, 28, 24);
-                if (title.Contains(mouse) && !testButton.Contains(mouse) && !runButton.Contains(mouse) && mouse.x < r.xMax - 68
+                Rect stopButton = new Rect(r.x + 72, r.y + 5, 28, 24);
+                if (title.Contains(mouse) && !stepButton.Contains(mouse) && !runButton.Contains(mouse) && !stopButton.Contains(mouse) && mouse.x < r.xMax - 68
                     && !(renamingWindow == hit && NameRect(r).Contains(mouse)))
                 {
                     movingWindow = hit;
@@ -655,11 +577,58 @@ public class ForgeMvp : MonoBehaviour
             guideBook.Draw(ref showGuideBook,codeStyle.font,codeStyle.fontSize,englishGuideUnlocked);
             GUI.matrix=bookMatrix;
         }
+        if(maskResources)Event.current.type=resourceEvent;
+        if(!modalOpen)DrawDebugResources();
         if (modalOpen) Event.current.type = modalEvent;
         if(deleteWindowId>=0)DrawDeleteDialog();
     }
+    Vector2 debugResourceScroll;
+    Rect DebugResourcesRect {
+        get {
+            float width=Mathf.Min(816,Mathf.Max(1,Screen.width-24));
+            float height=Mathf.Min(644,Mathf.Max(1,Screen.height-ToolbarHeight-24));
+            return new Rect(Screen.width-width-12,Screen.height-height-12,width,height);
+        }
+    }
+    void DrawDebugResources()
+    {
+        Rect panel=DebugResourcesRect;
+        GUI.Box(panel,"디버그 · 자원 +1,000 / 하루 넘기기");
+        var debugButtonStyle=new GUIStyle(GUI.skin.button){font=codeStyle.font,fontSize=36};
+        Rect viewport=new Rect(panel.x+8,panel.y+28,panel.width-16,panel.height-36);
+        debugResourceScroll=GUI.BeginScrollView(viewport,debugResourceScroll,new Rect(0,0,780,594));
+        bool enabled=GUI.enabled;
+        GUI.enabled=enabled&&!busy&&executionSession==null;
+        for(int i=0;i<11;i++){
+            string name=i==10?"하루 넘기기":(i==0?"골드":ForgeMaterialGuide.Find(i).Name)+" +1,000";
+            Rect button=new Rect((i%2)*390,(i/2)*99,378,87);
+            if(GUI.Button(button,new GUIContent(name,i==10?"현재 시각을 유지하며 다음 날로 이동합니다.":"제작을 멈춘 상태에서 자원을 추가합니다."),debugButtonStyle)){
+                if(i==10){
+                    if(DayCycle!=null&&DayCycle.Day<int.MaxValue)DayCycle.Clock.Restore(DayCycle.Day+1,DayCycle.CurrentHour);
+                    SaveProgress();
+                    continue;
+                }
+                if(i==0)gold=(int)Math.Min(int.MaxValue,(long)gold+1000);
+                else if(i==1)iron=(int)Math.Min(int.MaxValue,(long)iron+1000);
+                else {
+                    var stock=Array.Find(materialStocks,s=>s!=null&&s.material==i);
+                    if(stock==null){
+                        stock=new ForgeMaterialStock{material=i};
+                        var list=new List<ForgeMaterialStock>(materialStocks);
+                        list.Add(stock);materialStocks=list.ToArray();
+                    }
+                    stock.unlocked=true;
+                    stock.count=stock.count>long.MaxValue-1000?long.MaxValue:stock.count+1000;
+                }
+                SaveProgress();
+            }
+        }
+        GUI.enabled=enabled;
+        GUI.EndScrollView();
+    }
     void DrawToolbar()
     {
+        DrawProgressButton();
         GUI.Box(new Rect(0,0,Screen.width,40),"");
         GUI.Label(new Rect(12,8,Mathf.Max(0,Screen.width-610),28),"자금 "+gold+"G · 완성품 "+products+" · 확대 "+Mathf.RoundToInt(workspaceZoom*100)+"%");
         materialHud.Draw(iron,materialStocks,codeStyle.font,Mathf.Max(144,Screen.width-496));
@@ -702,7 +671,7 @@ public class ForgeMvp : MonoBehaviour
         GUI.color = new Color(1f, .25f, .25f, 1f);
         GUI.DrawTexture(new Rect(panel.x, panel.y, panel.width, 2), Texture2D.whiteTexture);
         GUI.color = previous;
-        GUI.Label(new Rect(panel.x + 10, panel.y + 7, panel.width - 48, 24), "컴파일 오류 · " + owner.name);
+        GUI.Label(new Rect(panel.x + 10, panel.y + 7, panel.width - 48, 24), owner.diagnosticCaption + " · " + owner.name);
         if (GUI.Button(new Rect(panel.xMax - 32, panel.y + 5, 24, 24), "×")) owner.showDiagnostic = false;
         GUILayout.BeginArea(new Rect(panel.x + 10, panel.y + 36, panel.width - 20, Mathf.Max(1, panel.height - 46)));
         owner.diagnosticScroll = GUILayout.BeginScrollView(owner.diagnosticScroll);
@@ -748,6 +717,7 @@ public class ForgeMvp : MonoBehaviour
             owner.coloredTokens = ForgeSyntax.Scan(text);
         }
         var fullText = new GUIContent(text);
+        DrawExecutionHighlight(content,text,owner);
         DrawDiagnosticUnderline(content, text, owner);
         foreach (var token in owner.coloredTokens)
         {
@@ -835,8 +805,10 @@ public class ForgeMvp : MonoBehaviour
         }
         else GUI.Label(NameRect(window), new GUIContent(codeWindows[activeWindow].name));
         GUI.enabled=!busy;
-        if(GUI.Button(new Rect(window.x+40,window.y+5,28,24),new GUIContent("▷"), actionButton)) Execute(true);
-        if(GUI.Button(new Rect(window.x+8,window.y+5,28,24),new GUIContent("▶"), actionButton)) Execute(false);
+        if(GUI.Button(new Rect(window.x+40,window.y+5,28,24),new GUIContent("▷", "한 줄 실행 · 실제 재료가 소비됩니다"), actionButton)) Execute(true);
+        if(GUI.Button(new Rect(window.x+8,window.y+5,28,24),new GUIContent("▶", "전체 실행 · 일시 정지 중이면 이어서 실행"), actionButton)) Execute(false);
+        GUI.enabled=!busy&&executionSession!=null;
+        if(GUI.Button(new Rect(window.x+72,window.y+5,28,24),new GUIContent("■", "실행 중단 · 이미 소비한 비용은 유지됩니다"),actionButton))StopExecution(true);
         GUI.enabled=true;
         if (GUI.Button(new Rect(window.xMax - 64, window.y + 5, 24, 24), "−", actionButton))
         {
@@ -859,6 +831,10 @@ public class ForgeMvp : MonoBehaviour
             scroll.x = 0;
             scroll.y = Mathf.Clamp(errorPosition.y - viewport.height * .35f, 0, Mathf.Max(0, content.height - viewport.height));
             codeWindows[activeWindow].revealDiagnostic = false;
+        }
+        if(codeWindows[activeWindow].revealExecution&&codeWindows[activeWindow].executionSource==source){
+            new ForgeCompileDiagnostic(source,codeWindows[activeWindow].executionLine,"").GetLineSpan(out int nextStart,out int nextLength);
+            FollowCodeCaret(content,viewport,nextStart);codeWindows[activeWindow].revealExecution=false;
         }
         // Apply on the next GUI pass, after the newly inserted lines have a layout.
         // BeginScrollView must receive both the new content size and the desired scroll.
@@ -1013,6 +989,7 @@ public class ForgeMvp : MonoBehaviour
         GUILayout.BeginArea(new Rect(panel.x + 10, panel.y + 38, panel.width - 20, panel.height - 48));
         logs = GUILayout.BeginScrollView(logs);
         GUILayout.Label("실행 도면: " + resultOwner + (busy ? " · 제작 중" : ""));
+        if(executionSession!=null)GUILayout.Label("다음 실행: "+(executionSession.NextModule??executionOwner.name)+" · "+executionSession.NextLine+"줄 · ▷ 한 줄 / ▶ 계속 / ■ 중단");
         GUILayout.Label(report, reportError ? errorLabel : GUI.skin.label);
         GUILayout.Space(12);
         GUILayout.Label("판매 가능한 완성품 · " + shop.Count + "개");
@@ -1031,7 +1008,7 @@ public class ForgeMvp : MonoBehaviour
         }
         else GUILayout.Label("완성품을 선택하면 판매 견적이 표시됩니다.");
         GUILayout.EndScrollView();
-        GUI.enabled = selected != null && !busy;
+        GUI.enabled = selected != null && !busy && executionSession==null;
         if (GUILayout.Button(selected == null ? "판매할 완성품을 선택하세요" : "선택 완성품 판매 · +" + ForgePricing.Quote(selected.Product).SalePrice + "G", GUILayout.Height(30)))
             SellProduct(selected.Id);
         GUI.enabled = true;

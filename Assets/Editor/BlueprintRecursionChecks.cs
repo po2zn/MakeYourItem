@@ -30,10 +30,10 @@ public static class BlueprintRecursionChecks
             var r=ForgeMvp.Evaluate(Countdown+"\nprint(down(32))");Require(!r.compileError&&r.errorLine==4&&r.errorMessage.Contains("32")&&r.steps.Count==0,"depth error");
         });
         check("unbounded recursion preserves prior costs and stops",()=>{
-            var r=ForgeMvp.Evaluate("def forever():\n    return forever()\np = 1(1)\nforever()\n!p",100,10);Require(!r.compileError&&r.errorLine==2&&r.cost==10&&r.ironConsumed==1&&r.product==null&&r.steps.Count==1,"bounded failure");
+            var r=ForgeMvp.Evaluate("def forever():\n    return forever()\np = 1(1)\nforever()\n!p",100,10);Require(!r.compileError&&r.errorLine==2&&r.cost==0&&r.ironConsumed==1&&r.product==null&&r.steps.Count==1,"bounded failure");
         });
         check("recursive forging emits every successful action once",()=>{
-            var r=Good("def hammer(p, count):\n    if count == 0:\n        return p\n    3(p)\n    return hammer(p, count - 1)\np = 1(1)\n2(p, 7)\nres = hammer(p, 3)\n4(res, 0)\n!res");Require(r.cost==12&&r.ironConsumed==1&&ForgePricing.Quote(r.product).SalePrice==28&&r.steps.Select(s=>s.process).SequenceEqual(new[]{1,2,3,3,3,4,0})&&r.steps.Select(s=>s.pieceId).Distinct().Count()==1,"craft receipts");
+            var r=Good("def hammer(p, count):\n    if count == 0:\n        return p\n    3(p)\n    return hammer(p, count - 1)\np = 1(1)\n2(p, 7)\nres = hammer(p, 3)\n4(res, 0)\n!res");Require(r.cost==0&&r.ironConsumed==1&&ForgePricing.Quote(r.product).SalePrice==28&&r.steps.Select(s=>s.process).SequenceEqual(new[]{1,2,3,3,3,4,0})&&r.steps.Select(s=>s.pieceId).Distinct().Count()==1,"craft receipts");
         });
         check("imported recursive functions retain globals and aliases",()=>{
             var modules=new Dictionary<string,string>{{"maths","BASE = 1\ndef fact(n):\n    if n <= 1:\n        return BASE\n    return n * fact(n - 1)"}};

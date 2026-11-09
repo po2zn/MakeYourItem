@@ -35,15 +35,15 @@ public static class ForgeTechnologyChecks
         Require(!technology.TryPurchase(ForgeTechnology.Offers[1],ref gold,ref iron,ref stocks,false,out message)&&gold==100,"material overflow");
         Require(!technology.TryPurchase(new ForgeTechnology.Offer(1,0),ref gold,ref iron,ref stocks,false,out message)&&gold==100,"unknown offer");
         var fresh=new ForgeTechnology();gold=1000;
-        string[] expressions={"100(Blade)","101(-3)","1111([1])","000([1])","999([1])","66(1,2)","1010()"};
+        string[] expressions={"100(Blade)","101(-3)","1111([1])","000([1])","999([1])","66(1,2)","1010()","12()","24(60)"};
         int index=0;
-        foreach(var offer in ForgeTechnology.Offers.Where(o=>o.Kind==ForgePurchaseKind.Function)){
+        foreach(var offer in ForgeTechnology.Offers.Where(o=>o.Kind==ForgePurchaseKind.Function&&o.Feature<BlueprintFeature.Attach)){
             string code="Blade = 1(1)\nprint("+expressions[index++]+")\n2(Blade,7)\n3(Blade)\n4(Blade,0)\n!Blade";
             Require(ForgeMvp.Evaluate(code,technology:fresh).compileError,"every feature starts locked");
             Require(fresh.TryPurchase(offer,ref gold,ref iron,ref stocks,false,out message),message);
             Require(ForgeMvp.Evaluate(code,technology:fresh).error==null,"every purchased feature executes");
         }
-        Console.WriteLine("PASS technology: repeated materials, stock unlocks, funds, duplicate/busy/overflow guards, all seven function gates and both spellings");
+        Console.WriteLine("PASS technology: repeated materials, stock unlocks, funds, duplicate/busy/overflow guards, all function gates and both spellings");
         BlueprintMaterialChecks.Main();
     }
 }

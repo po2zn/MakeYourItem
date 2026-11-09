@@ -11,12 +11,12 @@ public static class ForgeDiagnosticChecks
         d.GetLineSpan(out int start, out int length);
         Require(text.Substring(start, length) == "2(Blade)", "CRLF source range");
         var missingFinish = ForgeMvp.Evaluate("# comment\nBlade = 1(1)\n# trailing\n", 100, 10);
-        Require(missingFinish.error == null && missingFinish.cost == 10 && missingFinish.product == null, "optional completion");
+        Require(missingFinish.error == null && missingFinish.cost == 0 && missingFinish.product == null, "optional completion");
         var empty = ForgeMvp.Evaluate("", 100, 10);
         new ForgeCompileDiagnostic("", empty.errorLine, empty.errorMessage).GetLineSpan(out start, out length);
         Require(empty.error == null && empty.skipped && start == 0 && length == 0, "empty source marker");
         var runtime = ForgeMvp.Evaluate("Blade = 1(1)\n3(Missing)\n4(Blade, 0)\n!Blade", 100, 10);
-        Require(!runtime.compileError && runtime.errorLine == 2 && runtime.cost == 10, "runtime error stays distinct");
+        Require(!runtime.compileError && runtime.errorLine == 2 && runtime.cost == 0, "runtime error stays distinct");
         return "PASS diagnostic checks: original line, CRLF span, optional completion, empty source, runtime distinction (5 cases)";
     }
     public static void Main() { Console.WriteLine(Run()); Console.WriteLine(ForgeEconomyChecks.Run()); }

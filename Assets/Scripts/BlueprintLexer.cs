@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-public enum BlueprintTokenKind { Name, Number, String, Comment, Symbol, NewLine, Indent, Dedent, End }
+public enum BlueprintTokenKind { Name, Number, String, Comment, Symbol, NewLine, Indent, Dedent, End, Error }
 public sealed class BlueprintToken
 {
     public BlueprintTokenKind Kind;
@@ -19,6 +19,22 @@ public sealed class BlueprintException : Exception
 }
 public static class BlueprintLexer
 {
+    // Preserve a strictly lexed prefix; never reinterpret invalid indentation or strings.
+    public static List<BlueprintToken> ScanDeferred(string source)
+    {
+        source=source??"";
+        try{return Scan(source);}
+        catch(BlueprintException error){
+            int start=0;
+            for(int line=1;line<error.Line;line++){int next=source.IndexOf('\n',start);if(next<0)break;start=next+1;}
+            var prefix=Scan(source.Substring(0,start));
+            int tail=prefix.Count-1;
+            while(tail>0&&prefix[tail-1].Kind==BlueprintTokenKind.Dedent)tail--;
+            prefix.Insert(tail,new BlueprintToken(BlueprintTokenKind.Error,error.Message,start,0,error.Line));
+            prefix.Insert(tail+1,new BlueprintToken(BlueprintTokenKind.NewLine,"\n",start,0,error.Line));
+            return prefix;
+        }
+    }
     static bool IsSymbol(char c) => "()[]{}:,.=+-*/%<>!~?".IndexOf(c)>=0;
     public static List<BlueprintToken> Scan(string source, bool tolerant = false)
     {

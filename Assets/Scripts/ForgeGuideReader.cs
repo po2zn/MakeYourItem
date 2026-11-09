@@ -6,15 +6,19 @@ public sealed class ForgeGuideReader
 {
     string query="";
     int selected;
+    const float BookmarkWidth=104, BookmarkStep=44, BookmarkHeight=40;
+    public static Rect BookmarkRail(Rect area) => new Rect(area.x-BookmarkWidth-2,area.y,BookmarkWidth,area.height);
+    Texture2D bookmarkTexture;
+    public bool ShowBookmarks { get; set; } = true;
     bool showContents,copied;
     bool englishUnlocked;
     Vector2 indexScroll,detailScroll,codeScroll,leftTabScroll,materialScroll;
     int material=-1;
-    string section="";
-    static readonly string[] Sections={"게임 소개","재료","시작하기","대장간 공정","조건과 반복","사용자 함수","조회와 계산","자료 묶음","기본 문법","완성 예제","문제가 생겼을 때"};
-    // Header (30) and page insets (20) surround the full bookmark rail.
-    public static float DefaultWindowHeight => 30+20+Sections.Length*38;
-    static readonly string[] Tabs={"소개","재료","시작","공정","조건","함수","계산","자료","기본","예제","오류"};
+    string section="게임 소개";
+    static readonly string[] Sections={"게임 소개","재료","시작하기","대장간 공정","확장 제작","시간 조회","조건과 반복","사용자 함수","조회와 계산","출력","자료 묶음","기본 문법","완성 예제","문제가 생겼을 때"};
+    // Header and page insets surround the full bookmark rail.
+    public static float DefaultWindowHeight => ForgeGuideUI.HeaderHeight+20+Sections.Length*BookmarkStep;
+    static readonly string[] Tabs={"소개","재료","시작","공정","확장","시간","조건","함수","계산","출력","자료","기본","예제","오류"};
     GUIStyle bodyStyle,titleStyle,sectionStyle,entryStyle,codeStyle,buttonStyle,searchStyle,tabStyle;
     void Styles(Font font,int fontSize)
     {
@@ -29,7 +33,7 @@ public sealed class ForgeGuideReader
         searchStyle=new GUIStyle(GUI.skin.textField){font=font,fontSize=fontSize,richText=false};
         codeStyle=new GUIStyle(bodyStyle){fontSize=fontSize,wordWrap=false,padding=new RectOffset(6,6,6,6)};
         codeStyle.normal.textColor=new Color(.94f,.94f,.94f);
-        tabStyle=new GUIStyle(buttonStyle){fontStyle=FontStyle.Bold,alignment=TextAnchor.MiddleCenter,padding=new RectOffset(0,0,0,0)};
+        tabStyle=new GUIStyle(GUIStyle.none){font=font,fontSize=fontSize,fontStyle=FontStyle.Bold,alignment=TextAnchor.MiddleCenter,richText=false,padding=new RectOffset(0,0,0,0)};
         foreach(var state in new[]{tabStyle.normal,tabStyle.hover,tabStyle.active,tabStyle.focused,tabStyle.onNormal,tabStyle.onHover,tabStyle.onActive,tabStyle.onFocused}){state.background=null;state.scaledBackgrounds=new Texture2D[0];state.textColor=new Color(.98f,.94f,.83f);}
         foreach(var style in new[]{bodyStyle,titleStyle,sectionStyle,entryStyle,codeStyle,buttonStyle,searchStyle,tabStyle})FixTextColor(style);
     }
@@ -47,13 +51,20 @@ public sealed class ForgeGuideReader
         if(englishUnlocked!=englishGuideUnlocked){englishUnlocked=englishGuideUnlocked;copied=false;detailScroll=Vector2.zero;codeScroll=Vector2.zero;}
         Styles(font,fontSize);
         Color old=GUI.color;GUI.color=new Color(.96f,.92f,.82f);GUI.DrawTexture(area,Texture2D.whiteTexture);GUI.color=old;
-        // Ribbons stay inside the book hit region, clear of its resize handles.
-        DrawBookmarks(new Rect(area.x,area.y,62,area.height));
-        Rect page=new Rect(area.x+68,area.y+4,Mathf.Max(1,area.width-74),Mathf.Max(1,area.height-8));
+        // Ribbons extend beyond the cover; the reading page keeps its full width.
+        if(ShowBookmarks)DrawBookmarks(BookmarkRail(area));
+        const float contentMargin=24;
+        Rect page=new Rect(area.x+contentMargin,area.y+4,Mathf.Max(1,area.width-contentMargin*2),Mathf.Max(1,area.height-8));
         if(section=="재료"){DrawMaterials(page);return;}
         if(section=="게임 소개"){DrawIntroduction(page);return;}
         if(GUI.Button(new Rect(page.x,page.y,58,28),new GUIContent(showContents?"본문":"<-",showContents?"본문 보기":"목록으로 돌아가기"),buttonStyle))showContents=!showContents;
-        string next=GUI.TextField(new Rect(page.x+62,page.y,Mathf.Max(1,page.width-62),28),query,80,searchStyle);
+        Rect searchRect=new Rect(page.x+62,page.y,Mathf.Max(1,page.width-62),28);
+        string next=GUI.TextField(searchRect,query,80,searchStyle);
+        if(string.IsNullOrEmpty(next)){
+            var placeholderStyle=new GUIStyle(GUIStyle.none){font=font,fontSize=Mathf.Max(10,fontSize-3),alignment=TextAnchor.MiddleLeft,clipping=TextClipping.Clip};
+            placeholderStyle.normal.textColor=new Color(.55f,.55f,.55f);
+            GUI.Label(new Rect(searchRect.x+6,searchRect.y,Mathf.Max(1,searchRect.width-12),searchRect.height),"Search...",placeholderStyle);
+        }
         if(next!=query){query=next;section="";indexScroll=Vector2.zero;showContents=true;}
         var matches=new List<int>();
         for(int i=0;i<BlueprintGuide.Entries.Count;i++)if((section.Length==0||BlueprintGuide.Entries[i].Section==section)&&BlueprintGuide.Entries[i].Matches(query,englishUnlocked))matches.Add(i);
@@ -71,19 +82,29 @@ public sealed class ForgeGuideReader
     }
     void DrawBookmarks(Rect rail)
     {
+        if(bookmarkTexture==null)bookmarkTexture=Resources.Load<Texture2D>("GuideBookmark");
         float width=rail.width-4;
-        leftTabScroll=BeginScroll(rail,leftTabScroll,new Rect(0,0,width,Sections.Length*38));
+        GUIStyle scrollBackground=GUI.skin.scrollView;
+        GUI.skin.scrollView=GUIStyle.none;
+        leftTabScroll=GUI.BeginScrollView(rail,leftTabScroll,new Rect(0,0,width,Sections.Length*BookmarkStep),false,false,GUIStyle.none,GUIStyle.none);
+        GUI.skin.scrollView=scrollBackground;
         for(int i=0;i<Sections.Length;i++){
             bool active=section==Sections[i];
-            Rect tab=new Rect(0,i*38,active?width:width-4,34);
-            Color old=GUI.color;GUI.color=active?new Color(.73f,.39f,.20f):new Color(.48f,.37f,.28f);
-            GUI.DrawTexture(tab,Texture2D.whiteTexture);
-            GUI.color=new Color(.92f,.79f,.53f);GUI.DrawTexture(new Rect(tab.x+2,tab.y+3,1,tab.height-6),Texture2D.whiteTexture);GUI.color=old;
-            if(GUI.Button(tab,new GUIContent(Tabs[i],Sections[i]),tabStyle)){
+            Rect hit=new Rect(0,i*BookmarkStep,width,BookmarkHeight);
+            if(GUI.Button(hit,new GUIContent("",Sections[i]),GUIStyle.none)){
                 GUI.FocusControl(null);
                 material=-1;section=Sections[i];query="";showContents=true;
                 indexScroll=Vector2.zero;materialScroll=Vector2.zero;detailScroll=Vector2.zero;codeScroll=Vector2.zero;
+                active=true;
             }
+            Rect tab=hit;
+            Color old=GUI.color;
+            GUI.color=old*(active?new Color(1.35f,1.35f,1.35f,1):new Color(.78f,.78f,.78f,1));
+            // Trim the transparent source margins in UV space; preserve the original sprite file.
+            if(bookmarkTexture!=null)GUI.DrawTextureWithTexCoords(tab,bookmarkTexture,new Rect(80f/1920f,139f/819f,1750f/1920f,540f/819f),true);
+
+            GUI.color=old;
+            GUI.Label(new Rect(tab.x+10,tab.y,tab.width-14,tab.height),Tabs[i],tabStyle);
         }
         GUI.EndScrollView();
     }

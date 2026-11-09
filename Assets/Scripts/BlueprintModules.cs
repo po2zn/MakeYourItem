@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 // All sources are snapshots of open code windows. No filesystem or Python host execution.
 public sealed partial class BlueprintRuntime
@@ -40,6 +41,7 @@ public sealed partial class BlueprintRuntime
     {
         module.Globals["__name__"]=module.Name;
         foreach(var pair in program.Functions){
+            if(pair.Value.Error!=null)continue;
             var function=new Function{Module=module,Definition=pair.Value};
             foreach(var parameter in pair.Value.Parameters)function.Locals.Add(parameter);
             GatherLocals(pair.Value.Body,function.Locals);
@@ -68,7 +70,7 @@ public sealed partial class BlueprintRuntime
         if(!module.Globals.TryGetValue(name,out var value))Fail("모듈 '"+module.Name+"'에 '"+name+"'이 없습니다.");
         return value;
     }
-    object Invoke(object target,List<object> args)
+    async Task<object> Invoke(object target,List<object> args)
     {
         if(!(target is Function))Fail("호출 대상은 함수여야 합니다.");
         var function=(Function)target;var definition=function.Definition;
@@ -79,12 +81,12 @@ public sealed partial class BlueprintRuntime
         try {
             var local=new Dictionary<string,object>(StringComparer.Ordinal);
             for(int i=0;i<args.Count;i++)local[definition.Parameters[i]]=Copy(args[i]);
-            return Block(definition.Body,local).Value;
+            return (await Block(definition.Body,local)).Value;
         }catch(BlueprintException e){if(e.ModuleName==null&&!currentModule.IsMain)e.ModuleName=currentModule.Name;throw;}
         catch(OverflowException){Fail("정수 범위 초과");return null;}
         finally{calls--;currentModule=previous;localNames=previousLocals;currentLine=previousLine;}
     }
-    Module LoadModule(string name)
+    async Task<Module> LoadModule(string name)
     {
         if(moduleCache.TryGetValue(name,out var cached)){
             if(cached.Initializing)Fail("순환 import는 지원하지 않습니다: "+name);
@@ -98,22 +100,23 @@ public sealed partial class BlueprintRuntime
         var previous=currentModule;var previousLocals=localNames;int previousLine=currentLine;
         currentModule=module;localNames=null;importDepth++;
         try {
-            var program=new BlueprintValidator(new BlueprintParser(source).Parse(),moduleTechnology).Validate();
+            bool deferErrors=session!=null&&session.DeferredErrors;
+            var program=new BlueprintValidator(new BlueprintParser(source,deferErrors).Parse(),moduleTechnology,deferErrors).Validate();
             BindFunctions(module,program);
-            Block(program.Body,module.Globals);
+            await Block(program.Body,module.Globals);
             module.Initializing=false;
             return module;
         }catch(BlueprintException e){if(e.ModuleName==null)e.ModuleName=name;throw;}
         catch(OverflowException){Fail("정수 범위 초과");return null;}
         finally{importDepth--;currentModule=previous;localNames=previousLocals;currentLine=previousLine;}
     }
-    void Import(BlueprintStatement statement,Dictionary<string,object> env)
+    async Task Import(BlueprintStatement statement,Dictionary<string,object> env)
     {
         if(statement.Kind==BlueprintStatementKind.Import){
-            foreach(var item in statement.Imports){currentLine=statement.Token.Line;env[item.Alias]=LoadModule(item.Name);}
+            foreach(var item in statement.Imports){currentLine=statement.Token.Line;env[item.Alias]=await LoadModule(item.Name);}
             return;
         }
-        var module=LoadModule(statement.Name);
+        var module=await LoadModule(statement.Name);
         foreach(var item in statement.Imports){
             currentLine=statement.Token.Line;
             if(item.Name=="*"){

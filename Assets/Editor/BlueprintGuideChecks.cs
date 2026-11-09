@@ -5,6 +5,7 @@ public static class BlueprintGuideChecks {
  static void Require(bool ok,string message){if(!ok)throw new Exception(message);}
  static string Runnable(BlueprintGuide.Entry entry,bool unlocked){
  string code=entry.ExampleFor(unlocked);
+ if(entry.Id.StartsWith("extension-"))return code;
  switch(entry.Id){
  case "1":return code+"\n2(Blade, 7)\n3(Blade)\n4(Blade, 0)\n!Blade";
  case "2":return "Blade = 1(1)\n"+code+"\n3(Blade)\n4(Blade, 0)\n!Blade";
@@ -19,7 +20,7 @@ public static class BlueprintGuideChecks {
  public static string Run(){var log=new StringBuilder();var entries=BlueprintGuide.Entries;
  Require(entries.Select(e=>e.Id).Distinct().Count()==entries.Count,"duplicate guide IDs");
  foreach(BlueprintFeature feature in Enum.GetValues(typeof(BlueprintFeature)))if(feature!=BlueprintFeature.None)Require(entries.Count(e=>e.Feature==feature)==1,"missing/duplicate feature "+feature);
- foreach(var e in entries){Require(e.Body.Length>0&&e.Expected.Length>0&&e.Example.Length>0,"empty guide "+e.Id);var r=EvaluateGuide(Runnable(e,true));Require(r.error==null,e.Id+": "+r.error);log.AppendLine("PASS guide "+e.Id);if(new[]{"start","stages","choose"}.Contains(e.Id)){var q=ForgePricing.Quote(r.product);Require(r.cost==12&&r.ironConsumed==1&&q.SalePrice==28&&q.Profit==16,"guide economy "+e.Id);}}
+ foreach(var e in entries){Require(e.Body.Length>0&&e.Expected.Length>0&&e.Example.Length>0,"empty guide "+e.Id);var r=EvaluateGuide(Runnable(e,true));Require(r.error==null,e.Id+": "+r.error);log.AppendLine("PASS guide "+e.Id);if(new[]{"start","stages","choose"}.Contains(e.Id)){var q=ForgePricing.Quote(r.product);Require(r.cost==0&&r.ironConsumed==1&&q.SalePrice==28&&q.Profit==28,"guide economy "+e.Id);}}
  var noCandidate=ForgeMvp.Evaluate(entries.Single(e=>e.Id=="choose").Example.Replace("choose([9, 7, 5], 7)","choose([9, 8], 7)"),100,10);Require(noCandidate.error==null&&noCandidate.cost==0&&noCandidate.ironConsumed==0&&noCandidate.product==null,"no candidate must not craft");
  Require(entries.Single(e=>e.Id=="min").Matches("000")&&entries.Single(e=>e.Id=="min").Matches("MIN")&&entries.Single(e=>e.Id=="2").Matches("가열")&&entries.All(e=>e.Matches(" ")),"guide search");
  foreach(var e in entries){
