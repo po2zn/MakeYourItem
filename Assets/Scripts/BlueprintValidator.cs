@@ -133,8 +133,8 @@ public sealed class BlueprintValidator
             if(e.Process>0){
                 if(!Known(args[0],e.Process==1?BlueprintType.Int:BlueprintType.Piece))Error(e.Token,e.Process==1?"재료 번호는 정수여야 합니다.":"첫 인자는 작업물이어야 합니다.");
                 if(args.Count==2&&!Known(args[1],BlueprintType.Int))Error(e.Token,"두 번째 인자는 정수여야 합니다.");
-                if(e.Process==1 && e.Args[0].Kind==BlueprintExprKind.Literal && !Equals(e.Args[0].Value,1))Error(e.Token,"MVP 작업대 재료는 철(1)입니다.");
-                if(e.Process==4 && e.Args[1].Kind==BlueprintExprKind.Literal && !Equals(e.Args[1].Value,0))Error(e.Token,"MVP 냉각 재료는 공기(0)입니다.");
+                if(e.Process==1 && e.Args[0].Kind==BlueprintExprKind.Literal && e.Args[0].Value is int material && ForgeMaterialGuide.Find(material)==null)Error(e.Token,"등록되지 않은 재료 번호: "+material);
+                if(e.Process==4 && e.Args[1].Kind==BlueprintExprKind.Literal && !Equals(e.Args[1].Value,0))Error(e.Token,"현재 지원하는 냉각 재료는 공기(0)입니다.");
                 return e.Process==1?BlueprintType.Piece:BlueprintType.Void;
             }
             switch(e.Feature){

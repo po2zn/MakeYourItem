@@ -88,15 +88,9 @@ public sealed class BlueprintParser
                 statement.Expr=Expression(); if(wrapped) Need(")"); statement.Body=Block(); return statement;
             case BlueprintFeature.Def:
                 Take(); statement.Kind=BlueprintStatementKind.Def;
-                // Canonical: 333 choose(args):. Also accept explicit numeric header 333(choose, args):.
-                bool flat=token.Raw=="333" && Match("(");
+                if(token.Raw=="333"&&Current.Raw=="(")Fail("함수 정의는 333 함수명(매개변수): 형식으로 작성하세요.");
                 statement.Name=Identifier();
-                if(flat) {
-                    if(Match(",")) { do { statement.Parameters.Add(Identifier()); } while(Match(",")); }
-                    Need(")");
-                } else {
-                    Need("("); if(!Match(")")) { do { statement.Parameters.Add(Identifier()); } while(Match(",")); Need(")"); }
-                }
+                Need("("); if(!Match(")")) { do { statement.Parameters.Add(Identifier()); } while(Match(",")); Need(")"); }
                 if(statement.Parameters.Count>8) throw new BlueprintException(token.Line,"매개변수는 최대8개입니다.");
                 statement.Body=Block(); return statement;
             case BlueprintFeature.Return:

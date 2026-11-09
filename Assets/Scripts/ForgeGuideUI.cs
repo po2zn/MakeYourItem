@@ -41,15 +41,18 @@ public static class ForgeGuideUI
         GUI.matrix=previousMatrix;
         return clicked;
     }
-    public static void DrawBook(Rect window,ref bool open,Font font,int fontSize,ForgeGuideReader reader,bool englishGuideUnlocked)
+    public static void DrawBook(Rect window,ref bool open,ref bool collapsed,Font font,int fontSize,ForgeGuideReader reader,bool englishGuideUnlocked)
     {
         if(!open)return;
         Rect book=new Rect(window.x,window.y+30,window.width,window.height-30);
         Fill(new Rect(window.x,window.y,window.width,30),new Color(.16f,.18f,.22f,.98f));
         var title=new GUIStyle(GUI.skin.label){font=font,fontSize=fontSize+4,fontStyle=FontStyle.Bold,alignment=TextAnchor.MiddleLeft,richText=false};
         title.hover.textColor=title.normal.textColor;
-        GUI.Label(new Rect(window.x+10,window.y+2,window.width-48,26),"도면 안내서",title);
+        GUI.Label(new Rect(window.x+10,window.y+2,window.width-78,26),"도면 안내서",title);
+        bool wasCollapsed=collapsed;
+        if(GUI.Button(new Rect(window.xMax-60,window.y+3,26,24),new GUIContent("−",collapsed?"안내서 펼치기":"안내서 접기")))collapsed=!collapsed;
         if(GUI.Button(new Rect(window.xMax-30,window.y+3,26,24),new GUIContent("×","안내서 닫기")))open=false;
+        if(collapsed||wasCollapsed||!open)return;
         Fill(new Rect(book.x+4,book.y+5,book.width,book.height),new Color(0,0,0,.25f));
         Fill(book,new Color(.25f,.16f,.11f));
         Stroke(book,new Color(.47f,.31f,.19f),2);

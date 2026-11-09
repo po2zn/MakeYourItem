@@ -8,11 +8,13 @@ public sealed class ForgeGuideReader
     int selected;
     bool showContents,copied;
     bool englishUnlocked;
-    Vector2 indexScroll,detailScroll,codeScroll,leftTabScroll,rightTabScroll,materialScroll;
+    Vector2 indexScroll,detailScroll,codeScroll,leftTabScroll,materialScroll;
     int material=-1;
     string section="";
-    static readonly string[] Sections={"게임 소개","시작하기","대장간 공정","조건과 반복","사용자 함수","조회와 계산","자료 묶음","기본 문법","완성 예제","문제가 생겼을 때"};
-    static readonly string[] Tabs={"소개","시작","공정","조건","함수","계산","자료","기본","예제","오류"};
+    static readonly string[] Sections={"게임 소개","재료","시작하기","대장간 공정","조건과 반복","사용자 함수","조회와 계산","자료 묶음","기본 문법","완성 예제","문제가 생겼을 때"};
+    // Header (30) and page insets (20) surround the full bookmark rail.
+    public static float DefaultWindowHeight => 30+20+Sections.Length*38;
+    static readonly string[] Tabs={"소개","재료","시작","공정","조건","함수","계산","자료","기본","예제","오류"};
     GUIStyle bodyStyle,titleStyle,sectionStyle,entryStyle,codeStyle,buttonStyle,searchStyle,tabStyle;
     void Styles(Font font,int fontSize)
     {
@@ -46,12 +48,11 @@ public sealed class ForgeGuideReader
         Styles(font,fontSize);
         Color old=GUI.color;GUI.color=new Color(.96f,.92f,.82f);GUI.DrawTexture(area,Texture2D.whiteTexture);GUI.color=old;
         // Ribbons stay inside the book hit region, clear of its resize handles.
-        DrawBookmarks(new Rect(area.x,area.y,62,area.height),false);
-        DrawBookmarks(new Rect(area.xMax-44,area.y,44,area.height),true);
-        Rect page=new Rect(area.x+68,area.y+4,Mathf.Max(1,area.width-118),Mathf.Max(1,area.height-8));
-        if(material>=0){DrawMaterial(page);return;}
+        DrawBookmarks(new Rect(area.x,area.y,62,area.height));
+        Rect page=new Rect(area.x+68,area.y+4,Mathf.Max(1,area.width-74),Mathf.Max(1,area.height-8));
+        if(section=="재료"){DrawMaterials(page);return;}
         if(section=="게임 소개"){DrawIntroduction(page);return;}
-        if(GUI.Button(new Rect(page.x,page.y,58,28),showContents?"본문":"목록",buttonStyle))showContents=!showContents;
+        if(GUI.Button(new Rect(page.x,page.y,58,28),new GUIContent(showContents?"본문":"<-",showContents?"본문 보기":"목록으로 돌아가기"),buttonStyle))showContents=!showContents;
         string next=GUI.TextField(new Rect(page.x+62,page.y,Mathf.Max(1,page.width-62),28),query,80,searchStyle);
         if(next!=query){query=next;section="";indexScroll=Vector2.zero;showContents=true;}
         var matches=new List<int>();
@@ -68,26 +69,45 @@ public sealed class ForgeGuideReader
         var pageStyle=new GUIStyle(sectionStyle){alignment=TextAnchor.MiddleCenter,fontStyle=FontStyle.Normal};
         GUI.Label(new Rect(page.x+34,bottom,Mathf.Max(1,page.width-68),28),matches.Count==0?"0 / 0":(position+1)+" / "+matches.Count,pageStyle);
     }
-    void DrawBookmarks(Rect rail,bool materials)
+    void DrawBookmarks(Rect rail)
     {
-        int count=materials?ForgeMaterialGuide.Entries.Count:Sections.Length;
         float width=rail.width-4;
-        Vector2 scroll=materials?rightTabScroll:leftTabScroll;
-        scroll=BeginScroll(rail,scroll,new Rect(0,0,width,count*38));
-        for(int i=0;i<count;i++){
-            bool active=materials?material==i:material<0&&section==Sections[i];
+        leftTabScroll=BeginScroll(rail,leftTabScroll,new Rect(0,0,width,Sections.Length*38));
+        for(int i=0;i<Sections.Length;i++){
+            bool active=section==Sections[i];
             Rect tab=new Rect(0,i*38,active?width:width-4,34);
-            Color old=GUI.color;GUI.color=active?new Color(.73f,.39f,.20f):materials?new Color(.33f,.46f,.48f):new Color(.48f,.37f,.28f);
-            GUI.DrawTexture(tab,Texture2D.whiteTexture);GUI.color=old;
-            // An inset stitch line and projecting end make the navigation read as a bookmark.
-            GUI.color=new Color(.92f,.79f,.53f);GUI.DrawTexture(new Rect(materials?tab.xMax-3:tab.x+2,tab.y+3,1,tab.height-6),Texture2D.whiteTexture);GUI.color=old;
-            if(GUI.Button(tab,new GUIContent(materials?i.ToString():Tabs[i],materials?ForgeMaterialGuide.Entries[i].Name:Sections[i]),tabStyle)){
+            Color old=GUI.color;GUI.color=active?new Color(.73f,.39f,.20f):new Color(.48f,.37f,.28f);
+            GUI.DrawTexture(tab,Texture2D.whiteTexture);
+            GUI.color=new Color(.92f,.79f,.53f);GUI.DrawTexture(new Rect(tab.x+2,tab.y+3,1,tab.height-6),Texture2D.whiteTexture);GUI.color=old;
+            if(GUI.Button(tab,new GUIContent(Tabs[i],Sections[i]),tabStyle)){
                 GUI.FocusControl(null);
-                if(materials){material=i;materialScroll=Vector2.zero;}
-                else{material=-1;section=Sections[i];query="";showContents=true;indexScroll=Vector2.zero;detailScroll=Vector2.zero;codeScroll=Vector2.zero;}
+                material=-1;section=Sections[i];query="";showContents=true;
+                indexScroll=Vector2.zero;materialScroll=Vector2.zero;detailScroll=Vector2.zero;codeScroll=Vector2.zero;
             }
         }
-        GUI.EndScrollView();if(materials)rightTabScroll=scroll;else leftTabScroll=scroll;
+        GUI.EndScrollView();
+    }
+    void DrawMaterials(Rect page)
+    {
+        if(material>=0){
+            if(GUI.Button(new Rect(page.x,page.y,58,30),new GUIContent("<-","재료 목록으로 돌아가기"),buttonStyle)){material=-1;materialScroll=Vector2.zero;}
+            if(material>=0)DrawMaterial(new Rect(page.x,page.y+38,page.width,Mathf.Max(1,page.height-38)));
+            return;
+        }
+        float titleH=TitleHeight("재료",page.width);
+        GUI.Label(new Rect(page.x,page.y,page.width,titleH),"재료",titleStyle);
+        Rect view=new Rect(page.x,page.y+titleH+8,page.width,Mathf.Max(1,page.height-titleH-8));
+        float width=Mathf.Max(1,view.width-4),total=0;
+        foreach(var entry in ForgeMaterialGuide.Entries)total+=Mathf.Max(44,entryStyle.CalcHeight(new GUIContent(entry.Heading),width))+4;
+        indexScroll=BeginScroll(view,indexScroll,new Rect(0,0,width,Mathf.Max(view.height,total)));
+        float y=0;
+        for(int i=0;i<ForgeMaterialGuide.Entries.Count;i++){
+            var entry=ForgeMaterialGuide.Entries[i];
+            float height=Mathf.Max(44,entryStyle.CalcHeight(new GUIContent(entry.Heading),width));
+            if(GUI.Button(new Rect(0,y,width,height),entry.Heading,entryStyle)){material=i;materialScroll=Vector2.zero;}
+            y+=height+4;
+        }
+        GUI.EndScrollView();
     }
     void DrawIntroduction(Rect page)
     {
@@ -154,6 +174,36 @@ public sealed class ForgeGuideReader
         GUI.Label(new Rect(0,y,width,headingH),heading,sectionStyle);
         GUI.Label(new Rect(0,y+headingH+4,width,Height(body,bodyStyle,width)),body,bodyStyle);
     }
+    void DrawReadOnlyCode(Rect rect,string text,string entryId)
+    {
+        string controlName="GuideExample_"+entryId;
+        var ev=Event.current;
+        if(GUI.GetNameOfFocusedControl()==controlName){
+            if(ev.type==EventType.KeyDown){
+                bool shortcut=ev.control||ev.command;
+                bool copyOrSelect=shortcut&&!ev.alt&&(ev.keyCode==KeyCode.C||ev.keyCode==KeyCode.A);
+                bool navigation=ev.keyCode==KeyCode.LeftArrow||ev.keyCode==KeyCode.RightArrow
+                    ||ev.keyCode==KeyCode.UpArrow||ev.keyCode==KeyCode.DownArrow
+                    ||ev.keyCode==KeyCode.Home||ev.keyCode==KeyCode.End
+                    ||ev.keyCode==KeyCode.PageUp||ev.keyCode==KeyCode.PageDown;
+                if(!copyOrSelect&&!navigation)ev.Use();
+            }
+            if((ev.type==EventType.ValidateCommand||ev.type==EventType.ExecuteCommand)
+                &&ev.commandName!="Copy"&&ev.commandName!="SelectAll")ev.Use();
+        }
+        GUI.SetNextControlName(controlName);
+        // Keep native selection and Copy, but never commit an edit to the example.
+        GUI.TextArea(rect,text,codeStyle);
+        if(GUI.GetNameOfFocusedControl()==controlName){
+            var editor=(TextEditor)GUIUtility.GetStateObject(typeof(TextEditor),GUIUtility.keyboardControl);
+            if(editor.text!=text){
+                int cursor=editor.cursorIndex,selection=editor.selectIndex;
+                editor.text=text;
+                editor.cursorIndex=Mathf.Clamp(cursor,0,text.Length);
+                editor.selectIndex=Mathf.Clamp(selection,0,text.Length);
+            }
+        }
+    }
     void DrawDetail(Rect view,bool hasMatch)
     {
         if(!hasMatch){GUI.Label(view,"검색 결과가 없습니다.",bodyStyle);return;}
@@ -176,7 +226,7 @@ public sealed class ForgeGuideReader
         Color old=GUI.color;GUI.color=new Color(.13f,.15f,.18f);GUI.DrawTexture(codeRect,Texture2D.whiteTexture);GUI.color=old;
         float codeWidth=Mathf.Max(width,codeStyle.CalcSize(new GUIContent(entry.ExampleFor(englishUnlocked)+" ")).x+12);
         codeScroll=BeginScroll(codeRect,codeScroll,new Rect(0,0,codeWidth,codeHeight),true);
-        GUI.Label(new Rect(0,0,codeWidth,codeHeight),entry.ExampleFor(englishUnlocked),codeStyle);
+        DrawReadOnlyCode(new Rect(0,0,codeWidth,codeHeight),entry.ExampleFor(englishUnlocked),entry.Id);
         GUI.EndScrollView();y+=codeHeight+12;
         if(expectedH>0)DrawSubsection(y,width,"실행 결과",expected);y+=expectedH+12;
         if(noteH>0)DrawSubsection(y,width,"주의할 점",note);

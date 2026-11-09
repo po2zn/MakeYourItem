@@ -25,9 +25,9 @@ public static class BlueprintLanguageChecks
         });
         check("no suitable candidate skips with zero cost",()=>{var r=ForgeMvp.Evaluate(choose.Replace("[9, 7, 5]","[9, 8]"));Require(r.error==null&&r.skipped&&r.cost==0&&r.product==null,r.error);});
         check("nested loops scope break/continue and function return",()=>{
-            string prefix="333(calc, n):\n    total = 0\n    123(i in [1, 2, 3]):\n        123(j in [1, 2, 3]):\n            1?(j == 1):\n                ~~\n            1?(j == 3):\n                !!\n            total = total + i\n        1?(i == n):\n            << total\n    << -1\na = calc(2)\nb = calc(3)\ni = 0\nc = 0\n888(i < 5):\n    i = i + 1\n    1?(i == 2):\n        ~~\n    1?(i == 4):\n        !!\n    c = c + i";
+            string prefix="333 calc(n):\n    total = 0\n    123(i in [1, 2, 3]):\n        123(j in [1, 2, 3]):\n            1?(j == 1):\n                ~~\n            1?(j == 3):\n                !!\n            total = total + i\n        1?(i == n):\n            << total\n    << -1\na = calc(2)\nb = calc(3)\ni = 0\nc = 0\n888(i < 5):\n    i = i + 1\n    1?(i == 2):\n        ~~\n    1?(i == 4):\n        !!\n    c = c + i";
             var r=Good(prefix);Require(Equals(r.values["a"],3)&&Equals(r.values["b"],6)&&Equals(r.values["c"],4),"scope");
-            var english=Good(prefix.Replace("333(calc, n):","def calc(n):").Replace("123(i in [1, 2, 3]):","for i in [1, 2, 3]:").Replace("123(j in [1, 2, 3]):","for j in [1, 2, 3]:").Replace("1?","if").Replace("~~","continue").Replace("!!","break").Replace("<<","return").Replace("888","while"));Require(Equals(r.values["c"],english.values["c"]),"while parity");
+            var english=Good(prefix.Replace("333 calc(n):","def calc(n):").Replace("123(i in [1, 2, 3]):","for i in [1, 2, 3]:").Replace("123(j in [1, 2, 3]):","for j in [1, 2, 3]:").Replace("1?","if").Replace("~~","continue").Replace("!!","break").Replace("<<","return").Replace("888","while"));Require(Equals(r.values["c"],english.values["c"]),"while parity");
         });
         check("literal and opaque text contexts; whole identifiers",()=>{var r=Good("Value = 100\nOther = 888\nZero = 000\nshift = 3\ntext = \"100(Blade) # !! << 000(v)\"\n# 888(True): ~~");Require(Equals(r.values["Value"],100)&&Equals(r.values["Other"],888)&&Equals(r.values["Zero"],0),"literal");var tokens=BlueprintLexer.Scan("Value = 100\ntext = \"!! 000(v)\" # 1?\nshift = 888");Require(tokens.All(t=>t.Feature==BlueprintFeature.None),"opaque");});
         check("longest compound tokens distinguish completion/comparisons",()=>{var tokens=BlueprintLexer.Scan("!! ~~ << 1? 0? !Blade != <= >=",true);Require(tokens.Count(t=>t.Feature!=BlueprintFeature.None)==5,"compound");Require(tokens.Any(t=>t.Raw=="!"&&t.Feature==BlueprintFeature.None)&&tokens.Any(t=>t.Raw=="!="),"finish");});
@@ -69,16 +69,22 @@ public static class BlueprintLanguageChecks
             foreach(var item in new[]{new[]{"01?(True):\n    x = 1","1"},new[]{"if True:\n    x = 1\nelse:\n    x = 2\nelif True:\n    x = 3","5"},new[]{"if False:\n    x = 1\n01?(True)\n    x = 2","3"}}){var r=ForgeMvp.Evaluate(item[0]+"\n"+ForgeEconomyChecks.Basic);Require(r.compileError&&r.errorLine==int.Parse(item[1])&&r.cost==0,r.error);}
         });
         check("function calls yellow, control keywords purple",()=>{
-            string raw="def warm(p):\n    return heat(p)\nx = 100(Blade)\ny = warm(Blade)\nz = abs(-3)\n333(cool, p):\n    << p\nif True and not False:\n    x = 1";
+            string raw="def warm(p):\n    return heat(p)\nx = 100(Blade)\ny = warm(Blade)\nz = abs(-3)\n333 cool(p):\n    << p\nif True and not False:\n    x = 1";
             var tokens=ForgeSyntax.Scan(raw);
             foreach(string name in new[]{"warm","heat","100","abs","cool"})Require(tokens.Where(t=>raw.Substring(t.start,t.length)==name).All(t=>t.kind==ForgeSyntax.Kind.Function),name);
             foreach(string name in new[]{"def","return","333","<<","if","True","and","not","False"})Require(tokens.Any(t=>raw.Substring(t.start,t.length)==name&&t.kind==ForgeSyntax.Kind.Reserved),name);
         });
-        check("parenthesized numeric definition retained; leading colon rejected",()=>{
-            foreach(string header in new[]{"333 warm(p, target):","333(warm, p, target):","def warm(p, target):"}){
+        check("named numeric definitions match def; legacy headers rejected",()=>{
+            foreach(string header in new[]{"333 warm(p, target):","def warm(p, target):"}){
                 var r=ForgeMvp.Evaluate(header+"\n    2(p, target)\n    << 100(p)\n"+ForgeEconomyChecks.Basic.Replace("2(Blade, 7)","H = warm(Blade, 7)"));
                 Require(r.error==null&&r.cost==12&&Equals(r.values["H"],7),header+": "+r.error);
             }
+            foreach(string legacy in new[]{"333(warm, p):","333():","333(warm):"}){
+                var rejected=ForgeMvp.Evaluate(legacy+"\n    << 1\n"+ForgeEconomyChecks.Basic);
+                Require(rejected.compileError&&rejected.errorLine==1&&rejected.steps.Count==0,"legacy header accepted: "+legacy);
+            }
+            var zero=ForgeMvp.Evaluate("333 answer():\n    << 42\nprint(answer())");
+            Require(zero.error==null&&zero.steps[0].text=="42","zero parameter definition");
             var bad=ForgeMvp.Evaluate("333: answer()\n    << 1\n"+ForgeEconomyChecks.Basic);Require(bad.compileError&&bad.cost==0,"leading colon rejected");
         });
         log.AppendLine("TOTAL language "+count+" passed");return log.ToString();

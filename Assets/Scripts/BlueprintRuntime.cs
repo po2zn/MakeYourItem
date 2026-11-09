@@ -12,18 +12,19 @@ public sealed class BlueprintRuntime
     readonly ForgeProductionLedger ledger=new ForgeProductionLedger();
     readonly string owner;
     int gold, iron, commands, calls, allocated, printCount, printCharacters;
+    readonly Dictionary<int,long> stocks;
     uint randomState;
     int currentLine=1;
     enum Flow { Next, Break, Continue, Return, Finish }
     struct Signal { public Flow Flow; public object Value; public Signal(Flow flow,object value=null){Flow=flow;Value=value;} }
-    BlueprintRuntime(BlueprintProgram program,int gold,int iron,string owner,uint seed)
-    {this.program=program;this.gold=gold;this.iron=iron;this.owner=owner;randomState=seed;result.debugOnly=program.DebugOnly;}
-    public static ForgeMvp.Evaluation Evaluate(string source,int gold,int iron,string owner,uint seed)
+    BlueprintRuntime(BlueprintProgram program,int gold,int iron,string owner,uint seed,IReadOnlyDictionary<int,long> materialStocks=null)
+    {stocks=materialStocks==null?null:new Dictionary<int,long>();if(materialStocks!=null)foreach(var item in materialStocks)stocks[item.Key]=item.Value;this.program=program;this.gold=gold;this.iron=iron;this.owner=owner;randomState=seed;result.debugOnly=program.DebugOnly;}
+    public static ForgeMvp.Evaluation Evaluate(string source,int gold,int iron,string owner,uint seed,IReadOnlyDictionary<int,long> materialStocks=null)
     {
         BlueprintProgram program;
         try {program=new BlueprintValidator(new BlueprintParser(source).Parse()).Validate();}
         catch(BlueprintException e){return Failure(new ForgeMvp.Evaluation(),e,true);}
-        var runtime=new BlueprintRuntime(program,gold,iron,owner,seed);
+        var runtime=new BlueprintRuntime(program,gold,iron,owner,seed,materialStocks);
         try {
             runtime.Block(program.Body,runtime.result.values);
             if(runtime.result.product==null && runtime.result.steps.Exists(step=>step.process>0))runtime.Fail("실행한 공정에 완성품 판정이 없습니다.");
@@ -74,7 +75,8 @@ public sealed class BlueprintRuntime
             case BlueprintStatementKind.Return:return new Signal(Flow.Return,s.Expr==null?null:Copy(Eval(s.Expr,env)));
             case BlueprintStatementKind.Finish:
                 var piece=Piece(Eval(s.Expr,env));currentLine=s.Token.Line;
-                if(!piece.shaped||piece.heat!=0)Fail("완성품 검사 실패: 타격과 공기 냉각이 필요합니다.");
+                if(piece.material!=1)Fail("이 재료의 완성품 제작법은 아직 없습니다: "+ForgeMaterialGuide.Find(piece.material).Name);
+                if(!piece.shaped||piece.heat!=0)Fail("완성품 검사 실패: 타격과 냉각이 필요합니다.");
                 AddStep(0,piece,0,0,"철 검날 완성품 판정 성공",true);
                 result.product=ledger.Complete(owner,piece.heat,piece.shaped,piece.traits);return new Signal(Flow.Finish);
         }}return new Signal(Flow.Next);
@@ -132,7 +134,7 @@ public sealed class BlueprintRuntime
         if(value is string text)return text;
         if(value is bool flag)return flag?"True":"False";
         if(value is int number)return number.ToString(CultureInfo.InvariantCulture);
-        if(value is ForgeMvp.Piece piece)return "작업물(열="+PrintValue(piece.heat)+", 성형="+PrintValue(piece.shaped)+", 특성="+piece.traits+")";
+        if(value is ForgeMvp.Piece piece)return "작업물(재료="+ForgeMaterialGuide.Find(piece.material).Name+", 열="+PrintValue(piece.heat)+", 성형="+PrintValue(piece.shaped)+", 특성="+piece.traits+")";
         if(value is Dictionary<int,int> map){
             var pairs=new List<string>();foreach(var pair in map)pairs.Add(PrintValue(pair.Key)+": "+PrintValue(pair.Value));
             return "{"+string.Join(", ",pairs)+"}";
@@ -183,11 +185,19 @@ public sealed class BlueprintRuntime
     }
     object Process(int id,List<object> args)
     {
-        if(id==1){if(Int(args[0])!=1)Fail("MVP 작업대 재료는 철(1)입니다.");var p=new ForgeMvp.Piece();AddStep(1,p,10,1,"철 올리기 · 10G");return p;}
+        if(id==1){
+            int material=Int(args[0]);var entry=ForgeMaterialGuide.Find(material);
+            if(entry==null)Fail("등록되지 않은 재료 번호: "+material);
+            if(material>1&&stocks!=null&&(!stocks.TryGetValue(material,out long amount)||amount<1))Fail(entry.Name+" 재료가 잠겨 있거나 보유량이 부족합니다.");
+            var p=new ForgeMvp.Piece{material=material};
+            AddStep(1,p,10,material==1?1:0,entry.Name+" 올리기 · 10G");
+            if(material>1&&stocks!=null)stocks[material]--;
+            return p;
+        }
         var piece=Piece(args[0]);int heat=piece.heat;bool shaped=piece.shaped;var traits=piece.traits;
         if(id==2){heat=Int(args[1]);if(heat<1||heat>9)Fail("열 단계 범위: 1~9");traits&=~ForgeTraits.AirCooled;}
         if(id==3){if(heat<6)Fail("실행 오류: 타격 전에 2(작업물, 6 이상)으로 가열해야 합니다.");shaped=true;}
-        if(id==4){if(Int(args[1])!=0)Fail("MVP 냉각 재료는 공기(0)입니다.");heat=0;traits|=ForgeTraits.AirCooled;}
+        if(id==4){if(Int(args[1])!=0)Fail("현재 지원하는 냉각 재료는 공기(0)입니다.");heat=0;traits|=ForgeTraits.AirCooled;}
         // Validate and pay before committing state. Failed calls leave no receipt.
         if(!ledger.TrySpend(id==2?2:0,0,ref gold,ref iron))Fail("자금 또는 철 부족");
         piece.heat=heat;piece.shaped=shaped;piece.traits=traits;
@@ -196,5 +206,5 @@ public sealed class BlueprintRuntime
     void AddStep(int process,ForgeMvp.Piece piece,int cost,int ironCost,string text,bool finished=false)
     {if(!ledger.TrySpend(cost,ironCost,ref gold,ref iron))Fail("자금 또는 철 부족");Record(process,piece,cost,ironCost,text,finished);}
     void Record(int process,ForgeMvp.Piece piece,int cost,int ironCost,string text,bool finished)
-    {result.steps.Add(new ForgeMvp.Step{line=currentLine,process=process,heat=piece.heat,shaped=piece.shaped,traits=piece.traits,cost=cost,iron=ironCost,text=text,finished=finished});result.cost=ledger.CashCost;result.ironConsumed=ledger.IronConsumed;}
+    {result.steps.Add(new ForgeMvp.Step{line=currentLine,process=process,material=piece.material,materialCount=process==1&&piece.material!=0?1:0,heat=piece.heat,shaped=piece.shaped,traits=piece.traits,cost=cost,iron=ironCost,text=text,finished=finished});result.cost=ledger.CashCost;result.ironConsumed=ledger.IronConsumed;}
 }

@@ -7,7 +7,7 @@ public static class BlueprintIndentationChecks
     {
         int count=0;var log=new StringBuilder();Action<string,Action> check=(name,test)=>{test();count++;log.AppendLine("PASS "+name);};
         check("all English and numeric block headers indent four spaces",()=>{
-            foreach(string h in new[]{"def():","def warm(p):","333(warm, p):","333 warm(p):","if True:","1?(True):","elif True:","01?(True):","else:","0?:","while True:","888(True):","for x in [1]:","123(x in [1]):"}){
+            foreach(string h in new[]{"def():","def warm(p):","333 warm(p):","333 answer():","if True:","1?(True):","elif True:","01?(True):","else:","0?:","while True:","888(True):","for x in [1]:","123(x in [1]):"}){
                 var e=BlueprintIndentation.Enter(h,h.Length,h.Length);Require(e.Text==h+"\n    "&&e.Cursor==e.Text.Length&&e.Selection==e.Cursor,h);
             }
         });
@@ -46,7 +46,7 @@ public static class BlueprintIndentationChecks
             Require(!BlueprintIndentation.Backspace("    x",4,0,out e),"selection native");
         });
         check("automatically indented function produces valid crafting source",()=>{
-            string source="333(warm, p):";var e=BlueprintIndentation.Enter(source,source.Length,source.Length);source=e.Text+"2(p, 7)";
+            string source="333 warm(p):";var e=BlueprintIndentation.Enter(source,source.Length,source.Length);source=e.Text+"2(p, 7)";
             e=BlueprintIndentation.Enter(source,source.Length,source.Length);source=e.Text+"<< 100(p)";
             source+="\n"+ForgeEconomyChecks.Basic.Replace("2(Blade, 7)","H = warm(Blade)");var r=ForgeMvp.Evaluate(source);Require(r.error==null&&r.cost==12&&Equals(r.values["H"],7),r.error);
         });

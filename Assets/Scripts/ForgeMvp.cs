@@ -37,6 +37,7 @@ public class ForgeMvp : MonoBehaviour
     int deleteWindowId = -1;
     bool windowsInitialized;
     int dragButton = -1, dragControl;
+    int codePointerControl;
     Vector2 dragStartMouse, dragStartPosition;
     bool showSalesPanel = true;
     bool showGuideBook;
@@ -69,6 +70,7 @@ public class ForgeMvp : MonoBehaviour
     {
         if (GUIUtility.hotControl == dragControl) GUIUtility.hotControl = 0;
         movingWindow = -1; movingSales = false; salesResizeEdge = -1; panning = false; dragButton = -1;
+        codePointerControl=0;
     }
     string controlName = CodeControl;
 
@@ -232,8 +234,8 @@ public class ForgeMvp : MonoBehaviour
         if (thumbFill) Destroy(thumbFill);
     }
     GameObject work;
-    public class Piece { public int heat; public bool shaped; public ForgeTraits traits; }
-    public class Step { public int line, cost, iron, heat, process; public bool shaped, finished, debugOutput; public ForgeTraits traits; public string text; }
+    public class Piece { public int material=1; public int heat; public bool shaped; public ForgeTraits traits; }
+    public class Step { public int line, cost, iron, heat, process, material, materialCount; public bool shaped, finished, debugOutput; public ForgeTraits traits; public string text; }
     public class Evaluation { public List<Step> steps = new List<Step>(); public string error; public int cost, ironConsumed, errorLine; public string errorMessage; public bool compileError; public ForgeProduct product; public bool skipped, debugOnly; public Dictionary<string, object> values = new Dictionary<string, object>(); }
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void Boot() { if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == "SampleScene" && FindAnyObjectByType<ForgeMvp>() == null) new GameObject("Forge MVP").AddComponent<ForgeMvp>(); }
@@ -259,13 +261,15 @@ public class ForgeMvp : MonoBehaviour
         bench.transform.position = new Vector3(2, .5f, 0);
         bench.transform.localScale = new Vector3(3, .3f, 2);
     }
-    public static Evaluation Evaluate(string source, int availableGold = int.MaxValue, int availableIron = int.MaxValue, string owner = "", uint seed = 1)
-    { return BlueprintRuntime.Evaluate(source, availableGold, availableIron, owner, seed); }
+    public static Evaluation Evaluate(string source, int availableGold = int.MaxValue, int availableIron = int.MaxValue, string owner = "", uint seed = 1, IReadOnlyDictionary<int,long> materialStocks = null)
+    { return BlueprintRuntime.Evaluate(source, availableGold, availableIron, owner, seed, materialStocks); }
     void Execute(bool preview)
     {
         if (busy) return;
         var owner = codeWindows[activeWindow];
-        var evaluation = Evaluate(source, gold, iron, owner.name, owner.seed);
+        var availableMaterials=new Dictionary<int,long>();
+        foreach(var stock in materialStocks??Array.Empty<ForgeMaterialStock>())if(stock!=null&&stock.unlocked)availableMaterials[stock.material]=stock.count;
+        var evaluation = Evaluate(source, gold, iron, owner.name, owner.seed,availableMaterials);
         if (evaluation.compileError)
         {
             owner.diagnostic = new ForgeCompileDiagnostic(source, evaluation.errorLine, evaluation.errorMessage);
@@ -309,16 +313,19 @@ public class ForgeMvp : MonoBehaviour
         foreach (var step in evaluation.steps)
         {
             if(step.debugOutput){AppendDebug(step.text);continue;}
-            if (!ledger.TrySpend(step.cost, step.iron, ref gold, ref iron))
+            var stock=step.materialCount>0&&step.material>1?Array.Find(materialStocks??Array.Empty<ForgeMaterialStock>(),item=>item!=null&&item.material==step.material&&item.unlocked):null;
+            if ((step.materialCount>0&&step.material>1&&(stock==null||stock.count<step.materialCount)) || !ledger.TrySpend(step.cost, step.iron, ref gold, ref iron))
             {
                 reportError = true;
-                report += step.line + "줄: 자금 또는 철 부족\n실제 제작비 " + ledger.CashCost + "G · 소비 재료 · 철 " + ledger.IronConsumed + "개";
+                report += step.line + "줄: 자금 또는 해당 재료 부족\n실제 제작비 " + ledger.CashCost + "G · 소비 재료 · 철 " + ledger.IronConsumed + "개";
                 busy = false; yield break;
             }
+            if(stock!=null)stock.count-=step.materialCount;
             if (!seedConsumed && step.process > 0) { codeOwner.seed = unchecked(codeOwner.seed * 1664525u + 1013904223u); seedConsumed = true; }
             report += step.line + "줄: " + step.text + "\n";
             if (step.process > 0 || step.finished)
             {
+                work.name = "Workpiece · "+ForgeMaterialGuide.Find(step.material).Name;
                 work.transform.localScale = step.shaped ? new Vector3(.25f, .15f, 2) : new Vector3(1, .4f, .5f);
                 work.GetComponent<Renderer>().material.color = step.heat > 0 ? Color.red : Color.gray;
             }
@@ -412,6 +419,11 @@ public class ForgeMvp : MonoBehaviour
         GUI.EndScrollView();
         GUI.DragWindow(new Rect(6,0,Mathf.Max(0,debugWindow.width-100),DebugHeaderHeight));
     }
+    Vector2 BookWorkspacePoint(Vector2 screenPoint) => screenPoint/workspaceZoom-workspaceOffset;
+    void InitializeGuideBook()
+    {
+        guideBook.EnsureInitialized(BookWorkspacePoint(new Vector2(Mathf.Max(12,Screen.width-432),ToolbarHeight+15)));
+    }
     void OnGUI()
     {
         InitializeCodeStyle();
@@ -420,23 +432,37 @@ public class ForgeMvp : MonoBehaviour
         bool modalOpen = deleteWindowId >= 0;
         if (modalOpen && Event.current.type != EventType.Layout && Event.current.type != EventType.Repaint) Event.current.type = EventType.Ignore;
         var ev = Event.current;
+        // Transfer a held text-selection gesture only after it leaves the code window.
+        if(codePointerControl!=0 && ev.rawType==EventType.MouseDrag && ev.button==0
+            && GUIUtility.hotControl==codePointerControl && codeWindows.Count>0 && !modalOpen){
+            Rect selectionWindow=codeWindows[activeWindow].rect;
+            selectionWindow.position+=workspaceOffset;
+            if(!selectionWindow.Contains(ev.mousePosition/workspaceZoom)){
+                GUIUtility.hotControl=0;GUI.FocusControl(null);
+                panning=true;dragButton=0;dragStartMouse=ev.mousePosition;dragStartPosition=workspaceOffset;
+                codePointerControl=0;
+            }
+        }
+        if(ev.rawType==EventType.MouseUp)codePointerControl=0;
         EventType toolbarEvent=ev.type;
-        bool maskToolbar=ev.mousePosition.y<ToolbarHeight&&(ev.isMouse||ev.type==EventType.ScrollWheel);
+        bool maskToolbar=!panning&&ev.mousePosition.y<ToolbarHeight&&(ev.isMouse||ev.type==EventType.ScrollWheel);
         if(maskToolbar)ev.type=EventType.Ignore;
+        if(showGuideBook)InitializeGuideBook();
         EventType bookUnderlyingEvent=ev.type;
-        bool maskBook=showGuideBook&&(guideBook.Dragging||guideBook.Contains(ev.mousePosition))&&(ev.isMouse||ev.type==EventType.ScrollWheel);
+        bool maskBook=!panning&&showGuideBook&&(guideBook.Dragging||guideBook.Contains(BookWorkspacePoint(ev.mousePosition)))&&(ev.isMouse||ev.type==EventType.ScrollWheel);
         if(maskBook)ev.type=EventType.Ignore;
         EventType debugUnderlyingEvent=ev.type;
-        bool maskDebug=showDebugWindow&&(debugInteracting||debugWindow.Contains(ev.mousePosition))&&(ev.isMouse||ev.type==EventType.ScrollWheel);
+        bool maskDebug=!panning&&showDebugWindow&&(debugInteracting||debugWindow.Contains(ev.mousePosition))&&(ev.isMouse||ev.type==EventType.ScrollWheel);
         if(maskDebug)ev.type=EventType.Ignore;
         CodeWindow diagnosticOwner = codeWindows.Count > 0 ? codeWindows[activeWindow] : null;
         EventType diagnosticEvent = ev.type;
-        bool maskDiagnostic = diagnosticOwner != null && diagnosticOwner.showDiagnostic && diagnosticOwner.diagnostic != null
+        bool maskDiagnostic = !panning && diagnosticOwner != null && diagnosticOwner.showDiagnostic && diagnosticOwner.diagnostic != null
             && DiagnosticRect().Contains(ev.mousePosition) && (ev.isMouse || ev.type == EventType.ScrollWheel);
         if (maskDiagnostic) ev.type = EventType.Ignore;
         Vector2 mouse = ev.mousePosition / workspaceZoom;
         workspaceMouse = mouse;
         dragControl = GUIUtility.GetControlID("WorkspaceDrag".GetHashCode(), FocusType.Passive);
+        if(panning&&dragButton>=0&&GUIUtility.hotControl==0)GUIUtility.hotControl=dragControl;
         bool overWindow = false;
         int hit = -1;
         for (int i = 0; i < codeWindows.Count; i++)
@@ -480,7 +506,7 @@ public class ForgeMvp : MonoBehaviour
         Vector2 screenPointer=ev.mousePosition;
         int cursorDirection=verticalEdge?2:horizontalEdge?1:0;
         if(modalOpen)cursorDirection=0;
-        else if(showGuideBook&&(guideBook.Dragging||guideBook.Contains(screenPointer)))cursorDirection=guideBook.CursorDirection(screenPointer);
+        else if(showGuideBook&&(guideBook.Dragging||guideBook.Contains(BookWorkspacePoint(screenPointer))))cursorDirection=guideBook.CursorDirection(BookWorkspacePoint(screenPointer));
         else if(showDebugWindow&&debugResizeEdge>=0)cursorDirection=DebugCursorDirection(screenPointer);
         else if(diagnosticOwner!=null&&diagnosticOwner.showDiagnostic&&diagnosticOwner.diagnostic!=null&&DiagnosticRect().Contains(screenPointer))cursorDirection=0;
         else if(showDebugWindow&&(debugInteracting||debugWindow.Contains(screenPointer)))cursorDirection=DebugCursorDirection(screenPointer);
@@ -605,7 +631,12 @@ public class ForgeMvp : MonoBehaviour
         if (maskDiagnostic) ev.type = diagnosticEvent;
         DrawCompileErrorWindow(diagnosticOwner);
         if(maskBook)ev.type=bookUnderlyingEvent;
-        if(showGuideBook&&!modalOpen)guideBook.Draw(ref showGuideBook,codeStyle.font,codeStyle.fontSize,englishGuideUnlocked);
+        if(showGuideBook&&!modalOpen){
+            Matrix4x4 bookMatrix=GUI.matrix;
+            GUI.matrix=bookMatrix*Matrix4x4.TRS(new Vector3(workspaceOffset.x*workspaceZoom,workspaceOffset.y*workspaceZoom,0),Quaternion.identity,new Vector3(workspaceZoom,workspaceZoom,1));
+            guideBook.Draw(ref showGuideBook,codeStyle.font,codeStyle.fontSize,englishGuideUnlocked);
+            GUI.matrix=bookMatrix;
+        }
         if (modalOpen) Event.current.type = modalEvent;
         if(deleteWindowId>=0)DrawDeleteDialog();
     }
@@ -628,7 +659,7 @@ public class ForgeMvp : MonoBehaviour
         if(ForgeGuideUI.IconButton(shopButton,ForgeGuideUI.Icon.Shop,showSalesPanel?"상점 숨기기":"상점 열기",showSalesPanel))showSalesPanel=!showSalesPanel;
         if(ForgeGuideUI.IconButton(book,ForgeGuideUI.Icon.Book,"도면 안내서",showGuideBook))
         {
-            showGuideBook=!showGuideBook;guideBook.EnsureInitialized();guideBook.CancelDrag();CommitName();EndWorkspaceDrag();edge=-1;
+            showGuideBook=!showGuideBook;InitializeGuideBook();guideBook.CancelDrag();CommitName();EndWorkspaceDrag();edge=-1;
             debugResizeEdge=-1;debugInteracting=false;hover="";
             GUIUtility.hotControl=0;GUI.FocusControl(null);SetResizeCursor(0);
         }
@@ -866,7 +897,10 @@ public class ForgeMvp : MonoBehaviour
         }
         GUI.SetNextControlName(controlName);
         // Keep native selection/caret and plain-text editing; only the glyph layer is colored.
+        bool startingCodeSelection=ev.type==EventType.MouseDown&&ev.button==0&&content.Contains(ev.mousePosition);
         source=GUI.TextArea(content,source,inputStyle);
+        if(startingCodeSelection&&GUI.GetNameOfFocusedControl()==controlName&&GUIUtility.hotControl!=0)
+            codePointerControl=GUIUtility.hotControl;
         // Windows can send Return-key and newline-character events separately.
         // Never insert a newline on the key event: TextArea is the sole insertion path.
         bool editorStillFocused=GUI.GetNameOfFocusedControl()==controlName;

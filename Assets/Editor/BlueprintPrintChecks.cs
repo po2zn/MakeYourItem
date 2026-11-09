@@ -13,7 +13,7 @@ public static class BlueprintPrintChecks
             Require(r.steps.Select(s=>s.text).SequenceEqual(new[]{"안녕하세요","문자열","","첫줄\n둘째줄"})&&r.steps.All(s=>s.debugOutput),"output order");
         });
         check("branches loops and user functions print only executed paths",()=>{
-            var r=ForgeMvp.Evaluate("333(say, text):\n    print(text)\n1?(False):\n    print('hidden')\n0?:\n    say('shown')\n123(i in [1,2]):\n    print('repeat')");
+            var r=ForgeMvp.Evaluate("333 say(text):\n    print(text)\n1?(False):\n    print('hidden')\n0?:\n    say('shown')\n123(i in [1,2]):\n    print('repeat')");
             Require(r.error==null&&r.steps.Select(s=>s.text).SequenceEqual(new[]{"shown","repeat","repeat"}),r.error);
         });
         check("print receipts preserve craft order and economics",()=>{
