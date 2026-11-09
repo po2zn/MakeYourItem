@@ -18,12 +18,12 @@ public static class BlueprintVariableChecks
         check("zero iteration loop creates no binding",()=>{var r=ForgeMvp.Evaluate("for i in []:\n    message = 'ready'\nprint(message)");Require(!r.compileError&&r.errorLine==3&&r.errorMessage.Contains("message"),r.error);});
         check("read before later assignment still fails",()=>{var r=ForgeMvp.Evaluate("print(message)\nmessage = 'later'");Require(!r.compileError&&r.errorLine==1&&r.steps.Count==0,r.error);});
         check("failed read retains only prior successful production cost",()=>{var r=ForgeMvp.Evaluate(ForgeEconomyChecks.Basic.Replace("3(Blade)","3(Missing)"),100,10);Require(!r.compileError&&r.errorLine==4&&r.cost==12&&r.ironConsumed==1&&r.product==null&&r.steps.Count==2,r.error);});
-        check("runtime variable types follow reassignment inside loop",()=>{var r=Good("res = None\n"+Original);Require(r.cost==12&&r.product!=null,"reassignment");var bad=ForgeMvp.Evaluate("value = 1\nprint(value)");Require(!bad.compileError&&bad.errorLine==2&&bad.errorMessage.Contains("문자열"),bad.error);});
+        check("runtime variable types follow reassignment inside loop",()=>{var r=Good("res = None\n"+Original);Require(r.cost==12&&r.product!=null,"reassignment");var bad=ForgeMvp.Evaluate("value = 1\nprint(value)");Require(bad.error==null&&bad.steps[0].text=="1",bad.error);});
         check("function block bindings remain local and calls are isolated",()=>{
             var r=Good("def make_message(flag):\n    if flag:\n        message = 'local'\n    return message\nprint(make_message(True))");Require(r.steps.Single().text=="local","local branch");
             r=ForgeMvp.Evaluate("def make_message(flag):\n    if flag:\n        message = 'local'\n    return message\nprint(make_message(True))\nprint(make_message(False))");Require(!r.compileError&&r.errorLine==4&&r.steps.Count==1,"fresh locals");
         });
-        check("syntax and undefined function checks remain compile errors",()=>{foreach(string text in new[]{"print('before')\nunknown()","print('before')\nif True\n    print('x')","print('before')\nprint()"}){var r=ForgeMvp.Evaluate(text);Require(r.compileError&&r.steps.Count==0,r.error);}});
+        check("syntax and undefined function checks remain compile errors",()=>{foreach(string text in new[]{"print('before')\nunknown()","print('before')\nif True\n    print('x')","print('before')\nabs()"}){var r=ForgeMvp.Evaluate(text);Require(r.compileError&&r.steps.Count==0,r.error);}});
         log.AppendLine("TOTAL variables "+count+" passed");return log.ToString();
     }
     public static void Main(){Console.WriteLine(Run());BlueprintPrintChecks.Main();}

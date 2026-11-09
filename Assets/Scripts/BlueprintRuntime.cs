@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Text;
 
 // The interpreter owns preview state only. Craft replays successful process receipts.
 public sealed class BlueprintRuntime
@@ -124,13 +126,42 @@ public sealed class BlueprintRuntime
         if(a is IList<int> l){var other=(IList<int>)b;if(l.Count!=other.Count)return false;for(int i=0;i<l.Count;i++)if(l[i]!=other[i])return false;return true;}
         return a.Equals(b);
     }
+    static string PrintValue(object value)
+    {
+        if(value==null)return "None";
+        if(value is string text)return text;
+        if(value is bool flag)return flag?"True":"False";
+        if(value is int number)return number.ToString(CultureInfo.InvariantCulture);
+        if(value is ForgeMvp.Piece piece)return "작업물(열="+PrintValue(piece.heat)+", 성형="+PrintValue(piece.shaped)+", 특성="+piece.traits+")";
+        if(value is Dictionary<int,int> map){
+            var pairs=new List<string>();foreach(var pair in map)pairs.Add(PrintValue(pair.Key)+": "+PrintValue(pair.Value));
+            return "{"+string.Join(", ",pairs)+"}";
+        }
+        var items=new List<string>();
+        if(value is HashSet<int> set){
+            if(set.Count==0)return "set()";
+            var sorted=new List<int>(set);sorted.Sort();foreach(int item in sorted)items.Add(PrintValue(item));
+            return "{"+string.Join(", ",items)+"}";
+        }
+        if(value is IList<int> sequence){
+            foreach(int item in sequence)items.Add(PrintValue(item));
+            string joined=string.Join(", ",items);
+            return value is int[]?"("+joined+(items.Count==1?",":"")+")":"["+joined+"]";
+        }
+        throw new InvalidOperationException("Unsupported blueprint value");
+    }
     object Call(BlueprintExpr e,List<object> args)
     {
         if(e.Process>0)return Process(e.Process,args);
         switch(e.Feature){
             case BlueprintFeature.Print:
-                if(!(args[0] is string))Fail("print에는 문자열 인자1개가 필요합니다.");
-                string message=(string)args[0];
+                var output=new StringBuilder();
+                for(int i=0;i<args.Count;i++){
+                    string part=PrintValue(args[i]);
+                    if((long)output.Length+(i>0?1:0)+part.Length>65536-printCharacters)Fail("한 실행의 출력 한도(256개/65536자)를 초과했습니다.");
+                    if(i>0)output.Append(' ');output.Append(part);
+                }
+                string message=output.ToString();
                 if(printCount>=256 || message.Length>65536-printCharacters)Fail("한 실행의 출력 한도(256개/65536자)를 초과했습니다.");
                 printCount++;printCharacters+=message.Length;
                 result.steps.Add(new ForgeMvp.Step{line=currentLine,debugOutput=true,text=message});return null;

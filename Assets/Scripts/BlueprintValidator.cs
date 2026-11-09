@@ -129,7 +129,7 @@ public sealed class BlueprintValidator
             if(e.Process>0)arity=e.Process==1||e.Process==3?1:2;
             else if(e.Feature!=BlueprintFeature.None)arity=BlueprintAliases.Find(e.Feature).Arity;
             else {if(!program.Functions.TryGetValue(e.Name,out var f)) {Error(e.Token,"정의되지 않은 함수 "+e.Name);return BlueprintType.Unknown;} arity=f.Parameters.Count;}
-            if(args.Count!=arity)Error(e.Token,(e.Feature!=BlueprintFeature.None?BlueprintAliases.Find(e.Feature).English:e.Process>0?e.Process.ToString():e.Name)+"에 필요한 인자 수: "+arity);
+            if(arity>=0&&args.Count!=arity)Error(e.Token,(e.Feature!=BlueprintFeature.None?BlueprintAliases.Find(e.Feature).English:e.Process>0?e.Process.ToString():e.Name)+"에 필요한 인자 수: "+arity);
             if(e.Process>0){
                 if(!Known(args[0],e.Process==1?BlueprintType.Int:BlueprintType.Piece))Error(e.Token,e.Process==1?"재료 번호는 정수여야 합니다.":"첫 인자는 작업물이어야 합니다.");
                 if(args.Count==2&&!Known(args[1],BlueprintType.Int))Error(e.Token,"두 번째 인자는 정수여야 합니다.");
@@ -138,7 +138,7 @@ public sealed class BlueprintValidator
                 return e.Process==1?BlueprintType.Piece:BlueprintType.Void;
             }
             switch(e.Feature){
-                case BlueprintFeature.Print:if(!Known(args[0],BlueprintType.String))Error(e.Token,"print에는 문자열 인자1개가 필요합니다.");return BlueprintType.None;
+                case BlueprintFeature.Print:return BlueprintType.None;
                 case BlueprintFeature.Heat:if(!Known(args[0],BlueprintType.Piece))Error(e.Token,"heat에는 작업물이 필요합니다.");return BlueprintType.Int;
                 case BlueprintFeature.Abs:case BlueprintFeature.Random:foreach(var a in args)if(!Known(a,BlueprintType.Int))Error(e.Token,"정수 인자가 필요합니다.");return BlueprintType.Int;
                 case BlueprintFeature.Len:if(!Known(args[0],BlueprintType.List,BlueprintType.Tuple,BlueprintType.Set,BlueprintType.Dict))Error(e.Token,"len에는 컬렉션이 필요합니다.");return BlueprintType.Int;

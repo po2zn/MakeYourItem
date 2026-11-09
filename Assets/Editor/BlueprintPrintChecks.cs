@@ -22,11 +22,34 @@ public static class BlueprintPrintChecks
             Require(r.steps.Select(s=>s.debugOutput?s.text:s.process.ToString()).SequenceEqual(new[]{"start","1","2","hot","3","4","ready","0"}),"ordered playback");
             Require(ForgeMvp.Evaluate(source,100,10).steps.Select(s=>s.text).SequenceEqual(r.steps.Select(s=>s.text)),"preview parity");
         });
-        check("invalid argument count and type fail before printing",()=>{
-            foreach(string source in new[]{"print()","print(1)","print('a','b')"}){var r=ForgeMvp.Evaluate("print('earlier')\n"+source);Require(r.compileError&&r.steps.Count==0&&r.errorLine==2,r.error);}
+        check("print accepts zero and multiple typed arguments",()=>{
+            var r=ForgeMvp.Evaluate("value = 7\nprint()\nprint('value:', value, -3, True, False, None)\nprint('', 'x', '')");
+            Require(r.error==null&&r.debugOnly&&r.cost==0,r.error);
+            Require(r.steps.Select(x=>x.text).SequenceEqual(new[]{"","value: 7 -3 True False None"," x "}),"typed output");
         });
-        check("dynamic type failure preserves only earlier messages",()=>{
-            var r=ForgeMvp.Evaluate("def say(x):\n    print(x)\nprint('before')\nsay(1)\nprint('after')");Require(r.error!=null&&!r.compileError&&r.errorLine==2&&r.steps.Count==1&&r.steps[0].text=="before",r.error);
+        check("collections use readable Python delimiters",()=>{
+            var r=ForgeMvp.Evaluate("print([1, 2], (3,), (), {2, 1}, set(), {1: 2}, [], {})");
+            Require(r.error==null,r.error);
+            Require(r.steps[0].text=="[1, 2] (3,) () {1, 2} set() {1: 2} [] {}",r.steps[0].text);
+        });
+        check("function parameters and return values print dynamically",()=>{
+            var r=ForgeMvp.Evaluate("def say(x):\n    print(x)\n    return x\nprint(say(1), say(True))");
+            Require(r.error==null&&r.steps.Select(x=>x.text).SequenceEqual(new[]{"1","True","1 True"}),r.error);
+        });
+        check("failed argument preserves earlier messages without partial output",()=>{
+            var r=ForgeMvp.Evaluate("print('before')\nprint('partial', 1 // 0)\nprint('after')");
+            Require(r.error!=null&&!r.compileError&&r.errorLine==2&&r.steps.Count==1&&r.steps[0].text=="before",r.error);
+        });
+        check("workpiece output snapshots state without production effects",()=>{
+            var r=ForgeMvp.Evaluate(ForgeEconomyChecks.Basic.Replace("2(Blade, 7)","print(Blade)\n2(Blade, 7)").Replace("!Blade","print(Blade)\n!Blade"));
+            var messages=r.steps.Where(x=>x.debugOutput).Select(x=>x.text).ToArray();
+            Require(r.error==null&&r.cost==12&&messages.Length==2,r.error);
+            Require(messages[0].Contains("성형=False")&&messages[1].Contains("성형=True"),"piece snapshots");
+        });
+        check("combined arguments obey character cap atomically",()=>{
+            string value=new string('x',33000);
+            var r=ForgeMvp.Evaluate("value = '"+value+"'\nprint('before')\nprint(value, value)");
+            Require(r.error!=null&&!r.compileError&&r.steps.Count==1&&r.errorMessage.Contains("출력 한도"),r.error);
         });
         check("prints cannot bypass missing completion for crafting",()=>{
             var r=ForgeMvp.Evaluate("print('start')\nBlade = 1(1)");Require(r.compileError&&r.steps.Count==0&&r.errorMessage.Contains("!Blade"),r.error);
