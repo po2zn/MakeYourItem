@@ -9,7 +9,7 @@ public class ForgeMvp : MonoBehaviour
     [SerializeField] Color reservedColor = new Color(197f/255f, 134f/255f, 192f/255f, 1f);
     const string Example = "Material = 1\nBlade = 1(Material)\n2(Blade, 7)\n3(Blade)\n4(Blade, 0)\n!Blade";
     string source = Example, report = "시험 실행으로 도면을 확인하세요.", hover = "";
-    Rect workspaceWindow = new Rect(30, 55, 360, 240);
+    Rect workspaceWindow = new Rect(30, 135, 360, 240);
     Vector2 workspaceOffset;
     float workspaceZoom = 1f;
     class CodeWindow
@@ -46,7 +46,7 @@ public class ForgeMvp : MonoBehaviour
     // Presentation only: never changes parser support, inventory or funds.
     public void SetEnglishGuideUnlocked(bool unlocked) { englishGuideUnlocked=unlocked; }
     readonly ForgeBookWindow guideBook=new ForgeBookWindow();
-    Rect salesWindow = new Rect(430, 55, 350, 480);
+    Rect salesWindow = new Rect(430, 135, 350, 480);
     bool movingSales;
     int salesResizeEdge = -1;
     Rect salesResizeStart;
@@ -91,6 +91,13 @@ public class ForgeMvp : MonoBehaviour
     Vector2 scroll, logs, lastMouse;
     float hoverSince;
     int edge = -1, gold = 100, iron = 10;
+    readonly ForgeMaterialHud materialHud=new ForgeMaterialHud();
+    [SerializeField] ForgeMaterialStock[] materialStocks={
+        new ForgeMaterialStock{material=2},new ForgeMaterialStock{material=3},
+        new ForgeMaterialStock{material=4},new ForgeMaterialStock{material=5},
+        new ForgeMaterialStock{material=6},new ForgeMaterialStock{material=7},
+        new ForgeMaterialStock{material=8},new ForgeMaterialStock{material=9}};
+    float ToolbarHeight => Mathf.Max(120,materialHud.Height(Mathf.Max(144,Screen.width-376),materialStocks));
     int products => shop.Count;
     int selectedProductId = -1;
     bool busy;
@@ -215,6 +222,7 @@ public class ForgeMvp : MonoBehaviour
     }
     void OnDestroy()
     {
+        materialHud.Dispose();
         SetResizeCursor(0);
         if (horizontalResizeCursor) Destroy(horizontalResizeCursor);
         if (verticalResizeCursor) Destroy(verticalResizeCursor);
@@ -342,7 +350,8 @@ public class ForgeMvp : MonoBehaviour
     Rect debugResizeStart;
     bool showDebugWindow,debugFollow,debugInteracting;
     int debugResizeEdge=-1;
-    GUIStyle debugTextStyle;
+    const float DebugHeaderHeight=34f;
+    GUIStyle debugTextStyle,debugTitleStyle;
     void BeginDebugRun(Evaluation evaluation,string owner,bool preview)
     {
         if(!evaluation.debugOnly&&!evaluation.steps.Exists(step=>step.debugOutput))return;
@@ -353,8 +362,8 @@ public class ForgeMvp : MonoBehaviour
     {
         if(!debugWindow.Contains(mouse))return -1;
         Vector2 local=mouse-debugWindow.position;
-        if(local.x<6&&local.y>28)return 0;
-        if(local.x>debugWindow.width-6&&local.y>28)return 1;
+        if(local.x<6&&local.y>DebugHeaderHeight)return 0;
+        if(local.x>debugWindow.width-6&&local.y>DebugHeaderHeight)return 1;
         if(local.y>debugWindow.height-6)return 2;
         return -1;
     }
@@ -367,8 +376,9 @@ public class ForgeMvp : MonoBehaviour
     {
         if(!showDebugWindow)return;
         if(debugTextStyle==null)debugTextStyle=new GUIStyle(codeStyle){wordWrap=true,richText=false,padding=new RectOffset(4,4,4,4),fontSize=16};
+        if(debugTitleStyle==null)debugTitleStyle=new GUIStyle(debugTextStyle){wordWrap=false,alignment=TextAnchor.MiddleLeft,padding=new RectOffset(0,0,0,0),contentOffset=Vector2.zero,fixedHeight=0};
         Rect before=debugWindow;
-        Rect drawn=GUI.Window(197601,debugWindow,DrawDebugContents,"디버그 출력");
+        Rect drawn=GUI.Window(197601,debugWindow,DrawDebugContents,GUIContent.none);
         if(debugWindow==before)debugWindow=drawn; // Preserve size changes made by the callback.
         if(Event.current.rawType==EventType.MouseUp)debugInteracting=false;
     }
@@ -388,17 +398,19 @@ public class ForgeMvp : MonoBehaviour
             debugWindow=rect;ev.Use();
         }
         if(debugResizeEdge>=0&&ev.rawType==EventType.MouseUp){debugResizeEdge=-1;GUIUtility.hotControl=0;ev.Use();}
-        if(GUI.Button(new Rect(debugWindow.width-90,3,52,23),"지우기")){debugOutput.Clear();debugScroll=Vector2.zero;}
-        if(GUI.Button(new Rect(debugWindow.width-32,3,26,23),"×")){showDebugWindow=false;debugInteracting=false;}
-        GUI.Label(new Rect(10,29,debugWindow.width-20,22),"print 출력 · 읽기 전용");
-        Rect view=new Rect(10,54,debugWindow.width-20,debugWindow.height-65);
+        // Draw the title explicitly: the skin window caption clips the Korean font.
+        GUI.Label(new Rect(10,2,debugWindow.width-110,DebugHeaderHeight-4),"디버그 출력",debugTitleStyle);
+        if(GUI.Button(new Rect(debugWindow.width-90,5,52,24),"지우기")){debugOutput.Clear();debugScroll=Vector2.zero;}
+        if(GUI.Button(new Rect(debugWindow.width-32,5,26,24),"×")){showDebugWindow=false;debugInteracting=false;}
+        GUI.Label(new Rect(10,DebugHeaderHeight+2,debugWindow.width-20,24),"print 출력 · 읽기 전용");
+        Rect view=new Rect(10,DebugHeaderHeight+30,debugWindow.width-20,debugWindow.height-DebugHeaderHeight-41);
         string text=debugOutput.Text;
         float height=Mathf.Max(view.height,debugTextStyle.CalcHeight(new GUIContent(text+"\n "),Mathf.Max(1,view.width-18)));
         if(debugFollow){debugScroll.y=Mathf.Max(0,height-view.height);if(ev.type==EventType.Repaint)debugFollow=false;}
         debugScroll=GUI.BeginScrollView(view,debugScroll,new Rect(0,0,view.width-18,height));
         GUI.Label(new Rect(0,0,view.width-18,height),text,debugTextStyle);
         GUI.EndScrollView();
-        GUI.DragWindow(new Rect(6,0,Mathf.Max(0,debugWindow.width-100),27));
+        GUI.DragWindow(new Rect(6,0,Mathf.Max(0,debugWindow.width-100),DebugHeaderHeight));
     }
     void OnGUI()
     {
@@ -409,7 +421,7 @@ public class ForgeMvp : MonoBehaviour
         if (modalOpen && Event.current.type != EventType.Layout && Event.current.type != EventType.Repaint) Event.current.type = EventType.Ignore;
         var ev = Event.current;
         EventType toolbarEvent=ev.type;
-        bool maskToolbar=ev.mousePosition.y<40&&(ev.isMouse||ev.type==EventType.ScrollWheel);
+        bool maskToolbar=ev.mousePosition.y<ToolbarHeight&&(ev.isMouse||ev.type==EventType.ScrollWheel);
         if(maskToolbar)ev.type=EventType.Ignore;
         EventType bookUnderlyingEvent=ev.type;
         bool maskBook=showGuideBook&&(guideBook.Dragging||guideBook.Contains(ev.mousePosition))&&(ev.isMouse||ev.type==EventType.ScrollWheel);
@@ -440,7 +452,7 @@ public class ForgeMvp : MonoBehaviour
         // Active editor is drawn last and receives overlapping clicks first.
         if (activeBounds.Contains(mouse)) { hit = activeWindow; overWindow = true; }
         }
-        if (ev.type == EventType.MouseDown && (ev.button == 0 || ev.button == 1) && hit >= 0 && ev.mousePosition.y > 40)
+        if (ev.type == EventType.MouseDown && (ev.button == 0 || ev.button == 1) && hit >= 0 && ev.mousePosition.y > ToolbarHeight)
             codeWindows[hit].clickedAt = Time.realtimeSinceStartup;
         Rect salesScreen = salesWindow; salesScreen.position += workspaceOffset;
         int overSalesEdge = -1;
@@ -456,7 +468,7 @@ public class ForgeMvp : MonoBehaviour
             || (!panning && movingWindow < 0 && !movingSales && (overSalesEdge == 0 || overSalesEdge == 1));
         bool verticalEdge = edge == 2 || salesResizeEdge == 2
             || (!panning && movingWindow < 0 && !movingSales && overSalesEdge == 2);
-        if (hit >= 0 && !codeWindows[hit].collapsed && !overSales && ev.mousePosition.y > 40 && !panning && movingWindow < 0 && !movingSales)
+        if (hit >= 0 && !codeWindows[hit].collapsed && !overSales && ev.mousePosition.y > ToolbarHeight && !panning && movingWindow < 0 && !movingSales)
         {
             Rect hovered = codeWindows[hit].rect; hovered.position += workspaceOffset;
             verticalEdge |= new Rect(hovered.x,hovered.yMax-4,hovered.width,8).Contains(mouse);
@@ -472,14 +484,14 @@ public class ForgeMvp : MonoBehaviour
         else if(showDebugWindow&&debugResizeEdge>=0)cursorDirection=DebugCursorDirection(screenPointer);
         else if(diagnosticOwner!=null&&diagnosticOwner.showDiagnostic&&diagnosticOwner.diagnostic!=null&&DiagnosticRect().Contains(screenPointer))cursorDirection=0;
         else if(showDebugWindow&&(debugInteracting||debugWindow.Contains(screenPointer)))cursorDirection=DebugCursorDirection(screenPointer);
-        else if(screenPointer.y<40)cursorDirection=0;
+        else if(screenPointer.y<ToolbarHeight)cursorDirection=0;
         SetResizeCursor(cursorDirection);
         if (renamingWindow >= 0 && ev.type == EventType.MouseDown)
         {
             Rect renameRect = codeWindows[renamingWindow].rect; renameRect.position += workspaceOffset;
             if (!NameRect(renameRect).Contains(mouse)) CommitName();
         }
-        if (ev.type == EventType.ScrollWheel && !overWindow && ev.mousePosition.y > 40 && dragButton < 0)
+        if (ev.type == EventType.ScrollWheel && !overWindow && ev.mousePosition.y > ToolbarHeight && dragButton < 0)
         {
             Vector2 anchor = mouse - workspaceOffset;
             workspaceZoom = Mathf.Clamp(workspaceZoom * Mathf.Pow(1.05f, -ev.delta.y), .4f, 2f);
@@ -488,7 +500,7 @@ public class ForgeMvp : MonoBehaviour
             UpdateWorkspaceCamera(); ev.Use();
         }
         if (ev.type == EventType.MouseDown && (ev.button == 0 || ev.button == 1)
-            && ev.mousePosition.y > 40 && GUIUtility.hotControl == 0)
+            && ev.mousePosition.y > ToolbarHeight && GUIUtility.hotControl == 0)
         {
             if (overSalesEdge >= 0 && ev.button == 0 && edge < 0)
             { salesResizeEdge = overSalesEdge; salesResizeStart = salesWindow; }
@@ -600,16 +612,17 @@ public class ForgeMvp : MonoBehaviour
     void DrawToolbar()
     {
         GUI.Box(new Rect(0,0,Screen.width,40),"");
-        GUI.Label(new Rect(12,8,Mathf.Max(0,Screen.width-260),28),"자금 "+gold+"G · 철 "+iron+" · 완성품 "+products+" · 확대 "+Mathf.RoundToInt(workspaceZoom*100)+"%");
-        Rect book=new Rect(Screen.width-46,4,36,32);
-        Rect shopButton=new Rect(Screen.width-90,4,36,32);
-        Rect add=new Rect(Screen.width-134,4,36,32);
-        if(GUI.Button(new Rect(Screen.width-232,6,90,28),"디버그 창"))showDebugWindow=!showDebugWindow;
+        GUI.Label(new Rect(12,8,Mathf.Max(0,Screen.width-490),28),"자금 "+gold+"G · 완성품 "+products+" · 확대 "+Mathf.RoundToInt(workspaceZoom*100)+"%");
+        materialHud.Draw(iron,materialStocks,codeStyle.font,Mathf.Max(144,Screen.width-376));
+        Rect book=new Rect(Screen.width-122,4,112,112);
+        Rect shopButton=new Rect(Screen.width-242,4,112,112);
+        Rect add=new Rect(Screen.width-362,4,112,112);
+        if(GUI.Button(new Rect(Screen.width-460,6,90,28),"디버그 창"))showDebugWindow=!showDebugWindow;
         if(ForgeGuideUI.IconButton(add,ForgeGuideUI.Icon.Add,"코드 창 추가"))
         {
             CommitName();
             int id=nextWindowId++;
-            codeWindows.Add(new CodeWindow {id=id,name="f"+(id+1),rect=new Rect(new Vector2(70,85)/workspaceZoom-workspaceOffset,new Vector2(360,240))});
+            codeWindows.Add(new CodeWindow {id=id,name="f"+(id+1),rect=new Rect(new Vector2(70,ToolbarHeight+15)/workspaceZoom-workspaceOffset,new Vector2(360,240))});
             activeWindow=codeWindows.Count-1;edge=-1;movingWindow=-1;GUI.FocusControl(null);
         }
         if(ForgeGuideUI.IconButton(shopButton,ForgeGuideUI.Icon.Shop,showSalesPanel?"상점 숨기기":"상점 열기",showSalesPanel))showSalesPanel=!showSalesPanel;
@@ -620,7 +633,7 @@ public class ForgeMvp : MonoBehaviour
             GUIUtility.hotControl=0;GUI.FocusControl(null);SetResizeCursor(0);
         }
         string tip=book.Contains(Event.current.mousePosition)?"도면 안내서":shopButton.Contains(Event.current.mousePosition)?(showSalesPanel?"상점 숨기기":"상점 열기"):add.Contains(Event.current.mousePosition)?"코드 창 추가":"";
-        if(tip.Length>0&&!showGuideBook)GUI.Box(new Rect(Mathf.Max(0,Screen.width-180),44,170,26),tip);
+        if(tip.Length>0&&!showGuideBook)GUI.Box(new Rect(Mathf.Max(0,Screen.width-180),120,170,26),tip);
     }
     Rect DiagnosticRect()
     {

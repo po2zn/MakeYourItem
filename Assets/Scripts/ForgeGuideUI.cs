@@ -20,7 +20,10 @@ public static class ForgeGuideUI
         bool clicked=GUI.Button(rect,new GUIContent("",tooltip));
         GUI.backgroundColor=old;
         if(Event.current.type!=EventType.Repaint)return clicked;
-        Rect box=new Rect(rect.center.x-12,rect.center.y-12,24,24);
+        Matrix4x4 previousMatrix=GUI.matrix;
+        float iconScale=Mathf.Min(rect.width-16,rect.height-16)/24f;
+        GUI.matrix=previousMatrix*Matrix4x4.TRS(new Vector3(rect.center.x-12*iconScale,rect.center.y-12*iconScale,0),Quaternion.identity,new Vector3(iconScale,iconScale,1));
+        Rect box=new Rect(0,0,24,24);
         Color ink=new Color(.93f,.94f,.96f);
         if(icon==Icon.Add){Fill(new Rect(box.x+11,box.y+4,2,16),ink);Fill(new Rect(box.x+4,box.y+11,16,2),ink);}
         else if(icon==Icon.Book){
@@ -35,6 +38,7 @@ public static class ForgeGuideUI
             Stroke(new Rect(box.x+7,box.y+14,4,8),ink,1);
             Stroke(new Rect(box.x+14,box.y+14,4,4),ink,1);
         }
+        GUI.matrix=previousMatrix;
         return clicked;
     }
     public static void DrawBook(Rect window,ref bool open,Font font,int fontSize,ForgeGuideReader reader,bool englishGuideUnlocked)
