@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using UnityEngine;
 
 public partial class ForgeMvp
@@ -10,7 +10,8 @@ public partial class ForgeMvp
     string tutorialInput="",tutorialFeedback="";
     Vector2 tutorialScroll;
     Vector2 tutorialEditorScroll;
-    GUIStyle tutorialTransparentInputStyle,tutorialTokenStyle;
+    int tutorialPendingCaret=-1;
+    float tutorialClickedAt=-100;
     string tutorialColoredSource;
     System.Collections.Generic.List<ForgeSyntax.Token> tutorialColoredTokens;
     readonly ForgeWindowFrame tutorialWindowFrame=new ForgeWindowFrame(new ForgeWindowRules(false,ForgeWindowEdges.Horizontal,340,220));
@@ -23,7 +24,7 @@ public partial class ForgeMvp
     float tutorialCameraBlend,tutorialFade,tutorialScreenFade;
     bool tutorialCameraActive;
     Vector3 tutorialCameraFocus;
-    GUIStyle tutorialTitleStyle,tutorialBodyStyle,tutorialInputStyle,tutorialButtonStyle,tutorialPrimaryStyle,tutorialStockStyle;
+    GUIStyle tutorialTitleStyle,tutorialBodyStyle,tutorialButtonStyle,tutorialPrimaryStyle,tutorialStockStyle;
     float TutorialPanelWidth => Mathf.Max(1,Mathf.Min(460,(Screen.width-36)*.48f));
     void OpenTutorial()
     {
@@ -32,7 +33,7 @@ public partial class ForgeMvp
         showProgress=false;showTechTree=false;showGuideBook=false;
         tutorialWasPaused=DayCycle.Paused;DayCycle.Paused=true;
         tutorialPreviousOffset=workspaceOffset;tutorialPreviousZoom=workspaceZoom;
-        tutorialInput=lesson.Code;tutorialEditorScroll=Vector2.zero;tutorialSuccessAt=-100;
+        tutorialInput=lesson.Code;tutorialEditorScroll=Vector2.zero;tutorialPendingCaret=-1;tutorialSuccessAt=-100;
         tutorialFeedback="연습용 재료입니다. 실제 골드와 재고는 소비되지 않습니다.";
         tutorialHint=false;showTutorial=true;
         showTutorialWelcome=lesson.Stage==0;tutorialWelcomeScroll=Vector2.zero;
@@ -149,7 +150,7 @@ public partial class ForgeMvp
     {
         if(tutorialAnimating||lesson.Stage==0)return;
         if(!lesson.Previous())return;
-        tutorialInput=lesson.Code;tutorialEditorScroll=Vector2.zero;
+        tutorialInput=lesson.Code;tutorialEditorScroll=Vector2.zero;tutorialPendingCaret=-1;
         tutorialHint=false;tutorialScroll=Vector2.zero;tutorialSuccessAt=-100;
         tutorialFeedback="이전 단계로 돌아왔습니다. 코드를 확인하고 다시 실행해 보세요.";
         craftMotion.BeginRun();SaveProgress();GUI.FocusControl(null);
@@ -187,13 +188,6 @@ public partial class ForgeMvp
         if(tutorialTitleStyle==null){
             tutorialTitleStyle=new GUIStyle(GUI.skin.label){font=codeStyle.font,fontSize=25,wordWrap=true};tutorialTitleStyle.normal.textColor=Color.white;
             tutorialBodyStyle=new GUIStyle(tutorialTitleStyle){fontSize=18};
-            tutorialInputStyle=new GUIStyle(GUI.skin.textArea){font=codeStyle.font,fontSize=20,richText=false,wordWrap=false,padding=new RectOffset(16,16,16,16)};
-            tutorialTransparentInputStyle=new GUIStyle(tutorialInputStyle);
-            foreach(var state in new[]{tutorialTransparentInputStyle.normal,tutorialTransparentInputStyle.hover,tutorialTransparentInputStyle.active,tutorialTransparentInputStyle.focused,
-                tutorialTransparentInputStyle.onNormal,tutorialTransparentInputStyle.onHover,tutorialTransparentInputStyle.onActive,tutorialTransparentInputStyle.onFocused})state.textColor=Color.clear;
-            tutorialTokenStyle=new GUIStyle(tutorialInputStyle){padding=new RectOffset(0,0,0,0),alignment=TextAnchor.UpperLeft};
-            foreach(var state in new[]{tutorialTokenStyle.normal,tutorialTokenStyle.hover,tutorialTokenStyle.active,tutorialTokenStyle.focused,
-                tutorialTokenStyle.onNormal,tutorialTokenStyle.onHover,tutorialTokenStyle.onActive,tutorialTokenStyle.onFocused}){state.background=null;state.scaledBackgrounds=new Texture2D[0];}
             tutorialButtonStyle=new GUIStyle(GUI.skin.button){font=codeStyle.font,fontSize=18,wordWrap=true,
                 padding=new RectOffset(18,18,14,14),margin=new RectOffset(0,0,0,0),alignment=TextAnchor.MiddleCenter};
             tutorialPrimaryStyle=new GUIStyle(tutorialButtonStyle){fontSize=20,fontStyle=FontStyle.Bold};
@@ -290,7 +284,8 @@ public partial class ForgeMvp
         width=window.width;
         SetResizeCursor(GUI.enabled?tutorialWindowInteraction.Cursor(tutorialWindowFrame,Event.current.mousePosition):0);
         Color color=GUI.color;bool enabled=GUI.enabled;
-        GUI.color=TutorialTint(new Color(.07f,.11f,.17f,.97f));GUI.DrawTexture(window,Texture2D.whiteTexture);GUI.color=color;
+        if(Event.current.type==EventType.MouseDown&&window.Contains(Event.current.mousePosition))tutorialClickedAt=Time.realtimeSinceStartup;
+        DrawCodeSurface(window,tutorialClickedAt,tutorialFade);
         GUI.color=TutorialTint(new Color(.4f,.65f,.8f,.6f));
         GUI.DrawTexture(new Rect(window.x+1,window.center.y-18,2,36),Texture2D.whiteTexture);
         GUI.DrawTexture(new Rect(window.xMax-3,window.center.y-18,2,36),Texture2D.whiteTexture);GUI.color=color;
@@ -298,19 +293,34 @@ public partial class ForgeMvp
         string caption=lesson.Stage==0?"왼쪽에서 철을 선택하면 코드를 작성할 수 있습니다.":lesson.Complete?"완성한 도면입니다.":"이전 코드 아래에 이번 단계의 한 줄을 추가하세요.";
         float captionHeight=tutorialBodyStyle.CalcHeight(new GUIContent(caption),Mathf.Max(1,width-32));
         GUI.Label(new Rect(window.x+16,window.y+54,width-32,captionHeight),caption,tutorialBodyStyle);
-        Rect view=new Rect(window.x+16,window.y+66+captionHeight,width-32,Mathf.Max(40,height-150-captionHeight));
+        Rect view=new Rect(window.x+40,window.y+66+captionHeight,width-52,Mathf.Max(40,height-150-captionHeight));
+        GUI.color=TutorialTint(new Color(.48f,.52f,.58f,.4f));
+        GUI.DrawTexture(new Rect(view.x-4,view.y+2,1,view.height-4),Texture2D.whiteTexture);GUI.color=color;
         GUI.enabled=enabled&&!tutorialAnimating&&lesson.Stage>0&&!lesson.Complete;
-        Vector2 textSize=tutorialInputStyle.CalcSize(new GUIContent(tutorialInput+"\n "));
-        Rect content=new Rect(0,0,Mathf.Max(view.width-18,textSize.x+16),Mathf.Max(view.height-18,textSize.y+24));
-        tutorialEditorScroll=GUI.BeginScrollView(view,tutorialEditorScroll,content);
+        Vector2 textSize=MeasureCode(tutorialInput);
+        Rect content=new Rect(0,0,Mathf.Max(view.width,textSize.x),Mathf.Max(view.height,textSize.y));
+        if(tutorialPendingCaret>=0){FollowEditorCaret(content,view,tutorialInput,ref tutorialEditorScroll,tutorialPendingCaret);tutorialPendingCaret=-1;}
+        var ev=Event.current;
+        bool followCaret=GUI.GetNameOfFocusedControl()=="TutorialInput"&&ev.type==EventType.KeyDown;
+        string previousInput=tutorialInput;
+        tutorialEditorScroll=GUI.BeginScrollView(view,tutorialEditorScroll,content,false,false,GUIStyle.none,GUIStyle.none);
         GUI.SetNextControlName("TutorialInput");
-        bool composing=IsImeEditing();
-        tutorialInput=GUI.TextArea(content,tutorialInput,4096,composing?tutorialInputStyle:tutorialTransparentInputStyle);
-        if(!composing){
-            if(tutorialColoredSource!=tutorialInput||tutorialColoredTokens==null){tutorialColoredSource=tutorialInput;tutorialColoredTokens=ForgeSyntax.Scan(tutorialInput);}
-            DrawSyntaxTokens(content,tutorialInput,tutorialColoredTokens,tutorialInputStyle,tutorialTokenStyle);
-        }
+        // Use the gameplay editor's native selection/caret and shared syntax layer.
+        tutorialInput=GUI.TextArea(content,tutorialInput,4096,inputStyle);
+        if(tutorialColoredSource!=tutorialInput||tutorialColoredTokens==null){tutorialColoredSource=tutorialInput;tutorialColoredTokens=ForgeSyntax.Scan(tutorialInput);}
+        DrawSyntaxTokens(content,tutorialInput,tutorialColoredTokens,codeStyle,tokenStyle);
         GUI.EndScrollView();
+        if(tutorialInput!=previousInput){
+            textSize=MeasureCode(tutorialInput);
+            content.width=Mathf.Max(view.width,textSize.x);content.height=Mathf.Max(view.height,textSize.y);
+            followCaret=true;
+        }
+        if(followCaret&&GUI.GetNameOfFocusedControl()=="TutorialInput"){
+            var editor=(TextEditor)GUIUtility.GetStateObject(typeof(TextEditor),GUIUtility.keyboardControl);
+            tutorialPendingCaret=Mathf.Clamp(editor.cursorIndex,0,tutorialInput.Length);
+            FollowEditorCaret(content,view,tutorialInput,ref tutorialEditorScroll,tutorialPendingCaret);
+        }
+        DrawEditorScrollbars(view,content,ref tutorialEditorScroll);
         Color background=GUI.backgroundColor;GUI.backgroundColor=new Color(.55f,.85f,1f);
         if(GUI.Button(new Rect(window.x+16,window.yMax-68,width-32,52),"이번 단계 실행",tutorialPrimaryStyle))SubmitTutorial();
         GUI.backgroundColor=background;GUI.enabled=enabled;

@@ -18,6 +18,14 @@ public sealed class ForgeBookWindow : IForgeWindow
         position.y-=ForgeGuideUI.HeaderHeight-30;
         Rect=new Rect(position,new Vector2(420,ForgeGuideReader.DefaultWindowHeight));
     }
+    public void CenterAt(Vector2 center)
+    {
+        EnsureInitialized(Vector2.zero);
+        CancelDrag();
+        Rect bounds=Rect;
+        bounds.center=center;
+        Rect=bounds;
+    }
     public bool Contains(Vector2 mouse)
     {
         return new Rect(Rect.x-4,Rect.y,Rect.width+8,Rect.height+4).Contains(mouse)

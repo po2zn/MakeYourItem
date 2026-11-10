@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -233,7 +233,7 @@ public partial class ForgeMvp : MonoBehaviour
         source=edit.Text;editor.text=source;
         editor.cursorIndex=edit.Cursor;editor.selectIndex=edit.Selection;
     }
-    GUIStyle codeStyle, inputStyle, tokenStyle, scrollTrack, scrollThumb, actionButton, errorLabel;
+    GUIStyle codeStyle, inputStyle, tokenStyle, scrollTrack, scrollThumb, horizontalScrollTrack, horizontalScrollThumb, actionButton, errorLabel;
     Texture2D windowFill, trackFill, thumbFill, buttonFill;
     Texture2D FlatColor(Color color)
     {
@@ -264,6 +264,8 @@ public partial class ForgeMvp : MonoBehaviour
         thumbFill = FlatColor(new Color(.7f, .73f, .77f, 1f));
         scrollTrack = new GUIStyle { fixedWidth = 6, normal = { background = trackFill } };
         scrollThumb = new GUIStyle { fixedWidth = 6, fixedHeight = 28, normal = { background = thumbFill }, hover = { background = thumbFill }, active = { background = thumbFill } };
+        horizontalScrollTrack=new GUIStyle(scrollTrack){fixedWidth=0,fixedHeight=6};
+        horizontalScrollThumb=new GUIStyle(scrollThumb){fixedWidth=28,fixedHeight=6};
     }
     void OnDestroy()
     {
@@ -380,6 +382,38 @@ public partial class ForgeMvp : MonoBehaviour
     {
         guideBook.EnsureInitialized(BookWorkspacePoint(new Vector2(Mathf.Max(12,Screen.width-432),ToolbarHeight+15)));
     }
+    bool GuideBookCoveredAt(Vector2 screenPoint)
+    {
+        if(screenPoint.y<ToolbarHeight||DebugResourcesRect.Contains(screenPoint)
+            ||new Rect(12,Screen.height-36,190,28).Contains(screenPoint))return true;
+        if(showDebugWindow&&debugWindow.Contains(screenPoint))return true;
+        if(codeWindows.Count>0){
+            var owner=codeWindows[activeWindow];
+            if(owner.showDiagnostic&&owner.diagnostic!=null&&DiagnosticRect().Contains(screenPoint))return true;
+        }
+        Vector2 point=BookWorkspacePoint(screenPoint);
+        foreach(var window in codeWindows){
+            Rect bounds=window.rect;
+            if(new Rect(bounds.x-4,bounds.y-4,bounds.width+8,bounds.height+8).Contains(point))return true;
+        }
+        return showSalesPanel&&(salesWindow.Contains(point)||ForgeWindowGeometry.HitResize(SalesFrame,salesWindow,point)>=0);
+    }
+    void DrawGuideBookBehindWindows(bool modalOpen)
+    {
+        if(!showGuideBook||modalOpen)return;
+        InitializeGuideBook();
+        var ev=Event.current;
+        EventType originalType=ev.type;
+        bool maskInput=(ev.isMouse||ev.type==EventType.ScrollWheel)
+            &&(WorkspacePointerActive||debugInteracting||debugResizeEdge>=0
+                ||(!guideBook.Dragging&&GuideBookCoveredAt(ev.mousePosition)));
+        if(maskInput)ev.type=EventType.Ignore;
+        Matrix4x4 previous=GUI.matrix;
+        GUI.matrix=previous*Matrix4x4.TRS(new Vector3(workspaceOffset.x*workspaceZoom,workspaceOffset.y*workspaceZoom,0),Quaternion.identity,new Vector3(workspaceZoom,workspaceZoom,1));
+        guideBook.Draw(ref showGuideBook,codeStyle.font,codeStyle.fontSize,englishGuideUnlocked);
+        GUI.matrix=previous;
+        if(maskInput)ev.type=originalType;
+    }
     void OpenTechTree()
     {
         CommitName();EndWorkspaceDrag();guideBook.CancelDrag();techTree.CancelDrag();
@@ -403,6 +437,7 @@ public partial class ForgeMvp : MonoBehaviour
         bool modalOpen = deleteWindowId >= 0;
         if (modalOpen && Event.current.type != EventType.Layout && Event.current.type != EventType.Repaint) Event.current.type = EventType.Ignore;
         var ev = Event.current;
+        DrawGuideBookBehindWindows(modalOpen);
         // Transfer a held text-selection gesture only after it leaves the code window.
         if(codePointerControl!=0 && ev.rawType==EventType.MouseDrag && ev.button==0
             && GUIUtility.hotControl==codePointerControl && codeWindows.Count>0 && !modalOpen){
@@ -422,10 +457,6 @@ public partial class ForgeMvp : MonoBehaviour
         EventType toolbarEvent=ev.type;
         bool maskToolbar=!pointerOwned&&(ev.mousePosition.y<ToolbarHeight||new Rect(12,Screen.height-36,190,28).Contains(ev.mousePosition))&&(ev.isMouse||ev.type==EventType.ScrollWheel);
         if(maskToolbar)ev.type=EventType.Ignore;
-        if(showGuideBook)InitializeGuideBook();
-        EventType bookUnderlyingEvent=ev.type;
-        bool maskBook=(!pointerOwned||guideBook.Dragging)&&showGuideBook&&(guideBook.Dragging||guideBook.Contains(BookWorkspacePoint(ev.mousePosition)))&&(ev.isMouse||ev.type==EventType.ScrollWheel);
-        if(maskBook)ev.type=EventType.Ignore;
         EventType debugUnderlyingEvent=ev.type;
         bool maskDebug=!WorkspacePointerActive&&!guideBook.Dragging&&showDebugWindow&&(debugInteracting||debugWindow.Contains(ev.mousePosition))&&(ev.isMouse||ev.type==EventType.ScrollWheel);
         if(maskDebug)ev.type=EventType.Ignore;
@@ -479,11 +510,11 @@ public partial class ForgeMvp : MonoBehaviour
         Vector2 screenPointer=ev.mousePosition;
         int cursorDirection=verticalEdge?2:horizontalEdge?1:0;
         if(modalOpen)cursorDirection=0;
-        else if(showGuideBook&&(guideBook.Dragging||guideBook.Contains(BookWorkspacePoint(screenPointer))))cursorDirection=guideBook.CursorDirection(BookWorkspacePoint(screenPointer));
         else if(showDebugWindow&&debugResizeEdge>=0)cursorDirection=DebugCursorDirection(screenPointer);
         else if(diagnosticOwner!=null&&diagnosticOwner.showDiagnostic&&diagnosticOwner.diagnostic!=null&&DiagnosticRect().Contains(screenPointer))cursorDirection=0;
         else if(showDebugWindow&&(debugInteracting||debugWindow.Contains(screenPointer)))cursorDirection=DebugCursorDirection(screenPointer);
         else if(screenPointer.y<ToolbarHeight)cursorDirection=0;
+        else if(showGuideBook&&!GuideBookCoveredAt(screenPointer)&&(guideBook.Dragging||guideBook.Contains(BookWorkspacePoint(screenPointer))))cursorDirection=guideBook.CursorDirection(BookWorkspacePoint(screenPointer));
         SetResizeCursor(cursorDirection);
         if (renamingWindow >= 0 && ev.type == EventType.MouseDown)
         {
@@ -603,13 +634,6 @@ public partial class ForgeMvp : MonoBehaviour
         DrawDebugWindow();
         if (maskDiagnostic) ev.type = diagnosticEvent;
         DrawCompileErrorWindow(diagnosticOwner);
-        if(maskBook)ev.type=bookUnderlyingEvent;
-        if(showGuideBook&&!modalOpen){
-            Matrix4x4 bookMatrix=GUI.matrix;
-            GUI.matrix=bookMatrix*Matrix4x4.TRS(new Vector3(workspaceOffset.x*workspaceZoom,workspaceOffset.y*workspaceZoom,0),Quaternion.identity,new Vector3(workspaceZoom,workspaceZoom,1));
-            guideBook.Draw(ref showGuideBook,codeStyle.font,codeStyle.fontSize,englishGuideUnlocked);
-            GUI.matrix=bookMatrix;
-        }
         if(maskResources)Event.current.type=resourceEvent;
         if(!modalOpen)DrawDebugResources();
         if (modalOpen) Event.current.type = modalEvent;
@@ -697,6 +721,7 @@ public partial class ForgeMvp : MonoBehaviour
         if(ForgeGuideUI.IconButton(book,ForgeGuideUI.Icon.Book,"도면 안내서",showGuideBook))
         {
             showGuideBook=!showGuideBook;InitializeGuideBook();guideBook.CancelDrag();CommitName();EndWorkspaceDrag();edge=-1;
+            if(showGuideBook)guideBook.CenterAt(BookWorkspacePoint(new Vector2(Screen.width*.5f,Screen.height*.5f)));
             debugResizeEdge=-1;debugInteracting=false;hover="";
             GUIUtility.hotControl=0;GUI.FocusControl(null);SetResizeCursor(0);
         }
@@ -746,14 +771,20 @@ public partial class ForgeMvp : MonoBehaviour
     }
     void DrawCodeBackground(Rect rect, CodeWindow codeWindow)
     {
-        // One fill for both the gutter and editor; no separate focused editor background.
-        float elapsed = Time.realtimeSinceStartup - codeWindow.clickedAt;
-        float flash = Mathf.Clamp01(1f - elapsed / .25f);
-        Color previous = GUI.color;
-        GUI.color = new Color(.12f + .045f * flash, .14f + .045f * flash, .17f + .045f * flash, .78f);
-        GUI.DrawTexture(rect, Texture2D.whiteTexture);
+        DrawCodeSurface(rect,codeWindow.clickedAt);
+        Color previous=GUI.color;
         GUI.color = new Color(.48f, .52f, .58f, .28f);
         GUI.DrawTexture(new Rect(rect.x + 8, rect.y + 35, rect.width - 16, 1), Texture2D.whiteTexture);
+        GUI.color=previous;
+    }
+    void DrawCodeSurface(Rect rect,float clickedAt,float opacity=1)
+    {
+        // One fill for both the gutter and editor; no separate focused editor background.
+        float elapsed = Time.realtimeSinceStartup - clickedAt;
+        float flash = Mathf.Clamp01(1f - elapsed / .25f);
+        Color previous = GUI.color;
+        GUI.color = new Color(.12f + .045f * flash, .14f + .045f * flash, .17f + .045f * flash, .78f*opacity);
+        GUI.DrawTexture(rect, Texture2D.whiteTexture);
         GUI.color = previous;
     }
     void DrawSyntax(Rect content, string text, CodeWindow owner)
@@ -807,17 +838,26 @@ public partial class ForgeMvp : MonoBehaviour
         return measured;
     }
     void FollowCodeCaret(Rect content,Rect viewport,int index)
+    {FollowEditorCaret(content,viewport,source,ref scroll,index);}
+    void FollowEditorCaret(Rect content,Rect viewport,string text,ref Vector2 position,int index)
     {
-        index=Mathf.Clamp(index,0,source.Length);
-        Vector2 caret=codeStyle.GetCursorPixelPosition(content,new GUIContent(source+" "),index);
+        index=Mathf.Clamp(index,0,text.Length);
+        Vector2 caret=codeStyle.GetCursorPixelPosition(content,new GUIContent(text+" "),index);
 
         const float margin=4f;
         float lineHeight=Mathf.Max(1f,codeStyle.lineHeight);
-        scroll.y=BlueprintViewport.FollowY(source,index,lineHeight,codeStyle.padding.top,viewport.height,content.height,scroll.y);
-        if(caret.x<scroll.x+margin)scroll.x=caret.x-margin;
-        else if(caret.x+2f>scroll.x+viewport.width-margin)scroll.x=caret.x+2f-viewport.width+margin;
-        scroll.x=Mathf.Clamp(scroll.x,0,Mathf.Max(0,content.width-viewport.width));
-        scroll.y=Mathf.Clamp(scroll.y,0,Mathf.Max(0,content.height-viewport.height));
+        position.y=BlueprintViewport.FollowY(text,index,lineHeight,codeStyle.padding.top,viewport.height,content.height,position.y);
+        if(caret.x<position.x+margin)position.x=caret.x-margin;
+        else if(caret.x+2f>position.x+viewport.width-margin)position.x=caret.x+2f-viewport.width+margin;
+        position.x=Mathf.Clamp(position.x,0,Mathf.Max(0,content.width-viewport.width));
+        position.y=Mathf.Clamp(position.y,0,Mathf.Max(0,content.height-viewport.height));
+    }
+    void DrawEditorScrollbars(Rect viewport,Rect content,ref Vector2 position)
+    {
+        if(content.height>viewport.height)
+            position.y=GUI.VerticalSlider(new Rect(viewport.xMax+3,viewport.y,6,viewport.height),position.y,0,content.height-viewport.height,scrollTrack,scrollThumb);
+        if(content.width>viewport.width)
+            position.x=GUI.HorizontalSlider(new Rect(viewport.x,viewport.yMax+8,viewport.width,6),position.x,0,content.width-viewport.width,horizontalScrollTrack,horizontalScrollThumb);
     }
     void DrawCodeWindow()
     {
@@ -983,14 +1023,7 @@ public partial class ForgeMvp : MonoBehaviour
             FollowCodeCaret(content,viewport,currentOwner.pendingCaret);
         }
         // Slim bars sit inside the outer frame, outside the symmetric text viewport.
-        if (content.height > viewport.height)
-            scroll.y = GUI.VerticalSlider(new Rect(window.xMax - 9, viewport.y, 6, viewport.height), scroll.y, 0, content.height - viewport.height, scrollTrack, scrollThumb);
-        if (content.width > viewport.width)
-        {
-            var horizontalTrack = new GUIStyle(scrollTrack) { fixedWidth = 0, fixedHeight = 6 };
-            var horizontalThumb = new GUIStyle(scrollThumb) { fixedWidth = 28, fixedHeight = 6 };
-            scroll.x = GUI.HorizontalSlider(new Rect(viewport.x, window.yMax - 10, viewport.width, 6), scroll.x, 0, content.width - viewport.width, horizontalTrack, horizontalThumb);
-        }
+        DrawEditorScrollbars(viewport,content,ref scroll);
         bool reset=old!=source || oldScroll!=scroll || panning || edge>=0 || movingWindow>=0 || ev.type==EventType.KeyDown || ev.type==EventType.ScrollWheel || mouse!=lastMouse;
         if(reset) { hoverSince=Time.realtimeSinceStartup; hover=""; }
         lastMouse=mouse;
