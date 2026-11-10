@@ -31,6 +31,25 @@ public static class ForgeTutorialChecks
         Require(ForgeTutorialLesson.Restore(5,"print(1)").Stage==0,"bad checkpoint reset");
         Require(ForgeTutorialLesson.Restore(1,null).Stage==1,"selected material checkpoint");
         Require(ForgeTutorialLesson.Restore(99,lesson.Code).Stage==0,"unknown checkpoint reset");
+        for(int target=7;target>=0;target--){
+            Require(lesson.Previous()&&lesson.Stage==target,"previous stage "+target);
+            Require(lesson.RemainingIron==(target<=2?10:target<=6?9:8),"rewind stock "+target);
+            Require(ForgeTutorialLesson.Restore(lesson.Stage,lesson.Code).Stage==target,"rewind save "+target);
+            if(target>0){
+                var retry=ForgeTutorialLesson.Restore(lesson.Stage,lesson.Code);
+                Require(retry.Submit(ForgeTutorialLesson.Hints[target],out message)&&retry.Stage==target+1,"relearn stage "+target);
+            }
+        }
+        Require(!lesson.Previous()&&lesson.Code==""&&lesson.Evaluation==null,"first step boundary");
+        lesson.SelectMaterial(1,out _);
+        string document="";
+        for(int stage=1;stage<=7;stage++){
+            document+=ForgeTutorialLesson.Hints[stage]+"\n";
+            Require(!lesson.SubmitDocument(document+"print(1)\n",out message)&&lesson.Stage==stage,"editor cannot skip a step");
+            if(stage>1)Require(!lesson.SubmitDocument(document.Replace("Material = 1","Material = 2"),out message)&&lesson.Stage==stage,"invalid edit does not change checkpoint");
+            Require(lesson.SubmitDocument(document,out message)&&lesson.Code==document,"editable document stage "+stage);
+        }
+        Require(lesson.Complete&&lesson.RemainingIron==8,"editor completion without duplicate resource use");
         Console.WriteLine("PASS tutorial: material choice, variable, five processes, sword submission, mistakes/retries, checkpoint restore and duplicate prevention");
     }
 }

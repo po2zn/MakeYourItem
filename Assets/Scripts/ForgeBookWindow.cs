@@ -1,16 +1,16 @@
 using UnityEngine;
 
 // A non-modal, workspace-space reference window. Only its own pointer input is captured.
-public sealed class ForgeBookWindow
+public sealed class ForgeBookWindow : IForgeWindow
 {
     public Rect Rect { get; private set; }
-    public bool Dragging => gesture>=0;
+    public bool Dragging => interaction.Active;
+    Rect IForgeWindow.Bounds {get=>Rect;set=>Rect=value;}
+    public ForgeWindowRules Rules => new ForgeWindowRules(true,collapsed?ForgeWindowEdges.None:ForgeWindowEdges.All,280,180,ForgeGuideUI.HeaderHeight);
+    readonly ForgeWindowInteraction interaction=new ForgeWindowInteraction();
     readonly ForgeGuideReader reader=new ForgeGuideReader();
     bool initialized,collapsed;
     float expandedHeight=ForgeGuideReader.DefaultWindowHeight;
-    int gesture=-1,control;
-    Vector2 startMouse;
-    Rect startRect;
     public void EnsureInitialized(Vector2 position)
     {
         if(initialized)return;
@@ -26,41 +26,22 @@ public sealed class ForgeBookWindow
     Rect BookmarkRail => ForgeGuideReader.BookmarkRail(new Rect(Rect.x+10,Rect.y+ForgeGuideUI.HeaderHeight+10,Rect.width-20,Mathf.Max(1,Rect.height-ForgeGuideUI.HeaderHeight-20)));
     public void CancelDrag()
     {
-        if(gesture>=0 && GUIUtility.hotControl==control)GUIUtility.hotControl=0;
-        gesture=-1;
+        interaction.Cancel();
     }
     int ResizeEdge(Vector2 mouse)
     {
         if(collapsed||reader.ShowBookmarks&&BookmarkRail.Contains(mouse))return -1;
-        if(new Rect(Rect.x-4,Rect.y+ForgeGuideUI.HeaderHeight,8,Rect.height-ForgeGuideUI.HeaderHeight).Contains(mouse))return 0;
-        if(new Rect(Rect.xMax-4,Rect.y+ForgeGuideUI.HeaderHeight,8,Rect.height-ForgeGuideUI.HeaderHeight).Contains(mouse))return 1;
-        if(new Rect(Rect.x,Rect.yMax-4,Rect.width,8).Contains(mouse))return 2;
-        return -1;
+        return ForgeWindowGeometry.HitResize(this,Rect,mouse);
     }
     public int CursorDirection(Vector2 mouse)
     {
-        int edge=Dragging?gesture:ResizeEdge(mouse);
-        return edge==2?2:edge==0||edge==1?1:0;
+        return Dragging?interaction.Cursor(this,mouse):ForgeWindowGeometry.CursorDirection(ResizeEdge(mouse));
     }
     public void Draw(ref bool open,Font font,int fontSize,bool englishGuideUnlocked)
     {
         if(!open){CancelDrag();return;}
         var ev=Event.current;
-        control=GUIUtility.GetControlID("GuideBookWindowDrag".GetHashCode(),FocusType.Passive);
-        int hit=ResizeEdge(ev.mousePosition);
-        if(hit<0&&new Rect(Rect.x,Rect.y,Rect.width-ForgeGuideUI.HeaderControlsWidth,ForgeGuideUI.HeaderHeight).Contains(ev.mousePosition))hit=3;
-        if(ev.type==EventType.MouseDown&&ev.button==0&&hit>=0){
-            gesture=hit;startMouse=ev.mousePosition;startRect=Rect;GUIUtility.hotControl=control;ev.Use();
-        }
-        if(gesture>=0&&ev.type==EventType.MouseDrag){
-            Vector2 delta=ev.mousePosition-startMouse;Rect next=startRect;
-            if(gesture==0)next.xMin=Mathf.Min(startRect.xMin+delta.x,startRect.xMax-280);
-            else if(gesture==1)next.width=Mathf.Max(280,startRect.width+delta.x);
-            else if(gesture==2)next.height=Mathf.Max(180,startRect.height+delta.y);
-            else next.position=startRect.position+delta;
-            Rect=next;ev.Use();
-        }
-        if(gesture>=0&&ev.rawType==EventType.MouseUp){CancelDrag();ev.Use();}
+        interaction.Handle(this,"GuideBookWindowDrag".GetHashCode(),new Rect(Rect.x,Rect.y,Rect.width-ForgeGuideUI.HeaderControlsWidth,ForgeGuideUI.HeaderHeight),Dragging||!reader.ShowBookmarks||!BookmarkRail.Contains(ev.mousePosition));
         bool wasCollapsed=collapsed;
         ForgeGuideUI.DrawBook(Rect,ref open,ref collapsed,font,fontSize,reader,englishGuideUnlocked);
         if(wasCollapsed!=collapsed){

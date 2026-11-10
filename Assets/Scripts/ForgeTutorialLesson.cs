@@ -55,6 +55,34 @@ public sealed class ForgeTutorialLesson
             return true;
         }catch(BlueprintException error){message=error.Message;return false;}
     }
+    public bool SubmitDocument(string source,out string message)
+    {
+        message="이전 코드에 이번 단계의 한 줄을 이어서 작성하세요.";
+        if(Stage<1||Complete||string.IsNullOrWhiteSpace(source)||source.Length>4096)return false;
+        var lines=source.Replace("\r\n","\n").Split('\n');
+        var replay=new ForgeTutorialLesson();replay.SelectMaterial(1,out _);
+        int count=0;foreach(string line in lines)if(!string.IsNullOrWhiteSpace(line))count++;
+        if(count!=Stage)return false;
+        foreach(string line in lines){
+            if(string.IsNullOrWhiteSpace(line))continue;
+            int lineStage=replay.Stage;
+            if(!replay.Submit(line,out message)){message=lineStage+"줄: "+message;return false;}
+        }
+        Stage=replay.Stage;Code=replay.Code;Evaluation=replay.Evaluation;
+        message=Complete?"첫 검 완성! 변수와 1()~5()를 모두 사용했습니다.":"성공! 다음 단계의 코드를 이어서 작성하세요.";
+        return true;
+    }
+    public bool Previous()
+    {
+        if(Stage==0)return false;
+        int target=Stage-1;
+        var lines=Code.TrimEnd('\r','\n').Split('\n');
+        string prefix="";
+        for(int i=0;i<target-1;i++)prefix+=lines[i]+"\n";
+        var previous=Restore(target,prefix);
+        Stage=previous.Stage;Code=previous.Code;Evaluation=previous.Evaluation;
+        return true;
+    }
     public static ForgeTutorialLesson Restore(int stage,string code)
     {
         var lesson=new ForgeTutorialLesson();

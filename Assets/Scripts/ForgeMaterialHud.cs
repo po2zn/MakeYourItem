@@ -28,6 +28,12 @@ public sealed class ForgeMaterialHud
     }
     static ForgeMaterialStock Find(ForgeMaterialStock[] stocks,int id)
     {return stocks==null?null:Array.Find(stocks,s=>s!=null&&s.material==id&&s.unlocked);}
+    public Texture2D GetIcon(int id)
+    {
+        if(id<0||id>=icons.Length)throw new ArgumentOutOfRangeException(nameof(id));
+        if(!icons[id])icons[id]=MakeIcon(id);
+        return icons[id];
+    }
     public float Height(float width,ForgeMaterialStock[] stocks,float top=42)
     {
         int count=1;for(int id=2;id<=9;id++)if(Find(stocks,id)!=null)count++;
@@ -45,8 +51,7 @@ public sealed class ForgeMaterialHud
             var stock=Find(stocks,id);if(id!=1&&stock==null)continue;
             long count=id==1?iron:stock.count;
             Rect icon=new Rect(12+(index%columns)*CellWidth,top+(index/columns)*RowHeight,IconSize,IconSize);index++;
-            if(!icons[id])icons[id]=MakeIcon(id);
-            GUI.DrawTexture(icon,icons[id]);
+            GUI.DrawTexture(icon,GetIcon(id));
             GUI.Label(new Rect(icon.xMax+6,icon.y,CellWidth-IconSize-10,IconSize),FormatCount(count),numberStyle);
             if(icon.Contains(Event.current.mousePosition))tooltip=ForgeMaterialGuide.Entries[id].Name+" · "+count.ToString("N0",CultureInfo.InvariantCulture)+"개\n"+descriptions[id];
         }
@@ -64,7 +69,8 @@ public sealed class ForgeMaterialHud
         var pixels=new Color[24*24];var mask=new bool[24*24];
         for(int y=2;y<22;y++)for(int x=2;x<22;x++){
             bool filled;
-            if(id==2)filled=x>=5&&x<=18&&y>=4&&y<=19; // timber
+            if(id==0)filled=(y==7&&x>=4&&x<=17)||(y==12&&x>=6&&x<=20)||(y==17&&x>=3&&x<=15); // air currents
+            else if(id==2)filled=x>=5&&x<=18&&y>=4&&y<=19; // timber
             else if(id==3||id==8)filled=y<11?(x-12)*(x-12)+(y-10)*(y-10)<=64:Math.Abs(x-12)<=(22-y)/2; // drop
             else if(id==6)filled=Math.Abs(x-12)<=7-Math.Abs(y-12)/2; // crystal
             else if(id==9)filled=(Math.Abs(x-y)<=2&&x>=5&&x<=18)||((x-5)*(x-5)+(y-5)*(y-5)<16)||((x-18)*(x-18)+(y-18)*(y-18)<16);
@@ -74,7 +80,7 @@ public sealed class ForgeMaterialHud
         }
         for(int y=2;y<22;y++)for(int x=2;x<22;x++)if(mask[y*24+x]){
             bool edge=!mask[y*24+x-1]||!mask[y*24+x+1]||!mask[(y-1)*24+x]||!mask[(y+1)*24+x];
-            Color color=palette[id];
+            Color color=id==0?new Color(.7f,.9f,1f):palette[id];
             if(edge)color*=.55f;else if(y>13)color=Color.Lerp(color,Color.white,.3f);
             if(id==2&&(x==8||x==14)&&y>5&&y<19)color*=.65f;
             if(id==7&&(x==13||y==12)&&Math.Abs(x-13)+Math.Abs(y-12)<4)color=Color.white;

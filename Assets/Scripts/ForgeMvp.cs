@@ -20,8 +20,10 @@ public partial class ForgeMvp : MonoBehaviour
     }
     Vector2 workspaceOffset;
     float workspaceZoom = 1f;
-    class CodeWindow
+    class CodeWindow : IForgeWindow
     {
+        public Rect Bounds {get=>rect;set=>rect=value;}
+        public ForgeWindowRules Rules => new ForgeWindowRules(true,collapsed?ForgeWindowEdges.None:ForgeWindowEdges.All,340,180);
         public Rect rect;
         public bool collapsed;
         public float expandedHeight = 240;
@@ -64,6 +66,9 @@ public partial class ForgeMvp : MonoBehaviour
     public void SetEnglishGuideUnlocked(bool unlocked) { englishGuideUnlocked=unlocked; }
     readonly ForgeBookWindow guideBook=new ForgeBookWindow();
     Rect salesWindow = new Rect(430, 135, 350, 480);
+    IForgeWindow salesFrame,debugFrame;
+    IForgeWindow SalesFrame => salesFrame??(salesFrame=new ForgeWindowAdapter(()=>salesWindow,r=>salesWindow=r,new ForgeWindowRules(true,ForgeWindowEdges.All,340,180)));
+    IForgeWindow DebugFrame => debugFrame??(debugFrame=new ForgeWindowAdapter(()=>debugWindow,r=>debugWindow=r,new ForgeWindowRules(true,ForgeWindowEdges.All,320,160,DebugHeaderHeight,12)));
     bool movingSales;
     int salesResizeEdge = -1;
     Rect salesResizeStart;
@@ -84,6 +89,7 @@ public partial class ForgeMvp : MonoBehaviour
     Vector2 workspaceMouse;
     void EndWorkspaceDrag()
     {
+        tutorialWindowInteraction.Cancel();
         if (GUIUtility.hotControl == dragControl) GUIUtility.hotControl = 0;
         movingWindow = -1; movingSales = false; salesResizeEdge = -1; panning = false; dragButton = -1;
         codePointerControl=0;
@@ -177,7 +183,7 @@ public partial class ForgeMvp : MonoBehaviour
         Cursor.SetCursor(direction==1?horizontalResizeCursor:direction==2?verticalResizeCursor:null, direction!=0?new Vector2(16,16):Vector2.zero, CursorMode.Auto);
         resizeCursorShown = direction;
     }
-    void OnDisable() { StopExecution(false); techTree.CancelDrag(); SetResizeCursor(0); ReleaseImeKeyboard(); guideBook.CancelDrag(); }
+    void OnDisable() { StopExecution(false); tutorialWindowInteraction.Cancel(); techTree.CancelDrag(); SetResizeCursor(0); ReleaseImeKeyboard(); guideBook.CancelDrag(); }
 #if ENABLE_INPUT_SYSTEM
     UnityEngine.InputSystem.Keyboard imeKeyboard;
     bool imeComposing;
@@ -307,11 +313,7 @@ public partial class ForgeMvp : MonoBehaviour
     int DebugResizeEdge(Vector2 mouse)
     {
         if(!debugWindow.Contains(mouse))return -1;
-        Vector2 local=mouse-debugWindow.position;
-        if(local.x<6&&local.y>DebugHeaderHeight)return 0;
-        if(local.x>debugWindow.width-6&&local.y>DebugHeaderHeight)return 1;
-        if(local.y>debugWindow.height-6)return 2;
-        return -1;
+        return ForgeWindowGeometry.HitResize(DebugFrame,debugWindow,mouse);
     }
     int DebugCursorDirection(Vector2 mouse)
     {
@@ -337,11 +339,7 @@ public partial class ForgeMvp : MonoBehaviour
         if(ev.type==EventType.MouseDown&&ev.button==0&&edge>=0){debugResizeEdge=edge;debugResizeStart=debugWindow;debugResizeMouse=GUIUtility.GUIToScreenPoint(ev.mousePosition);GUIUtility.hotControl=resizeId;ev.Use();}
         if(debugResizeEdge>=0&&ev.type==EventType.MouseDrag){
             Vector2 delta=GUIUtility.GUIToScreenPoint(ev.mousePosition)-debugResizeMouse;
-            Rect rect=debugResizeStart;
-            if(debugResizeEdge==0)rect.xMin=Mathf.Min(rect.xMin+delta.x,rect.xMax-320);
-            else if(debugResizeEdge==1)rect.width=Mathf.Max(320,rect.width+delta.x);
-            else rect.height=Mathf.Max(160,rect.height+delta.y);
-            debugWindow=rect;ev.Use();
+            debugWindow=ForgeWindowGeometry.Resize(DebugFrame,debugResizeStart,debugResizeEdge,delta);ev.Use();
         }
         if(debugResizeEdge>=0&&ev.rawType==EventType.MouseUp){debugResizeEdge=-1;GUIUtility.hotControl=0;ev.Use();}
         // Draw the title explicitly: the skin window caption clips the Korean font.
@@ -356,7 +354,7 @@ public partial class ForgeMvp : MonoBehaviour
         debugScroll=GUI.BeginScrollView(view,debugScroll,new Rect(0,0,view.width-18,height));
         GUI.Label(new Rect(0,0,view.width-18,height),text,debugTextStyle);
         GUI.EndScrollView();
-        GUI.DragWindow(new Rect(6,0,Mathf.Max(0,debugWindow.width-100),DebugHeaderHeight));
+        if(DebugFrame.Rules.Movable)GUI.DragWindow(new Rect(6,0,Mathf.Max(0,debugWindow.width-100),DebugHeaderHeight));
     }
     Vector2 BookWorkspacePoint(Vector2 screenPoint) => screenPoint/workspaceZoom-workspaceOffset;
     void InitializeGuideBook()
@@ -439,9 +437,7 @@ public partial class ForgeMvp : MonoBehaviour
         int overSalesEdge = -1;
         if (showSalesPanel)
         {
-            if (new Rect(salesScreen.x - 4, salesScreen.y, 8, salesScreen.height).Contains(mouse)) overSalesEdge = 0;
-            else if (new Rect(salesScreen.xMax - 4, salesScreen.y, 8, salesScreen.height).Contains(mouse)) overSalesEdge = 1;
-            else if (new Rect(salesScreen.x, salesScreen.yMax - 4, salesScreen.width, 8).Contains(mouse)) overSalesEdge = 2;
+            overSalesEdge=ForgeWindowGeometry.HitResize(SalesFrame,salesScreen,mouse);
         }
         bool overSales = showSalesPanel && (salesScreen.Contains(mouse) || overSalesEdge >= 0 || salesResizeEdge >= 0);
         if (overSales) { overWindow = true; hit = -1; }
@@ -452,9 +448,9 @@ public partial class ForgeMvp : MonoBehaviour
         if (hit >= 0 && !codeWindows[hit].collapsed && !overSales && ev.mousePosition.y > ToolbarHeight && !panning && movingWindow < 0 && !movingSales)
         {
             Rect hovered = codeWindows[hit].rect; hovered.position += workspaceOffset;
-            verticalEdge |= new Rect(hovered.x,hovered.yMax-4,hovered.width,8).Contains(mouse);
-            horizontalEdge |= mouse.y >= hovered.y + 4 && mouse.y <= hovered.yMax - 4
-                && (Mathf.Abs(mouse.x - hovered.x) <= 4 || Mathf.Abs(mouse.x - hovered.xMax) <= 4);
+            int hoverEdge=ForgeWindowGeometry.HitResize(codeWindows[hit],hovered,mouse);
+            verticalEdge |= hoverEdge==2;
+            horizontalEdge |= hoverEdge==0||hoverEdge==1;
         }
         // Cursor hit-testing must also run on Repaint; event masking is only for input.
         // Match the visible window stacking order, retaining resize cursors during capture.
@@ -521,14 +517,10 @@ public partial class ForgeMvp : MonoBehaviour
                 if (salesResizeEdge >= 0)
                 {
                     Vector2 delta = (ev.mousePosition - dragStartMouse) / workspaceZoom;
-                    Rect resized = salesResizeStart;
-                    if (salesResizeEdge == 0) resized.xMin = Mathf.Min(salesResizeStart.xMin + delta.x, salesResizeStart.xMax - 340);
-                    else if (salesResizeEdge == 1) resized.xMax = Mathf.Max(salesResizeStart.xMax + delta.x, salesResizeStart.xMin + 340);
-                    else resized.yMax = Mathf.Max(salesResizeStart.yMax + delta.y, salesResizeStart.yMin + 180);
-                    salesWindow = resized;
+                    salesWindow=ForgeWindowGeometry.Resize(SalesFrame,salesResizeStart,salesResizeEdge,delta);
                 }
-                else if (movingWindow >= 0 && draggedTitle) codeWindows[movingWindow].rect.position = position;
-                else if (movingSales && draggedTitle) salesWindow.position = position;
+                else if (movingWindow >= 0 && draggedTitle) codeWindows[movingWindow].rect=ForgeWindowGeometry.Move(codeWindows[movingWindow],codeWindows[movingWindow].rect,position-codeWindows[movingWindow].rect.position);
+                else if (movingSales && draggedTitle) salesWindow=ForgeWindowGeometry.Move(SalesFrame,salesWindow,position-salesWindow.position);
                 else if (panning) workspaceOffset = position;
                 hover = ""; hoverSince = Time.realtimeSinceStartup;
                 UpdateWorkspaceCamera(); ev.Use();
@@ -746,10 +738,15 @@ public partial class ForgeMvp : MonoBehaviour
             owner.coloredSource = text;
             owner.coloredTokens = ForgeSyntax.Scan(text);
         }
-        var fullText = new GUIContent(text);
         DrawExecutionHighlight(content,text,owner);
         DrawDiagnosticUnderline(content, text, owner);
-        foreach (var token in owner.coloredTokens)
+        DrawSyntaxTokens(content,text,owner.coloredTokens,codeStyle,tokenStyle);
+    }
+    void DrawSyntaxTokens(Rect content,string text,List<ForgeSyntax.Token> tokens,GUIStyle layout,GUIStyle paint)
+    {
+        if(Event.current.type!=EventType.Repaint)return;
+        var fullText=new GUIContent(text);
+        foreach (var token in tokens)
         {
             Color color = Color.white;
             switch (token.kind)
@@ -760,12 +757,12 @@ public partial class ForgeMvp : MonoBehaviour
                 case ForgeSyntax.Kind.Keyword: color = new Color(1f, .65f, .30f); break;
                 case ForgeSyntax.Kind.Function: color = new Color(1f, .92f, .60f); break;
             }
-            tokenStyle.normal.textColor = color;
-            tokenStyle.hover.textColor = color;
+            paint.normal.textColor = color;
+            paint.hover.textColor = color;
             var value = new GUIContent(text.Substring(token.start, token.length));
-            Vector2 position = codeStyle.GetCursorPixelPosition(content, fullText, token.start);
-            Vector2 size = tokenStyle.CalcSize(value);
-            GUI.Label(new Rect(position.x, position.y, size.x + 2, Mathf.Max(size.y, codeStyle.lineHeight)), value, tokenStyle);
+            Vector2 position = layout.GetCursorPixelPosition(content, fullText, token.start);
+            Vector2 size = paint.CalcSize(value);
+            GUI.Label(new Rect(position.x, position.y, size.x + 2, Mathf.Max(size.y, layout.lineHeight)), value, paint);
         }
     }
     void DrawCodeGutter(Rect window)
@@ -804,14 +801,12 @@ public partial class ForgeMvp : MonoBehaviour
         Rect window = workspaceWindow;
         window.position += workspaceOffset;
 
-        Rect[] handles = { new Rect(window.x-4,window.y,8,window.height), new Rect(window.xMax-4,window.y,8,window.height), new Rect(window.x,window.yMax-4,window.width,8) };
-        int over = -1; for(int i=0;i<handles.Length;i++) if(handles[i].Contains(mouse)) over=i;
+        int over=ForgeWindowGeometry.HitResize(codeWindows[activeWindow],window,mouse);
         if (ev.type == EventType.MouseDown && ev.button == 0 && !panning && over >= 0 && !codeWindows[activeWindow].collapsed) { edge=over; ev.Use(); }
         if (edge >= 0 && ev.type == EventType.MouseDrag)
         {
-            if(edge==0) window.xMin=Mathf.Min(mouse.x,window.xMax-340);
-            if(edge==1) window.xMax=Mathf.Max(mouse.x,window.xMin+340);
-            if(edge==2) window.yMax=Mathf.Max(mouse.y,window.yMin+180);
+            Vector2 delta=edge==0?new Vector2(mouse.x-window.xMin,0):edge==1?new Vector2(mouse.x-window.xMax,0):new Vector2(0,mouse.y-window.yMax);
+            window=ForgeWindowGeometry.Resize(codeWindows[activeWindow],window,edge,delta);
             ev.Use();
         }
         if(ev.rawType==EventType.MouseUp) edge=-1;
