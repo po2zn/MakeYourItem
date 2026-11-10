@@ -1,0 +1,12 @@
+scenario,samples,draw_calls_mean,draw_calls_min,draw_calls_max,batches_mean,setpass_mean,frame_interval_mean_ms,frame_interval_p95_ms
+game_before,90,1127.000,1127,1127,,1111.000,23.949,31.223
+game_after,90,366.822,363,367,,350.822,10.652,12.367
+game_without_world,90,314.000,314,314,,324.000,3.392,4.572
+game_without_all_ui,90,53.000,53,53,,27.000,5.824,7.984
+game_without_Syntax,90,327.000,327,327,,311.000,6.809,8.725
+game_without_Guide,90,254.000,254,254,,232.000,6.327,8.275
+game_without_Developer,90,305.367,304,307,,286.456,6.426,8.306
+tree_before,90,539.000,539,539,,517.000,24.424,41.773
+tree_after,90,489.000,489,489,,491.000,21.584,29.412
+tree_without_world,90,489.000,489,489,,491.000,22.824,48.802
+tree_without_all_ui,90,489.000,489,489,,491.000,10.576,16.039

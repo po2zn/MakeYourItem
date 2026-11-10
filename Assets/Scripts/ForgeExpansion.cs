@@ -35,7 +35,7 @@ public static class ForgeExpansion
         new Definition(new BlueprintAlias(BlueprintFeature.Wait,"wait","400",BlueprintSyntaxKind.Builtin,"대기 · 400(초): 0~30초 대기. 시간 기반 단조 제어에 사용합니다.","400() · 인자 1개 · 공정 골드 비용 없음",1),0,"400(1)"),
         new Definition(new BlueprintAlias(BlueprintFeature.Resonate,"resonate","501",BlueprintSyntaxKind.Builtin,"공명 검사 · 수정의 숨은 열과 비교해 낮으면 -1, 같으면 0, 높으면 1. 성공 후 식혀 검에 장착합니다.","501() · 인자 1개 · 공정 골드 비용 없음",1),50,"c = 1(6)\nprint(501(c))"),
     };
-    public static BlueprintAlias[] Combine(BlueprintAlias[] original){var list=new List<BlueprintAlias>(original);foreach(var d in Definitions)list.Add(d.Alias);return list.ToArray();}
-    public static bool IsExtended(BlueprintFeature f)=>f>=BlueprintFeature.Attach;
+    public static BlueprintAlias[] Combine(BlueprintAlias[] original){var list=new List<BlueprintAlias>(original);foreach(var d in Definitions)list.Add(d.Alias);list.AddRange(ForgeSmithLanguage.Aliases);return list.ToArray();}
+    public static bool IsExtended(BlueprintFeature f)=>f>=BlueprintFeature.Attach&&f<=BlueprintFeature.Resonate;
     public static BlueprintType ReturnType(BlueprintFeature f)=> f==BlueprintFeature.Lucky?BlueprintType.Piece:f==BlueprintFeature.Inspect||f==BlueprintFeature.LuckyCode||f==BlueprintFeature.Pop||f==BlueprintFeature.SealCount||f==BlueprintFeature.RuneFamily||f==BlueprintFeature.RuneGrade||f==BlueprintFeature.Slots||f==BlueprintFeature.Strength||f==BlueprintFeature.Resonate?BlueprintType.Int:f==BlueprintFeature.RuneList?BlueprintType.List:BlueprintType.None;
 }

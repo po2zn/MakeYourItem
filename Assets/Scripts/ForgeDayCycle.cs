@@ -3,14 +3,29 @@ using UnityEngine;
 using UnityEngine.Rendering;
 
 [DisallowMultipleComponent]
-public sealed class ForgeDayCycle : MonoBehaviour
+public sealed class ForgeDayCycle : MonoBehaviour, ISerializationCallbackReceiver
 {
     [SerializeField, Min(1)] float secondsPerDay = 600;
     [SerializeField, Range(0, 23.99f)] float startHour = 8;
-    public ForgeClock Clock { get; private set; }
-    public bool Paused { get; set; }
-    public int Day => Clock?.Day ?? 1;
-    public double CurrentHour => Clock?.Hour ?? startHour;
+    [SerializeField,HideInInspector] int savedClockDay=1;
+    [SerializeField,HideInInspector] double savedClockHour=8;
+    [SerializeField,HideInInspector] bool hasClockSnapshot;
+    ForgeClock clock;
+    public ForgeClock Clock {
+        get {
+            if(clock==null){
+                clock=new ForgeClock(startHour);
+                if(hasClockSnapshot&&savedClockDay>=1&&savedClockHour>=0&&savedClockHour<24)clock.Restore(savedClockDay,savedClockHour);
+                clock.DayChanged+=AnnounceDay;
+            }
+            return clock;
+        }
+    }
+    [field:SerializeField] public bool Paused { get; set; }
+    public int Day => Clock.Day;
+    public double CurrentHour => Clock.Hour;
+    public void OnBeforeSerialize(){if(clock!=null){savedClockDay=clock.Day;savedClockHour=clock.Hour;hasClockSnapshot=true;}}
+    public void OnAfterDeserialize(){clock=null;}
     public float SecondsPerDay { get => secondsPerDay; set => secondsPerDay = Mathf.Max(1, value); }
     public float AnnouncementAlpha => Fade(announcementAge);
     readonly List<Light> replacedLights = new List<Light>();
@@ -25,7 +40,7 @@ public sealed class ForgeDayCycle : MonoBehaviour
     GUIStyle title;
     bool initialized;
 
-    void Awake() { Clock = new ForgeClock(startHour); Clock.DayChanged += AnnounceDay; }
+    void Awake() { var ready=Clock; }
     void Start()
     {
         previousSun = RenderSettings.sun;

@@ -23,7 +23,7 @@ public partial class ForgeMvp
     }
     void Execute(bool singleStep)
     {
-        if(busy||codeWindows.Count==0)return;
+        if(busy||smithJobs.ContainsKey(0)||codeWindows.Count==0)return;
         codeWindows[activeWindow].text=source;
         if(executionSession!=null&&ExecutionSourceChanged()){
             StopExecution(false);reportError=false;
@@ -41,7 +41,7 @@ public partial class ForgeMvp
                 string name;try{name=PythonIdentifier.Parse(window.name);}catch{continue;}
                 if(modules.ContainsKey(name))modules[name]=null;else modules.Add(name,window.text);
             }
-            var session=BlueprintRuntime.StartSession(source,gold,iron,owner.name,owner.seed,materials,technology,modules,deferErrors:singleStep,clockHour:()=>DayCycle.CurrentHour,context:new ForgeRunContext{Day=()=>DayCycle.Day,Seconds=()=>Time.time,Seed=worldSeed,Speed=craftSpeed});
+            var session=BlueprintRuntime.StartSession(source,gold,iron,owner.name,owner.seed,materials,technology,modules,deferErrors:singleStep,clockHour:()=>DayCycle.CurrentHour,context:SmithContext(0));
             if(session.Evaluation.compileError){
                 owner.diagnosticCaption="컴파일 오류";
                 owner.diagnostic=new ForgeCompileDiagnostic(source,session.Evaluation.errorLine,session.Evaluation.errorMessage);
@@ -73,12 +73,9 @@ public partial class ForgeMvp
                 }
                 if(step.process==-1){yield return new WaitForSeconds(step.duration);continue;}
                 if(step.process==-2){if(step.setting==1)craftSpeed=step.settingValue;else autoSell=step.settingValue==1;continue;}
-                if(!CommitExtraMaterials(step)){reportError=true;report+="추가 재료 부족";StopExecution(false);busy=false;yield break;}
-                var stock=step.materialCount>0&&step.material>1?Array.Find(materialStocks??Array.Empty<ForgeMaterialStock>(),s=>s!=null&&s.material==step.material&&s.unlocked):null;
-                if((step.materialCount>0&&step.material>1&&(stock==null||stock.count<step.materialCount))||!executionLedger.TrySpend(step.cost,step.iron,ref gold,ref iron)){
+                if(!SpendSmithStep(step,executionLedger)){
                     reportError=true;report+="자금 또는 해당 재료 부족";StopExecution(false);busy=false;yield break;
                 }
-                if(stock!=null)stock.count-=step.materialCount;
                 if(!executionSeedConsumed&&step.process>0){executionOwner.seed=unchecked(executionOwner.seed*1664525u+1013904223u);executionSeedConsumed=true;}
                 if(step.warning)AppendDebug(step.line+"줄 · "+step.text);
                 report+="Day "+step.day+" "+(step.minute/60).ToString("00")+":"+(step.minute%60).ToString("00")+" · "+(step.module==null?"":step.module+" · ")+step.line+"줄: "+step.text+"\n";
@@ -88,9 +85,7 @@ public partial class ForgeMvp
                 if(step.refund>0)RefundMaterial(step.refund);
                 if(step.finished){
                     executionProduct=executionLedger.Complete(executionOwner.name,step.heat,step.shaped,step.traits,step.material,step.data,step.productionSeconds);
-                    selectedProductId=shop.Add(executionProduct);
-                    CompleteProgress(executionProduct);
-                    if(autoSell)SellProductInternal(selectedProductId);
+                    executionProduct=FinishSmithProduct(0,executionProduct);
                 }
             }
             UpdateExecutionLocation();

@@ -19,6 +19,7 @@ public partial class ForgeMvp
     [Serializable] public class SavedWindow { public string name,text; public Rect rect; public uint seed; }
     [Serializable] public class SavedItem { public string owner; public int material,heat,iron,cost;public bool shaped;public ForgeTraits traits;public ForgeItemData data;public double seconds; }
     [Serializable] public class SavedProgress {
+        public ForgeBlacksmiths blacksmiths;
         public int introStage;public string introCode;public string[] technologyNodes;public bool campaignComplete,endingSeen;
         public string savedAt;
         public int version=1,gold,iron,day,seed,diamonds,sales,tutorial;public long earned;public double hour;public float speed;public bool autoSell;
@@ -44,6 +45,7 @@ public partial class ForgeMvp
             bool legacySpeed=saved.technologyNodes==null?Array.Exists(saved.features??Array.Empty<BlueprintFeature>(),f=>f==BlueprintFeature.Speed||f==BlueprintFeature.AutoSell):Array.Exists(saved.technologyNodes,id=>id=="function-Speed"||id=="function-AutoSell");
             autoSell=technology.Owns(BlueprintFeature.AutoSell)&&(saved.autoSell||legacySpeed);
             DayCycle.Clock.Restore(saved.day,saved.hour);
+            blacksmiths=saved.blacksmiths??new ForgeBlacksmiths();blacksmiths.Normalize(SmithHours);
             foreach(var entry in saved.discoveries??Array.Empty<string>())discoveries.Add(entry);
             foreach(var item in items)shop.Add(item);
             if(saved.windows!=null&&saved.windows.Count>0){codeWindows.Clear();nextWindowId=0;foreach(var window in saved.windows)codeWindows.Add(new CodeWindow{id=nextWindowId++,name=window.name,text=window.text,rect=window.rect,seed=window.seed});windowsInitialized=true;activeWindow=0;source=codeWindows[0].text;}
@@ -56,6 +58,7 @@ public partial class ForgeMvp
         try {
             var saved=new SavedProgress{savedAt=DateTime.Now.ToString("yyyy-MM-dd HH:mm"),gold=gold,iron=iron,seed=worldSeed,diamonds=diamonds,sales=totalSales,tutorial=tutorialStage,earned=earnedGold,day=DayCycle.Day,hour=DayCycle.CurrentHour,speed=craftSpeed,autoSell=autoSell,stocks=materialStocks,features=technology.Export(),technologyNodes=technology.ExportNodes(),campaignComplete=campaignComplete,endingSeen=endingSeen,discoveries=new List<string>(discoveries).ToArray()};
             saved.introStage=lesson.Stage;saved.introCode=lesson.Code;
+            saved.blacksmiths=blacksmiths;
             for(int i=0;i<codeWindows.Count;i++){var w=codeWindows[i];saved.windows.Add(new SavedWindow{name=w.name,text=i==activeWindow?source:w.text,rect=w.rect,seed=w.seed});}
             foreach(var entry in shop.Items){var p=entry.Product;saved.items.Add(new SavedItem{owner=p.BlueprintName,material=p.Material,heat=p.FinalHeat,shaped=p.Shaped,traits=p.Traits,cost=p.CashCost,iron=p.IronConsumed,data=p.Data,seconds=p.ProductionSeconds});}
             PlayerPrefs.SetString(SaveKey,JsonUtility.ToJson(saved));PlayerPrefs.Save();saveMessage="공방 저장 완료";
@@ -64,6 +67,7 @@ public partial class ForgeMvp
     void ResetProgressForDebug(bool persist=true)
     {
         if(busy||executionSession!=null)return;
+        StopSmithJobs();blacksmiths=new ForgeBlacksmiths();showSmithTree=false;
         EndWorkspaceDrag();techTree.CancelDrag();guideBook.CancelDrag();
         GUIUtility.hotControl=0;if(Event.current!=null)GUI.FocusControl(null);
         campaignComplete=false;endingSeen=false;

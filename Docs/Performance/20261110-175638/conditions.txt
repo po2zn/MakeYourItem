@@ -1,0 +1,7 @@
+Unity 6000.4.5f1; Direct3D12; Intel(R) Arc(TM) 140T GPU (16GB)
+Game view: 2556x1367
+Editor Play Mode. 200-line unexecuted code fixture; guide open; tree zoom 35%.
+30 warmup + 90 distinct frames per scenario. Counter source: UnityEditor.UnityStats (Game View); batches unavailable.
+Frame intervals include Editor scheduling/VSync; they are not isolated CPU/GPU times.
+Without-layer deltas are marginal, not additive. before/after cover optimization toggle only, same build.
+Do not interact with the game during capture. Inspect frames.csv for variance.

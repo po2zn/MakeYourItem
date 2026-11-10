@@ -161,18 +161,17 @@ public static class ForgeTechnologyChecks
     static void CheckBundles()
     {
         var tech=new ForgeTechnology();int gold=1000,iron=0;ForgeMaterialStock[] stocks=null;
-        tech.Restore(new[]{BlueprintFeature.If});
         var time=ForgeTechnology.Find("function-IsDay");var luck=ForgeTechnology.Find("function-Lucky");
         Require(time==ForgeTechnology.Find("function-NightTime")&&luck==ForgeTechnology.Find("function-LuckyCode"),"one node per bundle");
         Require(!tech.TryPurchase(luck,ref gold,ref iron,ref stocks,false,out var message)&&gold==1000,"luck prerequisites atomic");
-        Require(tech.TryPurchase(time,ref gold,ref iron,ref stocks,false,out message)&&gold==960,"one time bundle payment");
+        Require(tech.TryPurchase(ForgeTechnology.Find(ForgeTechnology.AutomationRoot),ref gold,ref iron,ref stocks,false,out message),message);
+        int before=gold;
+        Require(tech.TryPurchase(luck,ref gold,ref iron,ref stocks,false,out message)&&gold==before-100,"luck purchasable immediately after basic control bundle");
+        Require(!tech.Owns(BlueprintFeature.IsDay)&&!tech.Owns(BlueprintFeature.Charge)&&!tech.MaterialAvailable(6),"luck independent of time and magic purchases");
+        before=gold;
+        Require(tech.TryPurchase(time,ref gold,ref iron,ref stocks,false,out message)&&gold==before-40,"one time bundle payment");
         Require(tech.Owns(BlueprintFeature.IsDay)&&tech.Owns(BlueprintFeature.NightTime),"both time functions owned");
         Require(ForgeMvp.Evaluate("print(12(),24(),24(60),is_day(),night_time())",technology:tech).error==null,"all time spellings");
-        Require(!tech.TryPurchase(luck,ref gold,ref iron,ref stocks,false,out message),"time alone cannot unlock luck");
-        Require(tech.TryPurchase(ForgeTechnology.Find("material-6"),ref gold,ref iron,ref stocks,false,out message),message);
-        Require(tech.TryPurchase(ForgeTechnology.Find("function-Charge"),ref gold,ref iron,ref stocks,false,out message),message);
-        int before=gold;
-        Require(tech.TryPurchase(luck,ref gold,ref iron,ref stocks,false,out message)&&gold==before-100,"one luck bundle payment");
         Require(tech.Owns(BlueprintFeature.Lucky)&&tech.Owns(BlueprintFeature.LuckyCode),"both luck functions owned");
         string blade="p=1(1)\n2(p,7)\n3(p)\n4(p,0)\n5(p,2)\n";
         foreach(string call in new[]{"777(778(),p)","lucky(lucky_code(),p)"})Require(ForgeMvp.Evaluate(blade+"p="+call+"\n!p",technology:tech).error==null,"luck bundle execution");

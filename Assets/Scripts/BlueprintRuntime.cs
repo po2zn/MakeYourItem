@@ -177,6 +177,11 @@ public sealed partial class BlueprintRuntime
     object Call(BlueprintExpr e,List<object> args)
     {
         if(e.Process>0)return Process(e.Process,args);
+        if(e.Feature==BlueprintFeature.SmithRun)return DispatchSmith(args);
+        if(ForgeSmithLanguage.IsSmith(e.Feature)||e.Feature==BlueprintFeature.GiantRune){
+            if(context.SmithCall==null)Fail("대장장이 함수는 실제 공방 실행에서 사용할 수 있습니다.");
+            try{return context.SmithCall(e.Feature,args);}catch(ArgumentException error){Fail(error.Message);}
+        }
         if(ForgeExpansion.IsExtended(e.Feature))return Extended(e.Feature,args);
         switch(e.Feature){
             case BlueprintFeature.IsDay:

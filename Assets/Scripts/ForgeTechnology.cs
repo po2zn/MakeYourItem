@@ -41,7 +41,7 @@ public sealed class ForgeTechnology
     public static readonly ReadOnlyCollection<Offer> Offers=Array.AsReadOnly(new[]{
         new Offer(1,5),new Offer(2,3),new Offer(3,1),new Offer(4,8),new Offer(5,20),
         new Offer(6,30),new Offer(7,40),new Offer(8,25),new Offer(9,50),
-        new Offer(AutomationRoot,ForgePurchaseKind.Function,150,"제어문 해금 · 자동화 시작","기본 공정으로 자금을 모아 첫 연구를 시작하세요. 조건(if/elif/else), 반복(for/while), 반복 제어(break/continue), 사용자 함수(def/return)를 함께 해금합니다. 구매 후 모든 분야의 첫 노드를 구매할 수 있습니다.",1,3,0,BlueprintFeature.If),
+        new Offer(AutomationRoot,ForgePurchaseKind.Function,150,"제어문 해금 · 자동화 시작","기본 공정으로 자금을 모아 첫 연구를 시작하세요. 조건(if/elif/else), 반복(for/while), 반복 제어(break/continue), 사용자 함수(def/return)를 함께 해금합니다. 구매 후 모든 분야의 첫 노드를 구매할 수 있습니다.",1,4,0,BlueprintFeature.If),
         F(BlueprintFeature.Heat,20,1,0),
         // General computation branches start from the workshop, independently of forging.
         F(BlueprintFeature.Abs,15,1,10),
@@ -58,20 +58,20 @@ public sealed class ForgeTechnology
         M(8,180,6,0,"material-7"),
         M(9,500,6,1,"material-7","function-Charge"),
         F(BlueprintFeature.Refine,50,7,1,"material-9"),
-        M(6,150,1,3),
-        F(BlueprintFeature.Inspect,15,2,2,"material-6"),
-        F(BlueprintFeature.Charge,40,2,3,"material-6"),
-        F(BlueprintFeature.Rune,50,3,3,"function-Charge"),
-        F(BlueprintFeature.Magic,50,3,2,"function-Inspect"),
-        F(BlueprintFeature.Resonate,50,4,2,"function-Magic"),
-        F(BlueprintFeature.Protect,50,3,4,"function-Charge"),
-        F(BlueprintFeature.Curse,2000,8,4,"function-Protect","function-Refine"),
+        M(6,150,1,4),
+        F(BlueprintFeature.Inspect,15,2,3,"material-6"),
+        F(BlueprintFeature.Charge,40,2,4,"material-6"),
+        F(BlueprintFeature.Rune,50,3,4,"function-Charge"),
+        F(BlueprintFeature.Magic,50,3,3,"function-Inspect"),
+        F(BlueprintFeature.Resonate,50,4,3,"function-Magic"),
+        F(BlueprintFeature.Protect,50,3,5,"function-Charge"),
+        F(BlueprintFeature.Curse,2000,8,5,"function-Protect","function-Refine"),
         M(4,60,1,6),
         F(BlueprintFeature.Fuel,25,2,6,"material-4","function-Heat"),
         F(BlueprintFeature.Recover,40,3,7,"function-Fuel"),
         F(BlueprintFeature.Wrap,40,3,6,"function-Fuel"),
         Speed(1,100),Speed(2,150),Speed(3,200),Speed(4,300),Speed(5,450),
-        Bundle(BlueprintFeature.Lucky,BlueprintFeature.LuckyCode,100,3,8,"오늘의 행운 · 777() + 778()","function-IsDay","function-Charge"),
+        Bundle(BlueprintFeature.Lucky,BlueprintFeature.LuckyCode,100,1,2,"오늘의 행운 · 777() + 778()"),
         new Offer(MasterCommission,ForgePurchaseKind.Commission,800,"명장의 마지막 의뢰","별무늬 별철 검 + 정제 용뼈 손잡이 + 충전 3회 + 서로 다른 계열 룬 3개. 균열 없이 완성해 제출하면 엔딩입니다.",8,1,0,BlueprintFeature.None,"function-Refine","function-Rune")
     });
     readonly HashSet<string> purchased=new HashSet<string>(StringComparer.Ordinal);

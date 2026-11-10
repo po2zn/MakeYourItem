@@ -8,13 +8,14 @@ public sealed class ForgeTechTreeScreen
     Vector2 viewportSize;
     float zoom=1,cachedZoom=-1;
     int dragButton=-1,control,tab;
-    bool focusRoot=true;
+    bool focusRoot=true,cardsLaidOut;
     string selectedId=ForgeTechnology.AutomationRoot;
-    GUIStyle label,button,body,header,quantityStyle,mapLabel,mapBody,mapButton;
+    GUIStyle label,button,body,header,quantityStyle,mapLabel,mapBody,mapButton,mapSectionLabel;
     readonly string[] quantities=new string[ForgeTechnology.Offers.Count];
     readonly Rect[] cards=new Rect[ForgeTechnology.Offers.Count];
     const float CardWidth=300,CardHeight=140,ColumnSpacing=340,RowSpacing=164;
-    static readonly Rect Root=new Rect(24,24+3*RowSpacing,CardWidth,CardHeight);
+    static Rect SectionRect(string nodeId)=>new Rect(24,24+ForgeTechnology.Find(nodeId).Lane*RowSpacing,CardWidth,CardHeight);
+    static readonly Rect Root=SectionRect(ForgeTechnology.AutomationRoot);
     const string NavigationHint="연결된 선행 항목을 모두 구매해야 해금됩니다. · 빈 곳/우클릭 드래그: 이동 · 휠: 확대/축소";
     public void CancelDrag(){if(dragButton>=0&&GUIUtility.hotControl==control)GUIUtility.hotControl=0;dragButton=-1;}
     static void Fill(Rect rect,Color color){Color old=GUI.color;GUI.color=color;GUI.DrawTexture(rect,Texture2D.whiteTexture);GUI.color=old;}
@@ -22,6 +23,8 @@ public sealed class ForgeTechTreeScreen
     float TextHeight(string text,float width)=>Mathf.Ceil(body.CalcHeight(new GUIContent(text),Mathf.Max(1,width)))+4;
     void LayoutCards()
     {
+        if(ForgeRenderDiagnostics.Optimized&&cardsLaidOut)return;
+        cardsLaidOut=true;
         int material=0;
         for(int i=0;i<cards.Length;i++){
             var o=ForgeTechnology.Offers[i];
@@ -42,16 +45,20 @@ public sealed class ForgeTechTreeScreen
         offset=new Vector2((viewport.width-w*zoom)/2,12);
     }
     GUIStyle Scaled(GUIStyle s)=>new GUIStyle(s){fontSize=Mathf.Max(7,Mathf.RoundToInt(s.fontSize*zoom)),padding=new RectOffset(4,4,4,4)};
+    Color CardColor(ForgeTechnology.Offer o,ForgeTechnology technology)=>o.Id==selectedId?new Color(.24f,.38f,.48f):technology.Owns(o)?new Color(.12f,.3f,.23f):technology.MissingPrerequisites(o)!=null?new Color(.16f,.18f,.22f):new Color(.22f,.27f,.34f);
     void DrawEdge(Rect from,Rect to,Color color)
     {
+        if(Event.current.type!=EventType.Repaint||ForgeRenderDiagnostics.Hide(ForgeRenderLayer.TreeEdges))return;
         var a=Project(from);var b=Project(to);
+        Rect bounds=Rect.MinMaxRect(Mathf.Min(a.xMax,b.x)-4,Mathf.Min(a.center.y,b.center.y)-4,Mathf.Max(a.xMax,b.x)+6,Mathf.Max(a.center.y,b.center.y)+8);
+        if(ForgeRenderDiagnostics.Optimized&&!bounds.Overlaps(new Rect(Vector2.zero,viewportSize)))return;
         float mid=(a.xMax+b.x)/2;
         Fill(new Rect(a.xMax,a.center.y,Mathf.Max(1,mid-a.xMax),2),color);
         Fill(new Rect(mid,Mathf.Min(a.center.y,b.center.y),2,Mathf.Abs(a.center.y-b.center.y)+2),color);
         Fill(new Rect(mid,b.center.y,Mathf.Max(1,b.x-mid),2),color);
         Fill(new Rect(b.x-4,b.center.y-3,6,8),color);
     }
-    public bool Draw(Font font,ForgeTechnology technology,int gold,int iron,ForgeMaterialStock[] stocks,bool busy,string message,Action<ForgeTechnology.Offer,int> purchase,bool purchaseSucceeded=false,string goal="")
+    public bool Draw(Font font,ForgeTechnology technology,int gold,int iron,ForgeMaterialStock[] stocks,bool busy,string message,Action<ForgeTechnology.Offer,int> purchase,bool purchaseSucceeded=false,string goal="",Action openSmiths=null)
     {
         if(label==null){
             label=new GUIStyle(GUI.skin.label){font=font,fontSize=24,wordWrap=true,padding=new RectOffset(4,4,4,4)};
@@ -80,6 +87,8 @@ public sealed class ForgeTechTreeScreen
         viewportSize=canvas.size;
         if(focusRoot){offset=new Vector2(16,Mathf.Max(12,(canvas.height-CardHeight)/2)-Root.y);focusRoot=false;}
         control=GUIUtility.GetControlID("TechTreePan".GetHashCode(),FocusType.Passive);
+        // Lost capture must not leave dragButton blocking all subsequent wheel input.
+        if(dragButton>=0&&GUIUtility.hotControl!=control)dragButton=-1;
         if(ev.type==EventType.ScrollWheel&&canvas.Contains(ev.mousePosition)&&dragButton<0){
             Vector2 anchor=(ev.mousePosition-canvas.position-offset)/zoom;
             zoom=Mathf.Clamp(zoom*Mathf.Pow(1.08f,-ev.delta.y),.25f,1.8f);offset=ev.mousePosition-canvas.position-anchor*zoom;ev.Use();
@@ -92,15 +101,16 @@ public sealed class ForgeTechTreeScreen
             if(ev.type==EventType.MouseDrag&&ev.button==dragButton){offset=offsetStart+ev.mousePosition-dragStart;ev.Use();}
             if(ev.rawType==EventType.MouseUp&&ev.button==dragButton){CancelDrag();ev.Use();}
         }
-        if(!Mathf.Approximately(cachedZoom,zoom)){cachedZoom=zoom;mapLabel=Scaled(label);mapBody=Scaled(body);mapButton=Scaled(button);}
+        if(!Mathf.Approximately(cachedZoom,zoom)){cachedZoom=zoom;mapLabel=Scaled(label);mapBody=Scaled(body);mapButton=Scaled(button);mapSectionLabel=new GUIStyle(mapLabel){alignment=TextAnchor.MiddleLeft};}
         Fill(new Rect(0,0,Screen.width,Screen.height),new Color(.07f,.10f,.14f));
         GUI.BeginGroup(canvas);
         if(tab==0){
-            GUI.Label(Project(new Rect(24,24,CardWidth,60)),"금속 가공",mapLabel);
-            GUI.Label(Project(new Rect(24,24+2*RowSpacing,CardWidth,60)),"마력 가공",mapLabel);
-            GUI.Label(Project(new Rect(24,24+6*RowSpacing,CardWidth,60)),"공방 운영",mapLabel);
-            GUI.Label(Project(new Rect(24,24+8*RowSpacing,CardWidth,60)),"시간과 행운",mapLabel);
-            GUI.Label(Project(new Rect(24,24+10*RowSpacing,CardWidth,60)),"기술 연구",mapLabel);
+            GUI.Label(Project(SectionRect("function-Heat")),"금속 가공",mapSectionLabel);
+            GUI.Label(Project(SectionRect("function-Lucky")),"행운",mapSectionLabel);
+            GUI.Label(Project(SectionRect("function-Inspect")),"마력 가공",mapSectionLabel);
+            GUI.Label(Project(SectionRect("function-Fuel")),"공방 운영",mapSectionLabel);
+            GUI.Label(Project(SectionRect("function-IsDay")),"시간",mapSectionLabel);
+            GUI.Label(Project(SectionRect("function-Abs")),"기술 연구",mapSectionLabel);
             for(int i=0;i<cards.Length;i++){
                 var o=ForgeTechnology.Offers[i];if(!Visible(o))continue;
                 if(o.Parents.Count==0)DrawEdge(Root,cards[i],new Color(.3f,.4f,.5f));
@@ -109,11 +119,19 @@ public sealed class ForgeTechTreeScreen
             Fill(Project(Root),new Color(.18f,.3f,.36f));
             GUI.Label(Project(new Rect(Root.x+8,Root.y+6,Root.width-16,Root.height-12)),"기본 공방 · 제공\n철 / 나무 / 물\n1~5 공정",mapLabel);
         }
+        if(ForgeRenderDiagnostics.Optimized&&!ForgeRenderDiagnostics.SkipPaint(ForgeRenderLayer.TreeCards)){
+            for(int i=0;i<cards.Length;i++){
+                var o=ForgeTechnology.Offers[i];if(!Visible(o)||!Project(cards[i]).Overlaps(new Rect(Vector2.zero,viewportSize)))continue;
+                Fill(Project(cards[i]),CardColor(o,technology));
+            }
+        }
         for(int i=0;i<cards.Length;i++){
             var o=ForgeTechnology.Offers[i];if(!Visible(o))continue;
+            if(ForgeRenderDiagnostics.SkipPaint(ForgeRenderLayer.TreeCards))continue;
+            if(ForgeRenderDiagnostics.Optimized&&Event.current.type==EventType.Repaint&&!Project(cards[i]).Overlaps(new Rect(Vector2.zero,viewportSize)))continue;
             bool owned=technology.Owns(o),locked=technology.MissingPrerequisites(o)!=null;
             Rect r=cards[i];
-            Fill(Project(r),o.Id==selectedId?new Color(.24f,.38f,.48f):owned?new Color(.12f,.3f,.23f):locked?new Color(.16f,.18f,.22f):new Color(.22f,.27f,.34f));
+            if(!ForgeRenderDiagnostics.Optimized)Fill(Project(r),CardColor(o,technology));
             string state=o.Kind==ForgePurchaseKind.Material?"재고 "+technology.Stock(o,iron,stocks)+" · "+o.Price+"G/개":owned?"구매 완료":locked?"선행 미충족 · "+o.Price+"G":gold<o.Price?"골드 부족 · "+o.Price+"G":"구매 가능 · "+o.Price+"G";
             if(GUI.Button(Project(new Rect(r.x+6,r.y+5,r.width-12,72)),o.Title,mapButton)){selectedId=o.Id;GUI.FocusControl(null);}
             GUI.Label(Project(new Rect(r.x+6,r.y+81,r.width-12,53)),state,mapBody);
@@ -122,11 +140,12 @@ public sealed class ForgeTechTreeScreen
         Fill(new Rect(0,0,Screen.width,headerHeight),new Color(.12f,.16f,.22f));
         GUI.Label(new Rect(12,4,Mathf.Max(1,Screen.width-180),titleHeight),"테크 트리 · "+gold+"G",header);
         bool back=GUI.Button(new Rect(Screen.width-164,10,150,44),"← 대장간",button);
-        float tabUnit=Mathf.Min(160,Mathf.Max(50,(Screen.width-56)/4));
+        float tabUnit=Mathf.Min(160,Mathf.Max(50,(Screen.width-64)/5));
         if(GUI.Button(new Rect(16,tabsY,tabUnit,44),tab==0?"● 성장 트리":"성장 트리",button))ChangeTab(0);
         if(GUI.Button(new Rect(24+tabUnit,tabsY,tabUnit,44),tab==1?"● 재료 상점":"재료 상점",button))ChangeTab(1);
         if(GUI.Button(new Rect(32+tabUnit*2,tabsY,tabUnit,44),"전체 보기",button))Fit(canvas);
         if(GUI.Button(new Rect(40+tabUnit*3,tabsY,tabUnit,44),"100%",button)){zoom=1;offset=new Vector2(16,20);}
+        if(openSmiths!=null&&GUI.Button(new Rect(48+tabUnit*4,tabsY,tabUnit,44),"대장장이",button))openSmiths();
         GUI.Label(new Rect(16,goalY,width,headerHeight-goalY),goalText,body);
         // A scrollable inspector keeps long descriptions and prerequisites readable at low resolutions.
         DrawInspector(new Rect(0,canvas.yMax,Screen.width,Mathf.Max(1,Screen.height-canvas.yMax)),selected,selectedIndex,technology,gold,iron,stocks,busy,message,purchaseSucceeded,purchase);

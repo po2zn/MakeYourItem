@@ -21,6 +21,7 @@ public partial class ForgeMvp
     {
         returnToTitleRequested=false;
         StopExecution(false);
+        StopSmithJobs();
         if(showTutorial)CloseTutorial();
         ReturnToTitle();
         if(showTitle)showGameMenu=false;

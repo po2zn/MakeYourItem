@@ -10,6 +10,7 @@ public partial class ForgeMvp
     string tutorialInput="",tutorialFeedback="";
     Vector2 tutorialScroll;
     Vector2 tutorialEditorScroll;
+    readonly CodePaintCache tutorialPaintCache=new CodePaintCache();
     int tutorialPendingCaret=-1;
     float tutorialClickedAt=-100;
     string tutorialColoredSource;
@@ -308,7 +309,7 @@ public partial class ForgeMvp
         // Use the gameplay editor's native selection/caret and shared syntax layer.
         tutorialInput=GUI.TextArea(content,tutorialInput,4096,inputStyle);
         if(tutorialColoredSource!=tutorialInput||tutorialColoredTokens==null){tutorialColoredSource=tutorialInput;tutorialColoredTokens=ForgeSyntax.Scan(tutorialInput);}
-        DrawSyntaxTokens(content,tutorialInput,tutorialColoredTokens,codeStyle,tokenStyle);
+        DrawSyntaxTokens(content,tutorialInput,tutorialColoredTokens,codeStyle,tokenStyle,new Rect(tutorialEditorScroll,view.size),tutorialPaintCache);
         GUI.EndScrollView();
         if(tutorialInput!=previousInput){
             textSize=MeasureCode(tutorialInput);

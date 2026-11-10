@@ -101,7 +101,8 @@ public static class ForgePricing
         if(d.luckyDay>0)result["오늘의 행운"]=30;
         int value=product.Material==7?40:28;foreach(int b in result.Values)value+=b;
         if(d.cracked){result["균열 감점"]=-value/2;value-=value/2;}
-        if(d.cursed)result["저주 배율"]=value*9;
+        if(d.cursed){result["저주 배율"]=value*9;value*=10;}
+        if(d.smithSaleMultiplier>1)result["대장장이 판매 배율 ×"+d.smithSaleMultiplier.ToString("0.00")]=(int)Math.Round(value*(d.smithSaleMultiplier-1));
         return result;
     }
     public static string Describe(ForgeProduct product, bool preview)

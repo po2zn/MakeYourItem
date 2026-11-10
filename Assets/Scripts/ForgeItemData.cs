@@ -7,12 +7,16 @@ public sealed class ForgeItemData
     public int hardness, handle, charge, sealBonus, magicGrade, luckyDay, luckyCode, resonanceTarget=-1;
     public bool polished, plated, star, frost, cracked, refined, activated, magic, protectedItem, cursed, destroyed, recovered;
     public double strength, lastStrike=-100;
+    public double smithSaleMultiplier=1;
     public int[] materials=new int[10];
     public List<int> seals=new List<int>(), runes=new List<int>();
     public ForgeItemData Clone(){var c=(ForgeItemData)MemberwiseClone();c.materials=(int[])materials.Clone();c.seals=new List<int>(seals);c.runes=new List<int>(runes);return c;}
 }
 public sealed class ForgeRunContext
 {
+    public Func<BlueprintFeature,List<object>,object> SmithCall;
+    public Func<int,Func<ForgeRunContext,BlueprintRuntime.Session>,int> StartSmith;
+    public Action<BlueprintRuntime.Session> RefreshResources;
     public Func<int> Day=()=>1;
     public Func<double> Seconds=()=>0;
     public int Seed=72431;

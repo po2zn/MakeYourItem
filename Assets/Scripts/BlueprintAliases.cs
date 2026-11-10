@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 
-public enum BlueprintFeature { None, While, For, Break, Continue, If, Else, Def, Return, Heat, Abs, Len, Min, Max, Random, Set, Elif, Print, IsDay, NightTime, Attach, Polish, Plate, Fuel, Charge, Refine, Inspect, Lucky, LuckyCode, Speed, AutoSell, Curse, Protect, Recover, Wrap, Unwrap, SealCount, Rune, RuneList, RuneFamily, RuneGrade, Slots, Append, Pop, SetAdd, Magic, Strength, Wait, Resonate }
+public enum BlueprintFeature { None, While, For, Break, Continue, If, Else, Def, Return, Heat, Abs, Len, Min, Max, Random, Set, Elif, Print, IsDay, NightTime, Attach, Polish, Plate, Fuel, Charge, Refine, Inspect, Lucky, LuckyCode, Speed, AutoSell, Curse, Protect, Recover, Wrap, Unwrap, SealCount, Rune, RuneList, RuneFamily, RuneGrade, Slots, Append, Pop, SetAdd, Magic, Strength, Wait, Resonate, SmithDemand, SmithGift, SmithFavor, SmithPosition, SmithRun, SmithCount, SmithSelf, SmithBusy, GiantRune }
 public enum BlueprintSyntaxKind { Block, Branch, Control, Builtin }
 public sealed class BlueprintAlias
 {

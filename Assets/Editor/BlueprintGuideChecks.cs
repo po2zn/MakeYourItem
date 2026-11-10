@@ -16,7 +16,7 @@ public static class BlueprintGuideChecks {
  default:return entry.IsFunctionReference?code+"\nprint(\"검증\")":code;
  }
  }
- static ForgeMvp.Evaluation EvaluateGuide(string source)=>ForgeMvp.Evaluate(source,100,10,modules:new System.Collections.Generic.Dictionary<string,string>{{"smith",BlueprintImportChecks.Smith}});
+ static ForgeMvp.Evaluation EvaluateGuide(string source)=>ForgeMvp.Evaluate(source,100,10,modules:new System.Collections.Generic.Dictionary<string,string>{{"smith",BlueprintImportChecks.Smith}},context:ForgeBlacksmithChecks.GuideContext());
  public static string Run(){var log=new StringBuilder();var entries=BlueprintGuide.Entries;
  Require(entries.Select(e=>e.Id).Distinct().Count()==entries.Count,"duplicate guide IDs");
  foreach(BlueprintFeature feature in Enum.GetValues(typeof(BlueprintFeature)))if(feature!=BlueprintFeature.None)Require(entries.Count(e=>e.Feature==feature)==1,"missing/duplicate feature "+feature);

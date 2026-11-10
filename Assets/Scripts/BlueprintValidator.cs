@@ -152,6 +152,8 @@ public sealed class BlueprintValidator
                 if(e.Process==4 && e.Args[1].Kind==BlueprintExprKind.Literal && !Equals(e.Args[1].Value,0) && !Equals(e.Args[1].Value,3) && !Equals(e.Args[1].Value,8))Error(e.Token,"냉각 재료는 공기(0), 물(3), 서리수(8)입니다.");
                 return e.Process==1?BlueprintType.Piece:BlueprintType.None;
             }
+            if(ForgeSmithLanguage.IsSmith(e.Feature))return e.Feature==BlueprintFeature.SmithPosition?BlueprintType.Tuple:e.Feature==BlueprintFeature.SmithGift?BlueprintType.None:BlueprintType.Int;
+            if(e.Feature==BlueprintFeature.GiantRune)return BlueprintType.None;
             if(ForgeExpansion.IsExtended(e.Feature))return ForgeExpansion.ReturnType(e.Feature);
             switch(e.Feature){
                 case BlueprintFeature.IsDay:return BlueprintType.Int;

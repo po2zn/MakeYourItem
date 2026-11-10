@@ -30,6 +30,7 @@ public partial class ForgeMvp : MonoBehaviour
         public string text = "";
         public string coloredSource;
         public List<ForgeSyntax.Token> coloredTokens;
+        public readonly CodePaintCache paintCache=new CodePaintCache();
         public string name;
         public float clickedAt = -100f;
         public ForgeCompileDiagnostic diagnostic;
@@ -94,18 +95,31 @@ public partial class ForgeMvp : MonoBehaviour
         GUI.FocusControl(null);
     }
     Vector2 workspaceMouse;
+    int codeWindowPointerControl;
     void EndWorkspaceDrag()
     {
         tutorialWindowInteraction.Cancel();
-        if (GUIUtility.hotControl == dragControl) GUIUtility.hotControl = 0;
+        if (GUIUtility.hotControl == dragControl ||
+            (codeWindowPointerControl!=0&&GUIUtility.hotControl==codeWindowPointerControl) ||
+            (codePointerControl!=0&&GUIUtility.hotControl==codePointerControl)) GUIUtility.hotControl = 0;
         movingWindow = -1; movingSales = false; salesResizeEdge = -1; panning = false; dragButton = -1;
-        codePointerControl=0;
+        codePointerControl=0;codeWindowPointerControl=0;
     }
     string controlName = CodeControl;
 
     bool panning;
     bool pointerResetPending;
-    bool WorkspacePointerActive => dragButton>=0 || edge>=0 || codePointerControl!=0;
+    bool WorkspacePointerActive => dragButton>=0 || edge>=0 || codePointerControl!=0 || codeWindowPointerControl!=0;
+    void ReconcilePointerCapture()
+    {
+        // A native control can relinquish capture before a screen transition or MouseUp.
+        // Do not keep masking input or disabling the wheel for an owner that no longer exists.
+        if(codeWindowPointerControl!=0&&GUIUtility.hotControl!=codeWindowPointerControl)codeWindowPointerControl=0;
+        if(codePointerControl!=0&&GUIUtility.hotControl!=codePointerControl)codePointerControl=0;
+        if(dragButton>=0&&GUIUtility.hotControl!=dragControl){
+            movingWindow=-1;movingSales=false;salesResizeEdge=-1;panning=false;dragButton=-1;
+        }
+    }
     void ResetPointerCapture()
     {
         EndWorkspaceDrag();techTree.CancelDrag();guideBook.CancelDrag();
@@ -128,7 +142,7 @@ public partial class ForgeMvp : MonoBehaviour
             - workspaceCamera.transform.right * workspaceOffset.x * WorkspaceUnitsPerPixel
             + workspaceCamera.transform.up * workspaceOffset.y * WorkspaceUnitsPerPixel;
     }
-    void LateUpdate() { UpdateWorkspaceCamera(); }
+    void LateUpdate() { UpdateSmiths(); UpdateWorkspaceCamera(); UpdateRenderVisibility(); }
     void OnApplicationFocus(bool focused) { if (!focused) pointerResetPending=true; }
     void OnApplicationPause(bool paused) { if (paused) pointerResetPending=true; }
     Vector2 scroll, logs, lastMouse;
@@ -201,7 +215,7 @@ public partial class ForgeMvp : MonoBehaviour
         Cursor.SetCursor(direction==1?horizontalResizeCursor:direction==2?verticalResizeCursor:null, direction!=0?new Vector2(16,16):Vector2.zero, CursorMode.Auto);
         resizeCursorShown = direction;
     }
-    void OnDisable() { StopExecution(false); tutorialWindowInteraction.Cancel(); techTree.CancelDrag(); SetResizeCursor(0); ReleaseImeKeyboard(); guideBook.CancelDrag(); }
+    void OnDisable() { RestoreRenderCamera(); StopSmithJobs(); StopExecution(false); tutorialWindowInteraction.Cancel(); techTree.CancelDrag(); SetResizeCursor(0); ReleaseImeKeyboard(); guideBook.CancelDrag(); }
 #if ENABLE_INPUT_SYSTEM
     UnityEngine.InputSystem.Keyboard imeKeyboard;
     bool imeComposing;
@@ -269,6 +283,8 @@ public partial class ForgeMvp : MonoBehaviour
     }
     void OnDestroy()
     {
+        StopSmithJobs();StopExecution(false);
+        foreach(var material in giantRuneMaterials)if(material)Destroy(material);
         if(settingsLanguageFont)Destroy(settingsLanguageFont);
         materialHud.Dispose();
         SetResizeCursor(0);
@@ -400,7 +416,7 @@ public partial class ForgeMvp : MonoBehaviour
     }
     void DrawGuideBookBehindWindows(bool modalOpen)
     {
-        if(!showGuideBook||modalOpen)return;
+        if(!showGuideBook||modalOpen||ForgeRenderDiagnostics.SkipPaint(ForgeRenderLayer.Guide))return;
         InitializeGuideBook();
         var ev=Event.current;
         EventType originalType=ev.type;
@@ -422,7 +438,9 @@ public partial class ForgeMvp : MonoBehaviour
     }
     void OnGUI()
     {
+        if(ForgeRenderDiagnostics.SkipPaint(ForgeRenderLayer.AllUI))return;
         if(pointerResetPending){ResetPointerCapture();pointerResetPending=false;}
+        ReconcilePointerCapture();
         InitializeCodeStyle();
         if(returnToTitleRequested&&!busy&&!tutorialAnimating)FinishTitleReturn();
         if(showTitle){DrawTitle();return;}
@@ -431,7 +449,7 @@ public partial class ForgeMvp : MonoBehaviour
         if(campaignComplete&&!endingSeen&&!busy&&executionSession==null&&!showTutorial){DrawCampaignEnding();return;}
         if(showTutorial){DrawTutorial();return;}
         if(showProgress){DrawProgress();return;}
-        if(showTechTree){if(techTree.Draw(codeStyle.font,technology,gold,iron,materialStocks,busy||executionSession!=null,purchaseMessage,PurchaseTechnology,purchaseSucceeded,CampaignObjective)){showTechTree=false;GUI.FocusControl(null);}return;}
+        if(showTechTree){if(showSmithTree){DrawSmithTree();return;}if(techTree.Draw(codeStyle.font,technology,gold,iron,materialStocks,busy||executionSession!=null,purchaseMessage,PurchaseTechnology,purchaseSucceeded,CampaignObjective,()=>{techTree.CancelDrag();showSmithTree=true;})){showTechTree=false;GUI.FocusControl(null);}return;}
         if (!windowsInitialized) { workspaceWindow=InitialCodeWindow; windowsInitialized = true; nextWindowId = 1; codeWindows.Add(new CodeWindow { rect = workspaceWindow, id = 0, name = "f1" }); }
         EventType modalEvent = Event.current.type;
         bool modalOpen = deleteWindowId >= 0;
@@ -447,6 +465,7 @@ public partial class ForgeMvp : MonoBehaviour
                 GUIUtility.hotControl=0;GUI.FocusControl(null);
                 panning=true;dragButton=0;dragStartMouse=ev.mousePosition;dragStartPosition=workspaceOffset;
                 codePointerControl=0;
+                codeWindowPointerControl=0;
             }
         }
         // Existing pointer owners must receive drag/release before overlay hit testing.
@@ -602,6 +621,7 @@ public partial class ForgeMvp : MonoBehaviour
         {
             if (i == activeWindow) continue;
             Rect r = codeWindows[i].rect; r.position += workspaceOffset;
+            if(ForgeRenderDiagnostics.Optimized&&Event.current.type==EventType.Repaint&&!r.Overlaps(new Rect(0,0,Screen.width/workspaceZoom,Screen.height/workspaceZoom)))continue;
             DrawCodeBackground(r, codeWindows[i]);
             GUI.Label(NameRect(r), codeWindows[i].name);
             if (codeWindows[i].collapsed) continue;
@@ -610,7 +630,7 @@ public partial class ForgeMvp : MonoBehaviour
             GUI.BeginGroup(preview);
             Vector2 previewSize = MeasureCode(codeWindows[i].text);
             DrawSyntax(new Rect(-codeWindows[i].scroll.x, -codeWindows[i].scroll.y,
-                Mathf.Max(preview.width, previewSize.x), Mathf.Max(preview.height, previewSize.y)), codeWindows[i].text, codeWindows[i]);
+                Mathf.Max(preview.width, previewSize.x), Mathf.Max(preview.height, previewSize.y)), codeWindows[i].text, codeWindows[i],new Rect(Vector2.zero,preview.size));
             GUI.EndGroup();
         }
         if (codeWindows.Count > 0)
@@ -621,7 +641,18 @@ public partial class ForgeMvp : MonoBehaviour
         EventType underlyingEvent = ev.type;
         bool maskEditor = !WorkspacePointerActive&&overSales&&(ev.isMouse||ev.type==EventType.ScrollWheel);
         if (maskEditor) ev.type = EventType.Ignore;
+        // Text selection is not the only native capture: sliders and buttons own it too.
+        // Remember the actual owner rather than inferring ownership from pointer location.
+        bool codeMouseDown=ev.type==EventType.MouseDown&&ev.button==0;
         DrawCodeWindow();
+        if(codeMouseDown&&GUIUtility.hotControl!=0&&GUIUtility.hotControl!=dragControl)
+            codeWindowPointerControl=GUIUtility.hotControl;
+        if(ev.rawType==EventType.MouseUp&&ev.button==0){
+            // Let the native control process release first; only clear its own leftover capture.
+            if(codeWindowPointerControl!=0&&GUIUtility.hotControl==codeWindowPointerControl)
+                GUIUtility.hotControl=0;
+            codeWindowPointerControl=0;
+        }
         if (maskEditor) ev.type = underlyingEvent;
         current.rect = workspaceWindow; current.text = source; current.scroll = scroll;
         }
@@ -638,6 +669,7 @@ public partial class ForgeMvp : MonoBehaviour
         if(!modalOpen)DrawDebugResources();
         if (modalOpen) Event.current.type = modalEvent;
         if(deleteWindowId>=0)DrawDeleteDialog();
+        if(!modalOpen)DrawSmithHover();
         // Keep text selection ownership through MouseUp so overlays cannot swallow its release.
         if(ev.rawType==EventType.MouseUp)codePointerControl=0;
     }
@@ -651,6 +683,7 @@ public partial class ForgeMvp : MonoBehaviour
     }
     void DrawDebugResources()
     {
+        if(ForgeRenderDiagnostics.SkipPaint(ForgeRenderLayer.Developer))return;
         Rect panel=DebugResourcesRect;
         GUI.Box(panel,"디버그 · 자원 +1,000 / 하루 넘기기");
         var debugButtonStyle=new GUIStyle(GUI.skin.button){font=codeStyle.font,fontSize=36};
@@ -787,7 +820,7 @@ public partial class ForgeMvp : MonoBehaviour
         GUI.DrawTexture(rect, Texture2D.whiteTexture);
         GUI.color = previous;
     }
-    void DrawSyntax(Rect content, string text, CodeWindow owner)
+    void DrawSyntax(Rect content, string text, CodeWindow owner,Rect visible)
     {
         if (Event.current.type != EventType.Repaint) return;
         if (owner.coloredSource != text || owner.coloredTokens == null)
@@ -797,29 +830,48 @@ public partial class ForgeMvp : MonoBehaviour
         }
         DrawExecutionHighlight(content,text,owner);
         DrawDiagnosticUnderline(content, text, owner);
-        DrawSyntaxTokens(content,text,owner.coloredTokens,codeStyle,tokenStyle);
+        DrawSyntaxTokens(content,text,owner.coloredTokens,codeStyle,tokenStyle,visible,owner.paintCache);
     }
-    void DrawSyntaxTokens(Rect content,string text,List<ForgeSyntax.Token> tokens,GUIStyle layout,GUIStyle paint)
+    void DrawSyntaxTokens(Rect content,string text,List<ForgeSyntax.Token> tokens,GUIStyle layout,GUIStyle paint,Rect visible,CodePaintCache cache)
     {
         if(Event.current.type!=EventType.Repaint)return;
-        var fullText=new GUIContent(text);
-        foreach (var token in tokens)
+        if(ForgeRenderDiagnostics.Hide(ForgeRenderLayer.Syntax))return;
+        cache.Prepare(text,tokens,layout,paint,content);
+        for(int i=0;i<tokens.Count;i++)
         {
-            Color color = Color.white;
-            switch (token.kind)
-            {
-                case ForgeSyntax.Kind.Reserved: color = reservedColor; break;
-                case ForgeSyntax.Kind.Comment: color = new Color(.42f, .78f, .42f); break;
-                case ForgeSyntax.Kind.Material: color = new Color(1f, .55f, .76f); break;
-                case ForgeSyntax.Kind.Keyword: color = new Color(1f, .65f, .30f); break;
-                case ForgeSyntax.Kind.Function: color = new Color(1f, .92f, .60f); break;
+            Rect bounds=cache.Bounds[i];bounds.position+=content.position;
+            if(ForgeRenderDiagnostics.Optimized&&!bounds.Overlaps(visible))continue;
+            Color color=Color.white;
+            switch(tokens[i].kind){
+                case ForgeSyntax.Kind.Reserved:color=reservedColor;break;
+                case ForgeSyntax.Kind.Comment:color=new Color(.42f,.78f,.42f);break;
+                case ForgeSyntax.Kind.Material:color=new Color(1f,.55f,.76f);break;
+                case ForgeSyntax.Kind.Keyword:color=new Color(1f,.65f,.30f);break;
+                case ForgeSyntax.Kind.Function:color=new Color(1f,.92f,.60f);break;
+                case ForgeSyntax.Kind.Blacksmith:color=new Color(.55f,.83f,1f);break;
             }
-            paint.normal.textColor = color;
-            paint.hover.textColor = color;
-            var value = new GUIContent(text.Substring(token.start, token.length));
-            Vector2 position = layout.GetCursorPixelPosition(content, fullText, token.start);
-            Vector2 size = paint.CalcSize(value);
-            GUI.Label(new Rect(position.x, position.y, size.x + 2, Mathf.Max(size.y, layout.lineHeight)), value, paint);
+            paint.normal.textColor=color;paint.hover.textColor=color;
+            GUI.Label(bounds,cache.Values[i],paint);
+        }
+    }
+    // Positions and substrings change only when the document/font changes, not on every repaint.
+    sealed class CodePaintCache
+    {
+        string source;Font font;int fontSize;float lineHeight;
+        public Rect[] Bounds=Array.Empty<Rect>();
+        public GUIContent[] Values=Array.Empty<GUIContent>();
+        public void Prepare(string text,List<ForgeSyntax.Token> tokens,GUIStyle layout,GUIStyle paint,Rect content)
+        {
+            if(ForgeRenderDiagnostics.Optimized&&source==text&&font==layout.font&&fontSize==layout.fontSize&&lineHeight==layout.lineHeight&&Bounds.Length==tokens.Count)return;
+            source=text;font=layout.font;fontSize=layout.fontSize;lineHeight=layout.lineHeight;
+            if(Bounds.Length!=tokens.Count){Bounds=new Rect[tokens.Count];Values=new GUIContent[tokens.Count];}
+            var fullText=new GUIContent(text);Rect origin=new Rect(Vector2.zero,content.size);
+            for(int i=0;i<tokens.Count;i++){
+                var token=tokens[i];var value=new GUIContent(text.Substring(token.start,token.length));
+                Vector2 position=layout.GetCursorPixelPosition(origin,fullText,token.start);
+                Vector2 size=paint.CalcSize(value);
+                Values[i]=value;Bounds[i]=new Rect(position.x,position.y,size.x+2,Mathf.Max(size.y,layout.lineHeight));
+            }
         }
     }
     void DrawCodeGutter(Rect window)
@@ -1004,7 +1056,7 @@ public partial class ForgeMvp : MonoBehaviour
             currentOwner.diagnostic = null;
             currentOwner.showDiagnostic = false; currentOwner.revealDiagnostic = false;
         }
-        DrawSyntax(content, source, currentOwner);
+        DrawSyntax(content, source, currentOwner,new Rect(scroll,viewport.size));
         if (!undoKey && source != old)
         {
             undoHistory.Add(before);

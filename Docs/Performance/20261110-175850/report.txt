@@ -1,0 +1,43 @@
+﻿Rendering measurement — 2026-11-10
+
+Completed capture: 20261110-175850. 12 scenarios, 90 measured frames each,
+30 warmup frames per scenario (1,080 recorded samples).
+See conditions.txt for hardware, resolution and counter source.
+
+Optimization changes retained from previous work:
+- Disable the covered workspace camera while the technology tree is open.
+- Cache syntax token positions/text; skip offscreen tokens and inactive windows.
+- Cache technology card layout; skip offscreen cards/edges; group card backgrounds.
+- Include tutorial syntax rendering in the shared cache path.
+
+This continuation completed measurement and excluded tree_without_all_ui when
+using UnityStats: with both camera and GUI absent, counters retain stale values.
+
+Comparison (Draw Calls / mean frame interval):
+Gameplay: 1120 -> 356 (-68.2%); 23.454 -> 9.168 ms.
+Technology tree: 532 -> 446 (-16.2%); 22.684 -> 21.934 ms.
+Tree p95: 24.254 -> 27.617 ms; no demonstrated tail-latency improvement.
+
+Marginal Draw Calls, baseline minus one hidden layer:
+Gameplay world: 61; all UI: 295; syntax: 36; guide: 102; developer panel: 60.
+Tree world: 0 (already disabled); edges: 144; offer cards: 229.
+Tree card category excludes the root card and surrounding navigation/details UI.
+These deltas are not additive because batching can change.
+
+Limits:
+UnityStats Game View counters; Batches unavailable (blank, not zero).
+Editor scheduling/VSync and background execution affect frame intervals.
+These are not isolated CPU/GPU timings or standalone player benchmarks.
+The fixture contains 200 unexecuted code lines, guide open, tree at 35% zoom.
+Before/after toggles compare this build's optimization paths, not separate builds.
+The earlier 20261110-175638 capture was cancelled by the user; do not combine it
+with this completed capture. Its tree_without_all_ui row is invalid/stale.
+
+Validation: completed all 12 scenarios; Unity reported no compilation failure,
+no console errors and no warnings after capture. Gameplay view captured after
+benchmark state restoration. Existing recovery assets were left untouched.
+
+Rerun: enter gameplay in unpaused Play Mode, stop crafting/tutorial animation,
+then Tools > Forge > Rendering > Measure Draw Calls (Play Mode).
+Do not interact with the Editor/game during capture. CSVs are saved under
+Docs/Performance/<timestamp>. Cancel Measurement restores benchmark overrides.

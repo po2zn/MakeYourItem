@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 // All spans point into unmodified source. The lexer is shared with execution.
 public static class ForgeSyntax
 {
-    public enum Kind { Plain, Comment, Material, Keyword, Function, Reserved }
+    public enum Kind { Plain, Comment, Material, Keyword, Function, Reserved, Blacksmith }
     public struct Token
     {
         public int start, length;
@@ -22,6 +22,7 @@ public static class ForgeSyntax
             if(token.Length==0)continue;
             var kind=Kind.Plain;
             if(token.Kind==BlueprintTokenKind.Comment)kind=Kind.Comment;
+            else if(ForgeSmithLanguage.IsSmith(token.Feature))kind=Kind.Blacksmith;
             else if(token.Feature!=BlueprintFeature.None)kind=BlueprintAliases.Find(token.Feature).Syntax==BlueprintSyntaxKind.Builtin?Kind.Function:Kind.Reserved;
             else if(token.Kind==BlueprintTokenKind.Name&&PythonIdentifier.IsKeyword(token.Raw))kind=Kind.Reserved;
             else if(token.Raw=="!")kind=Kind.Keyword;
