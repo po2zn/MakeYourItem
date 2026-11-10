@@ -14,6 +14,7 @@ public sealed class ForgeCraftMotion : MonoBehaviour
     readonly Vector3 cooling = new Vector3(3.5f, 1, 2);
     public int ActiveProcess { get; private set; }
     public int CompletedActions { get; private set; }
+    public Vector3 TutorialFocus => (smith?smith.position:new Vector3(1.2f,0,0))+Vector3.up*.9f;
 
     GameObject Shape(string label, PrimitiveType type, Transform parent, Vector3 position, Vector3 scale, Color color)
     {

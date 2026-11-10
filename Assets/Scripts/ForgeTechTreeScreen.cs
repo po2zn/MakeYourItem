@@ -6,7 +6,7 @@ public sealed class ForgeTechTreeScreen
     Vector2 offset,dragStart,offsetStart;
     float zoom=1;
     int dragButton=-1,control;
-    GUIStyle label,button,body;
+    GUIStyle label,button,body,header;
     const float CardWidth=350,TextWidth=CardWidth-24;
     readonly Rect[] cards=new Rect[ForgeTechnology.Offers.Count];
     readonly float[] titleHeights=new float[ForgeTechnology.Offers.Count],detailHeights=new float[ForgeTechnology.Offers.Count];
@@ -46,6 +46,7 @@ public sealed class ForgeTechTreeScreen
         if(label==null){
             label=new GUIStyle(GUI.skin.label){font=font,fontSize=20,alignment=TextAnchor.UpperLeft,wordWrap=true,padding=new RectOffset(0,0,0,0)};
             label.normal.textColor=Color.white;
+            header=new GUIStyle(label){fontSize=30,alignment=TextAnchor.MiddleLeft};
             button=new GUIStyle(GUI.skin.button){font=font,fontSize=17};
             body=new GUIStyle(label){fontSize=15,wordWrap=true};
         }
@@ -58,7 +59,10 @@ public sealed class ForgeTechTreeScreen
         float descriptionY=12+headingHeight+8;
         float descriptionHeight=Mathf.Max(TextHeight("구매한 재료는 보유 재고에 추가됩니다.",350),TextHeight("기본 공정과 자료구조 조작은 무료이며, 특수 공정은 구매해 해금합니다.",350));
         LayoutCards(technology,iron,stocks,descriptionY+descriptionHeight+16);
-        Rect canvas=new Rect(0,104,Screen.width,Mathf.Max(1,Screen.height-104-footerHeight));
+        string heading="테크 트리 · "+gold+"G";
+        float headerWidth=Mathf.Max(1,Screen.width-204);
+        float headerHeight=Mathf.Max(64,Mathf.Ceil(header.CalcHeight(new GUIContent(heading),headerWidth))+24);
+        Rect canvas=new Rect(0,headerHeight,Screen.width,Mathf.Max(1,Screen.height-headerHeight-footerHeight));
         if(ev.type==EventType.ScrollWheel&&canvas.Contains(ev.mousePosition)&&dragButton<0){
             Vector2 anchor=(ev.mousePosition-canvas.position-offset)/zoom;
             zoom=Mathf.Clamp(zoom*Mathf.Pow(1.05f,-ev.delta.y),.4f,2f);
@@ -104,23 +108,9 @@ public sealed class ForgeTechTreeScreen
             GUI.enabled=enabled;
         }
         GUI.EndGroup();
-        Fill(new Rect(0,0,Screen.width,104),new Color(.14f,.16f,.2f));
-        GUI.Label(new Rect(16,8,Mathf.Max(1,Screen.width-200),40),"테크 트리 · "+gold+"G",label);
-        bool back=GUI.Button(new Rect(Mathf.Max(0,Screen.width-172),10,156,36),"← 대장간",button);
-        // Keep the daily luck purchases visible independently of canvas pan/zoom.
-        float quickWidth=Mathf.Max(1,Mathf.Min(320,(Screen.width-40)/2f));
-        foreach(var offer in ForgeTechnology.Offers){
-            if(offer.Feature!=BlueprintFeature.Lucky&&offer.Feature!=BlueprintFeature.LuckyCode)continue;
-            int column=offer.Feature==BlueprintFeature.Lucky?0:1;
-            string symbol=column==0?"777() 행운 적용":"778() 행운 코드 조회";
-            bool owned=technology.Owns(offer.Feature);
-            string reason=technology.BlockReason(offer,gold,iron,stocks,busy);
-            string caption=symbol+" · "+(owned?"구매 완료":busy?"제작 중":gold<offer.Price?offer.Price+"G 부족":offer.Price+"G 구매");
-            bool enabled=GUI.enabled;
-            GUI.enabled=enabled&&reason==null;
-            if(GUI.Button(new Rect(16+column*(quickWidth+8),58,quickWidth,36),new GUIContent(caption,reason??""),button))selected=offer;
-            GUI.enabled=enabled;
-        }
+        Fill(new Rect(0,0,Screen.width,headerHeight),new Color(.14f,.16f,.2f));
+        GUI.Label(new Rect(16,12,headerWidth,headerHeight-24),heading,header);
+        bool back=GUI.Button(new Rect(Mathf.Max(0,Screen.width-172),(headerHeight-36)/2,156,36),"← 대장간",button);
         GUI.Label(new Rect(16,Screen.height-footerHeight+8,footerWidth,messageHeight),message,body);
         GUI.Label(new Rect(16,Screen.height-footerHeight+8+messageHeight,footerWidth,hintHeight),NavigationHint,body);
         if(selected!=null)purchase(selected);

@@ -99,10 +99,11 @@ public sealed class ForgeDayCycle : MonoBehaviour
         if(Paused)return;
         float alpha = AnnouncementAlpha;
         if (alpha <= 0) return;
-        if (title == null) title = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.UpperCenter, fontSize = 32, fontStyle = FontStyle.Bold };
+        if (title == null) title = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.UpperCenter, fontSize = 56, fontStyle = FontStyle.Bold };
         var oldColor = GUI.color; int oldDepth = GUI.depth; GUI.depth = -1000;
-        var rect = new Rect(0, 6, Screen.width, 48);
-        GUI.color = new Color(0, 0, 0, alpha * .8f); GUI.Label(new Rect(2, 8, Screen.width, 48), "Day " + Day, title);
+        float height = Mathf.Max(80, title.CalcHeight(new GUIContent("Day " + Day), Screen.width));
+        var rect = new Rect(0, 12, Screen.width, height);
+        GUI.color = new Color(0, 0, 0, alpha * .8f); GUI.Label(new Rect(2, 14, Screen.width, height), "Day " + Day, title);
         GUI.color = new Color(1, 1, 1, alpha); GUI.Label(rect, "Day " + Day, title);
         GUI.color = oldColor; GUI.depth = oldDepth;
     }

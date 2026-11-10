@@ -19,6 +19,7 @@ public partial class ForgeMvp
     [Serializable] public class SavedWindow { public string name,text; public Rect rect; public uint seed; }
     [Serializable] public class SavedItem { public string owner; public int material,heat,iron,cost;public bool shaped;public ForgeTraits traits;public ForgeItemData data;public double seconds; }
     [Serializable] public class SavedProgress {
+        public int introStage;public string introCode;
         public string savedAt;
         public int version=1,gold,iron,day,seed,diamonds,sales,tutorial;public long earned;public double hour;public float speed;public bool autoSell;
         public ForgeMaterialStock[] stocks;public BlueprintFeature[] features;public string[] discoveries;
@@ -37,6 +38,7 @@ public partial class ForgeMvp
             var items=new List<ForgeProduct>();foreach(var item in saved.items)items.Add(new ForgeProduct(item.owner,item.heat,item.shaped,item.traits,item.cost,item.iron,item.material,item.data,item.seconds));
             ResetProgressForDebug(false);
             gold=saved.gold;iron=saved.iron;worldSeed=saved.seed;diamonds=saved.diamonds;totalSales=saved.sales;tutorialStage=saved.tutorial;earnedGold=saved.earned;
+            lesson=ForgeTutorialLesson.Restore(saved.introStage,saved.introCode);
             craftSpeed=Mathf.Clamp(saved.speed,1,5);autoSell=saved.autoSell;materialStocks=saved.stocks??Array.Empty<ForgeMaterialStock>();technology.Restore(saved.features);
             DayCycle.Clock.Restore(saved.day,saved.hour);
             foreach(var entry in saved.discoveries??Array.Empty<string>())discoveries.Add(entry);
@@ -50,6 +52,7 @@ public partial class ForgeMvp
         if(!progressLoaded||activeSaveSlot<1||DayCycle==null)return;
         try {
             var saved=new SavedProgress{savedAt=DateTime.Now.ToString("yyyy-MM-dd HH:mm"),gold=gold,iron=iron,seed=worldSeed,diamonds=diamonds,sales=totalSales,tutorial=tutorialStage,earned=earnedGold,day=DayCycle.Day,hour=DayCycle.CurrentHour,speed=craftSpeed,autoSell=autoSell,stocks=materialStocks,features=technology.Export(),discoveries=new List<string>(discoveries).ToArray()};
+            saved.introStage=lesson.Stage;saved.introCode=lesson.Code;
             for(int i=0;i<codeWindows.Count;i++){var w=codeWindows[i];saved.windows.Add(new SavedWindow{name=w.name,text=i==activeWindow?source:w.text,rect=w.rect,seed=w.seed});}
             foreach(var entry in shop.Items){var p=entry.Product;saved.items.Add(new SavedItem{owner=p.BlueprintName,material=p.Material,heat=p.FinalHeat,shaped=p.Shaped,traits=p.Traits,cost=p.CashCost,iron=p.IronConsumed,data=p.Data,seconds=p.ProductionSeconds});}
             PlayerPrefs.SetString(SaveKey,JsonUtility.ToJson(saved));PlayerPrefs.Save();saveMessage="공방 저장 완료";
@@ -61,6 +64,8 @@ public partial class ForgeMvp
         EndWorkspaceDrag();techTree.CancelDrag();guideBook.CancelDrag();
         GUIUtility.hotControl=0;if(Event.current!=null)GUI.FocusControl(null);
         gold=100;iron=10;diamonds=0;totalSales=0;earnedGold=0;tutorialStage=0;
+        lesson=new ForgeTutorialLesson();showTutorial=false;tutorialAnimating=false;
+        showGameMenu=false;returnToTitleRequested=false;
         worldSeed=Guid.NewGuid().GetHashCode();craftSpeed=1;autoSell=false;
         materialStocks=new ForgeMaterialStock[8];
         for(int i=0;i<materialStocks.Length;i++)materialStocks[i]=new ForgeMaterialStock{material=i+2};
@@ -125,8 +130,10 @@ public partial class ForgeMvp
         GUILayout.Label("공방 기록 · Day "+DayCycle.Day+" · "+((int)DayCycle.CurrentHour).ToString("00")+":"+((int)(DayCycle.CurrentHour*60)%60).ToString("00"));
         GUILayout.Label("골드 "+gold+"G · 다이아몬드 "+diamonds+" · 판매 "+totalSales+"개 · 누적 판매액 "+earnedGold+"G");
         GUILayout.Label("가속 "+craftSpeed+"배 · 자동판매 "+(autoSell?"켜짐":"꺼짐"));
-        string[] tutorial={"1. 기본 도면에서 재료를 올리세요.","2. 가열해 열을 6 이상으로 만드세요.","3. 타격으로 검날을 성형하세요.","4. 냉각하세요.","5. !작업물로 제출하세요.","6. 상점에서 검날을 판매하세요.","기본 튜토리얼 완료! 물 냉각과 나무 손잡이로 더 가치 있는 검을 만들어 보세요."};
-        GUILayout.Label(tutorial[Mathf.Clamp(tutorialStage,0,6)]);
+        GUILayout.Label(lesson.Complete?"첫 검 만들기 튜토리얼 완료":"첫 검 만들기 · "+(lesson.Stage+1)+" / 8 단계");
+        bool tutorialEnabled=GUI.enabled;GUI.enabled=tutorialEnabled&&!busy&&executionSession==null;
+        if(GUILayout.Button(lesson.Complete?"검 제작 튜토리얼 다시 보기":"검 제작 튜토리얼 시작 / 이어하기"))OpenTutorial();
+        GUI.enabled=tutorialEnabled;
         GUILayout.Label(earnedGold>=5000&&diamonds>=5?"공방의 명장 달성! 자유 제작을 계속할 수 있습니다.":"명장 목표: 누적 판매 5000G · 다이아몬드 5개");
         GUILayout.Label("발견 도감");
         if(discoveries.Count==0)GUILayout.Label("아직 발견한 특성이 없습니다.");
@@ -216,6 +223,7 @@ public partial class ForgeMvp
         activeSaveSlot=slot;ResetProgressForDebug();
         if(saveMessage.StartsWith("저장 실패")){titleMessage=saveMessage;progressLoaded=false;return;}
         showTitle=false;DayCycle.Paused=false;titleMessage="";if(Event.current!=null)GUI.FocusControl(null);
+        OpenTutorial();
     }
     void ReturnToTitle()
     {

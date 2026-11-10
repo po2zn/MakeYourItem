@@ -94,6 +94,7 @@ public partial class ForgeMvp
                 }
             }
             UpdateExecutionLocation();
+            if(returnToTitleRequested){busy=false;FinishTitleReturn();yield break;}
             if(!singleStep&&!session.Completed)yield return null;
         }while(!singleStep&&!session.Completed);
         if(session.Completed){

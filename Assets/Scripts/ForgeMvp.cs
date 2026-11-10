@@ -97,6 +97,7 @@ public partial class ForgeMvp : MonoBehaviour
     void UpdateWorkspaceCamera()
     {
         if (!workspaceCamera) return;
+        if(showTutorial){UpdateTutorialCamera();return;}
         workspaceCamera.orthographicSize = Screen.height * WorkspaceUnitsPerPixel * .5f / workspaceZoom;
         workspaceCamera.transform.position = cameraOrigin
             + workspaceCamera.transform.right * (Screen.width * .5f * (1f / workspaceZoom - 1f)) * WorkspaceUnitsPerPixel
@@ -348,7 +349,7 @@ public partial class ForgeMvp : MonoBehaviour
         if(GUI.Button(new Rect(debugWindow.width-90,5,52,24),"지우기")){debugOutput.Clear();debugScroll=Vector2.zero;}
         if(GUI.Button(new Rect(debugWindow.width-32,5,26,24),"×")){showDebugWindow=false;debugInteracting=false;}
         GUI.Label(new Rect(10,DebugHeaderHeight+2,debugWindow.width-20,24),"print 출력 · 읽기 전용");
-        Rect view=new Rect(10,DebugHeaderHeight+30,debugWindow.width-20,debugWindow.height-DebugHeaderHeight-41);
+        Rect view=new Rect(10,DebugHeaderHeight+30,debugWindow.width-20,Mathf.Max(1,debugWindow.height-DebugHeaderHeight-41));
         string text=debugOutput.Text;
         float height=Mathf.Max(view.height,debugTextStyle.CalcHeight(new GUIContent(text+"\n "),Mathf.Max(1,view.width-18)));
         if(debugFollow){debugScroll.y=Mathf.Max(0,height-view.height);if(ev.type==EventType.Repaint)debugFollow=false;}
@@ -371,7 +372,11 @@ public partial class ForgeMvp : MonoBehaviour
     void OnGUI()
     {
         InitializeCodeStyle();
+        if(returnToTitleRequested&&!busy&&!tutorialAnimating)FinishTitleReturn();
         if(showTitle){DrawTitle();return;}
+        if(Event.current.type==EventType.KeyDown&&Event.current.keyCode==KeyCode.Escape){ToggleGameMenu();Event.current.Use();}
+        if(showGameMenu){DrawGameMenu();return;}
+        if(showTutorial){DrawTutorial();return;}
         if(showProgress){DrawProgress();return;}
         if(showTechTree){if(techTree.Draw(codeStyle.font,technology,gold,iron,materialStocks,busy||executionSession!=null,purchaseMessage,PurchaseTechnology)){showTechTree=false;GUI.FocusControl(null);}return;}
         if (!windowsInitialized) { workspaceWindow=InitialCodeWindow; windowsInitialized = true; nextWindowId = 1; codeWindows.Add(new CodeWindow { rect = workspaceWindow, id = 0, name = "f1" }); }
@@ -608,7 +613,7 @@ public partial class ForgeMvp : MonoBehaviour
         GUI.Box(panel,"디버그 · 자원 +1,000 / 하루 넘기기");
         var debugButtonStyle=new GUIStyle(GUI.skin.button){font=codeStyle.font,fontSize=36};
         Rect viewport=new Rect(panel.x+8,panel.y+28,panel.width-16,panel.height-36);
-        debugResourceScroll=GUI.BeginScrollView(viewport,debugResourceScroll,new Rect(0,0,780,594));
+        debugResourceScroll=GUI.BeginScrollView(viewport,debugResourceScroll,new Rect(0,0,780,693));
         bool enabled=GUI.enabled;
         GUI.enabled=enabled&&!busy&&executionSession==null;
         for(int i=0;i<12;i++){
@@ -636,6 +641,8 @@ public partial class ForgeMvp : MonoBehaviour
                 SaveProgress();
             }
         }
+        GUI.enabled=enabled&&!busy&&executionSession==null&&!tutorialAnimating;
+        if(GUI.Button(new Rect(0,594,768,87),new GUIContent("튜토리얼 처음부터 다시 시작","기존 도면과 재고는 유지하고 연습 진행만 초기화합니다."),debugButtonStyle))RestartTutorialFromDebug();
         GUI.enabled=enabled;
         GUI.EndScrollView();
     }
