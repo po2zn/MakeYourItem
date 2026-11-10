@@ -6,7 +6,8 @@ public sealed class ForgeTechTreeScreen
     Vector2 offset,dragStart,offsetStart;
     float zoom=1;
     int dragButton=-1,control;
-    GUIStyle label,button,body,header;
+    GUIStyle label,button,body,header,quantityStyle;
+    readonly string[] quantities=new string[ForgeTechnology.Offers.Count];
     const float CardWidth=350,TextWidth=CardWidth-24;
     readonly Rect[] cards=new Rect[ForgeTechnology.Offers.Count];
     readonly float[] titleHeights=new float[ForgeTechnology.Offers.Count],detailHeights=new float[ForgeTechnology.Offers.Count];
@@ -25,7 +26,7 @@ public sealed class ForgeTechTreeScreen
             details[i]=material?"보유 "+technology.Stock(offer,iron,stocks)+"개 · "+(offer.Material==1?"검날 제작 재료":"전용 가공은 도면 안내서를 확인하세요"):(owned?"해금 완료 · 숫자/영문 이름 모두 사용 가능":"미구매 · 구매 후 도면에서 사용 가능");
             titleHeights[i]=TextHeight(offer.Title,TextWidth);
             detailHeights[i]=TextHeight(details[i],TextWidth);
-            float height=12+titleHeights[i]+8+detailHeights[i]+12+36+12;
+            float height=12+titleHeights[i]+8+detailHeights[i]+12+36+12+(material?84:0);
             cards[i]=new Rect(material?24:406,material?materialY:functionY,CardWidth,height);
             if(material)materialY+=height+16;else functionY+=height+16;
         }
@@ -41,7 +42,7 @@ public sealed class ForgeTechTreeScreen
         foreach(var card in cards)if(card.Contains(point))return true;
         return false;
     }
-    public bool Draw(Font font,ForgeTechnology technology,int gold,int iron,ForgeMaterialStock[] stocks,bool busy,string message,Action<ForgeTechnology.Offer> purchase)
+    public bool Draw(Font font,ForgeTechnology technology,int gold,int iron,ForgeMaterialStock[] stocks,bool busy,string message,Action<ForgeTechnology.Offer,int> purchase,bool purchaseSucceeded=false)
     {
         if(label==null){
             label=new GUIStyle(GUI.skin.label){font=font,fontSize=20,alignment=TextAnchor.UpperLeft,wordWrap=true,padding=new RectOffset(0,0,0,0)};
@@ -49,13 +50,14 @@ public sealed class ForgeTechTreeScreen
             header=new GUIStyle(label){fontSize=30,alignment=TextAnchor.MiddleLeft};
             button=new GUIStyle(GUI.skin.button){font=font,fontSize=17};
             body=new GUIStyle(label){fontSize=15,wordWrap=true};
+            quantityStyle=new GUIStyle(GUI.skin.textField){font=font,fontSize=17,alignment=TextAnchor.MiddleLeft,padding=new RectOffset(8,8,4,4)};
         }
         var ev=Event.current;
         control=GUIUtility.GetControlID("TechTreePan".GetHashCode(),FocusType.Passive);
         float footerWidth=Mathf.Max(1,Screen.width-32);
         float messageHeight=TextHeight(message,footerWidth),hintHeight=TextHeight(NavigationHint,footerWidth);
         float footerHeight=messageHeight+hintHeight+16;
-        float headingHeight=Mathf.Ceil(Mathf.Max(label.CalcHeight(new GUIContent("재료 구매 · 1개씩 반복 구매"),350),label.CalcHeight(new GUIContent("기능 구매 · 한 번 구매해 해금"),350)))+4;
+        float headingHeight=Mathf.Ceil(Mathf.Max(label.CalcHeight(new GUIContent("재료 구매 · 수량 입력 후 구매"),350),label.CalcHeight(new GUIContent("기능 구매 · 한 번 구매해 해금"),350)))+4;
         float descriptionY=12+headingHeight+8;
         float descriptionHeight=Mathf.Max(TextHeight("구매한 재료는 보유 재고에 추가됩니다.",350),TextHeight("기본 공정과 자료구조 조작은 무료이며, 특수 공정은 구매해 해금합니다.",350));
         LayoutCards(technology,iron,stocks,descriptionY+descriptionHeight+16);
@@ -88,11 +90,13 @@ public sealed class ForgeTechTreeScreen
         var canvasLabel=ScaledStyle(label);
         var canvasBody=ScaledStyle(body);
         var canvasButton=ScaledStyle(button);
-        GUI.Label(Project(new Rect(24,12,350,headingHeight)),"재료 구매 · 1개씩 반복 구매",canvasLabel);
+        var canvasQuantity=ScaledStyle(quantityStyle);
+        GUI.Label(Project(new Rect(24,12,350,headingHeight)),"재료 구매 · 수량 입력 후 구매",canvasLabel);
         GUI.Label(Project(new Rect(406,12,350,headingHeight)),"기능 구매 · 한 번 구매해 해금",canvasLabel);
         GUI.Label(Project(new Rect(24,descriptionY,350,descriptionHeight)),"구매한 재료는 보유 재고에 추가됩니다.",canvasBody);
         GUI.Label(Project(new Rect(406,descriptionY,350,descriptionHeight)),"기본 공정과 자료구조 조작은 무료이며, 특수 공정은 구매해 해금합니다.",canvasBody);
         ForgeTechnology.Offer selected=null;
+        int selectedQuantity=1;
         for(int i=0;i<cards.Length;i++){
             var offer=ForgeTechnology.Offers[i];
             Rect card=cards[i];
@@ -100,20 +104,34 @@ public sealed class ForgeTechTreeScreen
             Fill(Project(card),owned?new Color(.12f,.26f,.23f):new Color(.18f,.21f,.27f));
             GUI.Label(Project(new Rect(card.x+12,card.y+12,TextWidth,titleHeights[i])),offer.Title,canvasBody);
             GUI.Label(Project(new Rect(card.x+12,card.y+12+titleHeights[i]+8,TextWidth,detailHeights[i])),details[i],canvasBody);
-            string reason=technology.BlockReason(offer,gold,iron,stocks,busy);
+            int quantity=1;
+            if(offer.Kind==ForgePurchaseKind.Material){
+                float y=card.y+12+titleHeights[i]+8+detailHeights[i]+12;
+                GUI.Label(Project(new Rect(card.x+12,y,54,32)),"수량",canvasBody);
+                quantities[i]=GUI.TextField(Project(new Rect(card.x+70,y,TextWidth-58,32)),quantities[i]??"1",10,canvasQuantity);
+                if(!int.TryParse(quantities[i],System.Globalization.NumberStyles.None,System.Globalization.CultureInfo.InvariantCulture,out quantity)||quantity<1)quantity=0;
+                string estimate=quantity>0?"개당 "+offer.Price+"G · 예상 총액 "+ForgeTechnology.TotalPrice(offer,quantity).ToString("N0")+"G":"수량은 1 이상의 정수로 입력하세요.";
+                Color previous=GUI.color;
+                if(quantity==0||gold<ForgeTechnology.TotalPrice(offer,quantity))GUI.color=new Color(1f,.65f,.55f);
+                GUI.Label(Project(new Rect(card.x+12,y+38,TextWidth,38)),estimate,canvasBody);GUI.color=previous;
+            }
+            string reason=technology.BlockReason(offer,gold,iron,stocks,busy,quantity);
             bool enabled=GUI.enabled;
             GUI.enabled=enabled&&reason==null;
-            string caption=owned?"구매 완료":busy?"제작 중":gold<offer.Price?offer.Price+"G · 골드 부족":offer.Price+"G · "+(offer.Kind==ForgePurchaseKind.Material?"1개 구매":"기능 구매");
-            if(GUI.Button(Project(new Rect(card.x+12,card.yMax-48,TextWidth,36)),new GUIContent(caption,reason??""),canvasButton))selected=offer;
+            string caption=owned?"구매 완료":busy?"제작 중":quantity==0?"수량을 확인하세요":gold<ForgeTechnology.TotalPrice(offer,quantity)?"골드 부족":reason!=null?"구매 불가":offer.Kind==ForgePurchaseKind.Material?quantity+"개 구매":offer.Price+"G · 기능 구매";
+            if(GUI.Button(Project(new Rect(card.x+12,card.yMax-48,TextWidth,36)),new GUIContent(caption,reason??""),canvasButton)){selected=offer;selectedQuantity=quantity;}
             GUI.enabled=enabled;
         }
         GUI.EndGroup();
         Fill(new Rect(0,0,Screen.width,headerHeight),new Color(.14f,.16f,.2f));
         GUI.Label(new Rect(16,12,headerWidth,headerHeight-24),heading,header);
         bool back=GUI.Button(new Rect(Mathf.Max(0,Screen.width-172),(headerHeight-36)/2,156,36),"← 대장간",button);
+        Color messageColor=GUI.color;
+        if(purchaseSucceeded)GUI.color=new Color(.5f,1f,.7f);
         GUI.Label(new Rect(16,Screen.height-footerHeight+8,footerWidth,messageHeight),message,body);
+        GUI.color=messageColor;
         GUI.Label(new Rect(16,Screen.height-footerHeight+8+messageHeight,footerWidth,hintHeight),NavigationHint,body);
-        if(selected!=null)purchase(selected);
+        if(selected!=null)purchase(selected,selectedQuantity);
         if(back)CancelDrag();return back;
     }
 }

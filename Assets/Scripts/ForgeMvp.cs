@@ -57,8 +57,9 @@ public partial class ForgeMvp : MonoBehaviour
     readonly ForgeTechTreeScreen techTree=new ForgeTechTreeScreen();
     readonly ForgeTechnology technology=new ForgeTechnology();
     string purchaseMessage="재료는 반복 구매, 기능은 한 번 구매해 해금합니다.";
-    void PurchaseTechnology(ForgeTechnology.Offer offer)
-    {if(technology.TryPurchase(offer,ref gold,ref iron,ref materialStocks,busy||executionSession!=null,out purchaseMessage))SaveProgress();}
+    bool purchaseSucceeded;
+    void PurchaseTechnology(ForgeTechnology.Offer offer,int quantity)
+    {purchaseSucceeded=technology.TryPurchase(offer,ref gold,ref iron,ref materialStocks,busy||executionSession!=null,out purchaseMessage,quantity);if(purchaseSucceeded)SaveProgress();}
     [SerializeField, Tooltip("안내서의 영문 문법 표시 여부. 추후 구매/저장 상태에서 설정합니다.")]
     bool englishGuideUnlocked;
     public bool EnglishGuideUnlocked => englishGuideUnlocked;
@@ -249,6 +250,7 @@ public partial class ForgeMvp : MonoBehaviour
     }
     void OnDestroy()
     {
+        if(settingsLanguageFont)Destroy(settingsLanguageFont);
         materialHud.Dispose();
         SetResizeCursor(0);
         if (horizontalResizeCursor) Destroy(horizontalResizeCursor);
@@ -376,7 +378,7 @@ public partial class ForgeMvp : MonoBehaviour
         if(showGameMenu){DrawGameMenu();return;}
         if(showTutorial){DrawTutorial();return;}
         if(showProgress){DrawProgress();return;}
-        if(showTechTree){if(techTree.Draw(codeStyle.font,technology,gold,iron,materialStocks,busy||executionSession!=null,purchaseMessage,PurchaseTechnology)){showTechTree=false;GUI.FocusControl(null);}return;}
+        if(showTechTree){if(techTree.Draw(codeStyle.font,technology,gold,iron,materialStocks,busy||executionSession!=null,purchaseMessage,PurchaseTechnology,purchaseSucceeded)){showTechTree=false;GUI.FocusControl(null);}return;}
         if (!windowsInitialized) { workspaceWindow=InitialCodeWindow; windowsInitialized = true; nextWindowId = 1; codeWindows.Add(new CodeWindow { rect = workspaceWindow, id = 0, name = "f1" }); }
         EventType resourceEvent = Event.current.type;
         bool maskResources = deleteWindowId < 0 && DebugResourcesRect.Contains(Event.current.mousePosition) && (Event.current.isMouse || Event.current.type == EventType.ScrollWheel);

@@ -37,27 +37,30 @@ public sealed class ForgeTechnology
         var stock=Array.Find(stocks??Array.Empty<ForgeMaterialStock>(),s=>s!=null&&s.material==offer.Material);
         return stock==null?0:stock.count;
     }
-    public string BlockReason(Offer offer,int gold,int iron,ForgeMaterialStock[] stocks,bool busy)
+    public static long TotalPrice(Offer offer,int quantity) => (long)offer.Price*quantity;
+    public string BlockReason(Offer offer,int gold,int iron,ForgeMaterialStock[] stocks,bool busy,int quantity=1)
     {
         if(offer==null||!Offers.Contains(offer))return "판매하지 않는 항목입니다.";
+        if(quantity<1)return "수량은 1 이상의 정수로 입력하세요.";
+        if(offer.Kind==ForgePurchaseKind.Function&&quantity!=1)return "기능은 한 번에 하나만 구매할 수 있습니다.";
         if(busy)return "제작 중에는 구매할 수 없습니다.";
         if(offer.Kind==ForgePurchaseKind.Function&&Owns(offer.Feature))return "이미 구매한 기능입니다.";
-        if(gold<offer.Price)return "골드가 부족합니다.";
-        if(offer.Kind==ForgePurchaseKind.Material&&Stock(offer,iron,stocks)>=(offer.Material==1?int.MaxValue:long.MaxValue))return "재료 보유 한도에 도달했습니다.";
+        if(gold<TotalPrice(offer,quantity))return "골드가 부족합니다.";
+        if(offer.Kind==ForgePurchaseKind.Material&&Stock(offer,iron,stocks)>(offer.Material==1?int.MaxValue:long.MaxValue)-quantity)return "재료 보유 한도에 도달했습니다.";
         return null;
     }
-    public bool TryPurchase(Offer offer,ref int gold,ref int iron,ref ForgeMaterialStock[] stocks,bool busy,out string message)
+    public bool TryPurchase(Offer offer,ref int gold,ref int iron,ref ForgeMaterialStock[] stocks,bool busy,out string message,int quantity=1)
     {
-        message=BlockReason(offer,gold,iron,stocks,busy);if(message!=null)return false;
+        message=BlockReason(offer,gold,iron,stocks,busy,quantity);if(message!=null)return false;
         if(offer.Kind==ForgePurchaseKind.Function)purchased.Add(offer.Feature);
-        else if(offer.Material==1)iron++;
+        else if(offer.Material==1)iron+=quantity;
         else {
             var stock=Array.Find(stocks??Array.Empty<ForgeMaterialStock>(),s=>s!=null&&s.material==offer.Material);
             if(stock==null){stock=new ForgeMaterialStock{material=offer.Material};var list=new List<ForgeMaterialStock>(stocks??Array.Empty<ForgeMaterialStock>());list.Add(stock);stocks=list.ToArray();}
-            stock.unlocked=true;stock.count++;
+            stock.unlocked=true;stock.count+=quantity;
         }
-        gold-=offer.Price;
-        message=offer.Kind==ForgePurchaseKind.Material?ForgeMaterialGuide.Find(offer.Material).Name+" 1개 구매 완료":BlueprintAliases.Find(offer.Feature).Symbol+"() 기능 해금 완료";
+        gold-=(int)TotalPrice(offer,quantity);
+        message=offer.Kind==ForgePurchaseKind.Material?ForgeMaterialGuide.Find(offer.Material).Name+" "+quantity+"개 구매 완료 · "+TotalPrice(offer,quantity)+"G 사용":BlueprintAliases.Find(offer.Feature).Symbol+"() 기능 해금 완료";
         return true;
     }
 }

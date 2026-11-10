@@ -86,6 +86,7 @@ public partial class ForgeMvp
         reportError=false;resultOwner="아직 실행하지 않음";
         report="게임을 초기화했습니다. ▷로 한 줄씩 실행하거나 ▶로 전체 실행하세요.";
         purchaseMessage="재료는 반복 구매, 기능은 한 번 구매해 해금합니다.";
+        purchaseSucceeded=false;
         progressLoaded=persist;if(persist)SaveProgress();
     }
     void OnApplicationQuit(){SaveProgress();}
@@ -200,6 +201,7 @@ public partial class ForgeMvp
         masterVolume=Mathf.Clamp01(PlayerPrefs.GetFloat("MakeYourItem.Settings.Volume",1));
         AudioListener.volume=masterVolume;
         if(PlayerPrefs.HasKey("MakeYourItem.Settings.Fullscreen"))Screen.fullScreen=PlayerPrefs.GetInt("MakeYourItem.Settings.Fullscreen")==1;
+        InitializeDisplaySettings();
         showTitle=true;titlePage=0;progressLoaded=false;activeSaveSlot=0;DayCycle.Paused=true;
     }
     string SlotSummary(int slot)
@@ -250,6 +252,7 @@ public partial class ForgeMvp
             menuText.normal.textColor=new Color(.93f,.90f,.82f);
             menuButton=new GUIStyle(GUI.skin.button){font=codeStyle.font,fontSize=22,wordWrap=true,padding=new RectOffset(12,12,10,10)};
         }
+        if(titlePage==4){DrawSettingsScreen();return;}
         Color old=GUI.color;GUI.color=new Color(.075f,.085f,.10f);GUI.DrawTexture(new Rect(0,0,Screen.width,Screen.height),Texture2D.whiteTexture);GUI.color=old;
         float width=Mathf.Min(560,Mathf.Max(1,Screen.width-32));
         Rect panel=new Rect((Screen.width-width)/2,Mathf.Max(12,(Screen.height-650)/2),width,Mathf.Max(1,Mathf.Min(650,Screen.height-24)));
@@ -260,7 +263,7 @@ public partial class ForgeMvp
         if(titlePage==0){
             if(GUILayout.Button("게임 시작",menuButton,GUILayout.MinHeight(58))){titlePage=1;titleMessage="";}
             if(GUILayout.Button("이어하기",menuButton,GUILayout.MinHeight(58))){titlePage=2;titleMessage="";}
-            if(GUILayout.Button("설정",menuButton,GUILayout.MinHeight(58)))titlePage=4;
+            if(GUILayout.Button("설정",SettingsButton,GUILayout.MinHeight(58))){titlePage=4;RefreshDisplaySizes();settingsDropdown=0;settingsMessage="";}
             if(GUILayout.Button("종료",menuButton,GUILayout.MinHeight(58)))QuitFromTitle();
         }else if(titlePage==1||titlePage==2){
             bool fresh=titlePage==1;
@@ -280,18 +283,6 @@ public partial class ForgeMvp
             GUILayout.Space(20);
             if(GUILayout.Button("확인 · 새 게임 시작",menuButton,GUILayout.MinHeight(58)))StartNewSlot(confirmSlot);
             if(GUILayout.Button("취소",menuButton,GUILayout.MinHeight(58)))titlePage=1;
-        }else if(titlePage==4){
-            GUILayout.Label("설정",menuTitle);GUILayout.Space(20);
-            GUILayout.Label("전체 음량 · "+Mathf.RoundToInt(masterVolume*100)+"%",menuText);
-            float volume=GUILayout.HorizontalSlider(masterVolume,0,1,GUILayout.Height(28));
-            if(!Mathf.Approximately(volume,masterVolume)){
-                masterVolume=volume;AudioListener.volume=volume;PlayerPrefs.SetFloat("MakeYourItem.Settings.Volume",volume);PlayerPrefs.Save();
-            }
-            GUILayout.Space(16);
-            if(GUILayout.Button("화면 모드 · "+(Screen.fullScreen?"전체 화면":"창 모드"),menuButton,GUILayout.MinHeight(58))){
-                bool fullscreen=!Screen.fullScreen;Screen.fullScreen=fullscreen;PlayerPrefs.SetInt("MakeYourItem.Settings.Fullscreen",fullscreen?1:0);PlayerPrefs.Save();
-            }
-            GUILayout.Space(16);if(GUILayout.Button("뒤로",menuButton))titlePage=0;
         }
         if(!string.IsNullOrEmpty(titleMessage)){GUILayout.Space(12);GUILayout.Label(titleMessage,menuText);}
         GUILayout.EndScrollView();GUILayout.EndArea();

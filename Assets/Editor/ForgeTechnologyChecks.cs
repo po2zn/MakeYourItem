@@ -6,6 +6,7 @@ public static class ForgeTechnologyChecks
     static void Require(bool value,string message){if(!value)throw new Exception(message);}
     public static void Main()
     {
+        CheckBulkPurchase();
         var technology=new ForgeTechnology();int gold=1000,iron=0;ForgeMaterialStock[] stocks=null;string message;
         foreach(var offer in ForgeTechnology.Offers.Where(o=>o.Kind==ForgePurchaseKind.Material)){
             int before=gold;
@@ -45,5 +46,25 @@ public static class ForgeTechnologyChecks
         }
         Console.WriteLine("PASS technology: repeated materials, stock unlocks, funds, duplicate/busy/overflow guards, all function gates and both spellings");
         BlueprintMaterialChecks.Main();
+    }
+    static void CheckBulkPurchase()
+    {
+        var technology=new ForgeTechnology();int gold=50,iron=0;ForgeMaterialStock[] stocks=null;string message;
+        var ironOffer=ForgeTechnology.Offers.First(o=>o.Material==1&&o.Kind==ForgePurchaseKind.Material);
+        var water=ForgeTechnology.Offers.First(o=>o.Material==3&&o.Kind==ForgePurchaseKind.Material);
+        Require(technology.TryPurchase(ironOffer,ref gold,ref iron,ref stocks,false,out message,10)&&gold==0&&iron==10,"bulk exact balance");
+        Require(message.Contains("10개")&&message.Contains("50G"),"bulk receipt");
+        Require(!technology.TryPurchase(water,ref gold,ref iron,ref stocks,false,out message,3)&&gold==0&&stocks==null,"insufficient bulk funds atomic");
+        gold=10;
+        Require(technology.TryPurchase(water,ref gold,ref iron,ref stocks,false,out message,7)&&gold==3&&stocks[0].count==7&&stocks[0].unlocked,"water bulk stock and price");
+        foreach(int quantity in new[]{0,-1,int.MaxValue})Require(!technology.TryPurchase(water,ref gold,ref iron,ref stocks,false,out message,quantity)&&gold==3&&stocks[0].count==7,"invalid/unaffordable quantity atomic");
+        gold=100;iron=int.MaxValue-1;
+        Require(!technology.TryPurchase(ironOffer,ref gold,ref iron,ref stocks,false,out message,2)&&gold==100&&iron==int.MaxValue-1,"bulk iron overflow");
+        stocks[0].count=long.MaxValue-1;
+        Require(!technology.TryPurchase(water,ref gold,ref iron,ref stocks,false,out message,2)&&gold==100&&stocks[0].count==long.MaxValue-1,"bulk long stock overflow");
+        Require(ForgeTechnology.TotalPrice(ironOffer,int.MaxValue)==(long)int.MaxValue*5,"wide price calculation");
+        var feature=ForgeTechnology.Offers.First(o=>o.Kind==ForgePurchaseKind.Function);
+        Require(!technology.TryPurchase(feature,ref gold,ref iron,ref stocks,false,out message,2)&&gold==100&&!technology.Owns(feature.Feature),"function quantity remains one");
+        Console.WriteLine("PASS bulk purchase: quantities, totals, exact/insufficient gold, atomic rejection and overflow guards");
     }
 }
