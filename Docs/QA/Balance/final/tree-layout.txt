@@ -1,0 +1,18 @@
+Screen 800x600 page 0 overflow=
+Screen 800x600 page 1 overflow=
+Screen 800x600 page 2 overflow=
+Screen 800x600 page 3 overflow=
+Screen 1280x720 page 0 overflow=
+Screen 1280x720 page 1 overflow=
+Screen 1280x720 page 2 overflow=
+Screen 1280x720 page 3 overflow=
+Screen 1920x1080 page 0 overflow=
+Screen 1920x1080 page 1 overflow=
+Screen 1920x1080 page 2 overflow=
+Screen 1920x1080 page 3 overflow=
+Screen 3840x2160 page 0 overflow=
+Screen 3840x2160 page 1 overflow=
+Screen 3840x2160 page 2 overflow=
+Screen 3840x2160 page 3 overflow=
+Idle 3s: frames=1154, card refreshes=0, added UI objects=0
+Explicit state refresh average ms=0.593

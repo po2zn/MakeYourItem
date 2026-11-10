@@ -16,14 +16,14 @@ public static class ForgeCampaign
     public static string Objective(ForgeTechnology tech,int sales,bool completed)
     {
         if(completed)return "명장 달성 · 새로운 조합으로 자유 제작을 계속하세요.";
-        if(!tech.Owns(ForgeTechnology.AutomationRoot))return "첫 연구: 기본 검을 제작·판매하고 제어문을 150G로 해금하세요. 이후 모든 분야에 투자할 수 있습니다.";
+        if(!tech.Owns(ForgeTechnology.AutomationRoot))return "첫 연구: 기본 검을 제작·판매하고 제어문을 "+ForgeTechnology.Find(ForgeTechnology.AutomationRoot).Price+"G로 해금하세요. 이후 모든 분야에 투자할 수 있습니다.";
         if(sales==0)return "첫 목표: 기본 검을 만들어 판매하세요. 철·나무·물은 바로 구매할 수 있습니다.";
         if(!tech.Owns("material-5")&&!tech.Owns("material-6"))return "다음 목표: 금속(은 공급) 또는 마력(수정 공급) 분야에 투자하세요.";
         if(!tech.Owns("material-7"))return "금속 성장: 연마 → 은 공급 → 도금 → 별철 공급.";
         if(!tech.Owns(BlueprintFeature.Charge))return "마력 성장: 수정 공급 → 9() 충전.";
         if(!tech.Owns(BlueprintFeature.Refine))return "두 분야 결합: 별철 공급 + 충전 → 용뼈 공급 → 10() 정제.";
         if(!tech.Owns(BlueprintFeature.Rune))return "최종 준비: 211() 룬 각인을 해금하세요.";
-        if(!tech.Owns(ForgeTechnology.MasterCommission))return "최종 목표: 명장의 마지막 의뢰를 800G로 수락하세요.";
+        if(!tech.Owns(ForgeTechnology.MasterCommission))return "최종 목표: 명장의 마지막 의뢰를 "+ForgeTechnology.Find(ForgeTechnology.MasterCommission).Price+"G로 수락하세요.";
         return "최종 의뢰: "+FinalGoal;
     }
 }
@@ -37,7 +37,7 @@ public partial class ForgeMvp
     {
         GUILayout.Space(12);
         ForgeTextLayout.LayoutLabel("성장 목표 · "+CampaignObjective);
-        ForgeTextLayout.LayoutLabel("공통 시작: 기본 제작 → 제어문 해금(150G) → 다섯 분야로 분기");
+        ForgeTextLayout.LayoutLabel("공통 시작: 기본 제작 → 제어문 해금("+ForgeTechnology.Find(ForgeTechnology.AutomationRoot).Price+"G) → 다섯 분야로 분기");
         ForgeTextLayout.LayoutLabel("금속: 열 조회 → 연마 → 은 → 도금 → 별철 → 용뼈 → 정제");
         ForgeTextLayout.LayoutLabel("마력: 수정 → 충전 → 룬 / 보호 · 상태 조회 → 마력 단조 → 공명");
         ForgeTextLayout.LayoutLabel("운영: 석탄 → 연료 → 봉인 → 스피드 1~5단계 → 자동판매 무료 해금");

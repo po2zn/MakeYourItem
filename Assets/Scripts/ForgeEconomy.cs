@@ -12,7 +12,7 @@ public sealed class ForgeProduct
     readonly ForgeItemData data;
     public ForgeItemData Data => data.Clone();
     public double ProductionSeconds { get; }
-    public int DiamondReward => Kind==ForgeProductKind.Sword && data.luckyDay>0 && !data.cracked && !data.destroyed ? 1 : 0;
+    public int DiamondReward => Kind==ForgeProductKind.Sword && data.luckyDay>0 && !data.cracked && !data.destroyed ? 1+(data.star&&Material==7?1:0)+(ForgeCampaign.IsMasterwork(this)?1:0) : 0;
     public ForgeProductKind Kind { get; }
     public ForgeTraits Traits { get; }
     public int FinalHeat { get; }
@@ -87,21 +87,22 @@ public static class ForgePricing
     {
         var result=new Dictionary<string,int>();if(product.Kind==ForgeProductKind.Unfinished)return result;var d=product.Data;
         if(d.hardness>=7)result["담금질 경도 7"]=19;
-        if(d.handle>0)result["손잡이"]=d.handle==9?65:22;
-        if(d.plated)result["은도금"]=35;
-        if(d.star)result["별무늬"]=45;
-        if(d.frost)result["서리 문양"]=35;
-        if(d.charge>=3)result["마력 전도"]=45;
-        if(d.charge>=3&&d.handle==9)result["용의 맥동"]=60;
-        if(d.activated)result["공명 수정"]=60;
-        if(d.sealBonus>0)result["결계"]=d.sealBonus*12;
-        if(d.magicGrade>0)result["마력 단조"]=d.magicGrade*5;
-        foreach(int rune in d.runes)result["룬 "+rune]=((rune-1)/3+1)*12;
-        if(d.runes.Count==3)result["삼중 공명"]=40;
+        if(d.handle>0)result["손잡이"]=d.handle==9?ForgeBalance.DragonHandleBonus:22;
+        if(d.polished)result["연마"]=ForgeBalance.PolishBonus;
+        if(d.plated)result["은도금"]=ForgeBalance.PlateBonus;
+        if(d.star)result["별무늬"]=ForgeBalance.StarBonus;
+        if(d.frost)result["서리 문양"]=ForgeBalance.FrostBonus;
+        if(d.charge>=3)result["마력 전도"]=ForgeBalance.ChargeBonus;
+        if(d.charge>=3&&d.handle==9)result["용의 맥동"]=ForgeBalance.DragonPulseBonus;
+        if(d.activated)result["공명 수정"]=ForgeBalance.ResonanceBonus;
+        if(d.sealBonus>0)result["결계"]=d.sealBonus*ForgeBalance.SealLayerBonus;
+        if(d.magicGrade>0)result["마력 단조"]=d.magicGrade*ForgeBalance.MagicGradeBonus;
+        foreach(int rune in d.runes)result["룬 "+rune]=((rune-1)/3+1)*ForgeBalance.RuneGradeBonus;
+        if(d.runes.Count==3)result["삼중 공명"]=ForgeBalance.TripleRuneBonus;
         if(d.luckyDay>0)result["오늘의 행운"]=30;
         int value=product.Material==7?40:28;foreach(int b in result.Values)value+=b;
         if(d.cracked){result["균열 감점"]=-value/2;value-=value/2;}
-        if(d.cursed){result["저주 배율"]=value*9;value*=10;}
+        if(d.cursed){result["저주 배율"]=value*(ForgeBalance.CurseMultiplier-1);value*=ForgeBalance.CurseMultiplier;}
         if(d.smithSaleMultiplier>1)result["대장장이 판매 배율 ×"+d.smithSaleMultiplier.ToString("0.00")]=(int)Math.Round(value*(d.smithSaleMultiplier-1));
         return result;
     }

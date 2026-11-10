@@ -1,0 +1,27 @@
+{
+  "date": "2026-11-11",
+  "seeds": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "model": "policy-based accelerated simulation, not human participant measurements",
+  "files": {
+    "Assets/Scripts/ForgeBalance.cs": "54d0750439a6bf0161e4badcd144a4cc8da33e9d11d580d629818ff9decba486",
+    "Assets/Scripts/ForgeTechnology.cs": "be51b360a1670e1605cb5c56cf0cac80e523780f8ca513048eddc52a00bef745",
+    "Assets/Scripts/ForgeEconomy.cs": "4b00304cbe60bd991d346729d25e2888d4e968ec5d4e182e407e1501d04ec233",
+    "Assets/Scripts/ForgeBlacksmiths.cs": "0d345218a4684dbc8459f6b2443626e85ecc804ea57b21e4b0c232df9de1a7c1",
+    "Assets/Scripts/BlueprintCrafting.cs": "ed5a136331d4d4c7c400708d2cea386cb88fc12a446faffffaca0e58c81206f4",
+    "Assets/Scripts/ForgeExpansion.cs": "fe6ecc2f345ab491e457a3632e168562f7b8ce28463176f19040c6ff56ad1d29",
+    "Assets/Scripts/ForgeCampaign.cs": "220bcd6a39d8998711099cde502215365c2a493ccb221eed514fc1683e399b82",
+    "Assets/Scripts/ForgeProgress.cs": "3164cad109c0d543a469324e07bb81fb061f52bdc9fe6e3e0c34a12497938cc1",
+    "Assets/Scripts/BlueprintGuide.cs": "3de763b6734ab7fc8d029a02b94449e81af07cc49eb24abb157a0bcd1a277514",
+    "Assets/Scripts/ForgeGameBridge.cs": "7fd4fe20b3de1d6bbc6c8505d3fc5248a1b7dbec445b094744ba37afd347d08f",
+    "Assets/Scripts/ForgeGameGuide.cs": "adc80f072eacf91e9c8222ca0bab500a07b8f2a014d11f0801432e7b18708098",
+    "AgentScripts/BalancePlaytest.cs": "5934a0dfda5d4dcabbaaea85bca467fd2b882f89fa7980dfc9c8a440eb881491",
+    "AgentScripts/BalanceGuards.cs": "8040be0fbd93840ea0bd7ef89a32158ebd74980ed8758981270f9c697656750f",
+    "AgentScripts/BalanceLiveCheck.cs": "e71f48952a5440a3bfa623ad91b5047146488e71142295e570a3cd8521b3f65a"
+  }
+}

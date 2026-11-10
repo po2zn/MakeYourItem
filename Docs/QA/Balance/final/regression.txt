@@ -1,0 +1,39 @@
+PASS purchase DAG, prices, stock bounds, bundles, speeds, save compatibility
+PASS basic: iron 1 / cost 0 / base 28 / bonus 0 / profit 28
+PASS extra successful heat: cost 0 / same state / sale 28 / profit 28
+PASS preview versus committed ledger and balances
+PASS preview is isolated from existing shop and caller balances
+PASS hot submission: zero value, cost remains 0
+PASS unshaped submission: zero value
+PASS cold strike executes without shaping
+PASS zero gold: all forging processes succeed
+PASS no iron: no money or material consumed
+PASS compile failure: whole run has zero cost
+PASS sell same ID repeatedly: pay exactly 28 once
+PASS select second product: retain first cost and identity
+PASS failed spend changes neither ledger nor balances
+PASS immutable record is unaffected by later ledger spending
+TOTAL 14 passed
+
+PASS hot and cold water, stock depletion and price
+PASS handle material selection, atomic failures and stepping
+PASS polish plating, star frost and dragon refinement
+PASS lucky daily identity, validation, duplicate application and midnight
+PASS stack set mutation and safe errors
+PASS seals reverse order, damage and bounded bonus
+PASS runes duplicate family does not consume material
+PASS fixed resonance target and successful attachment
+PASS timed magic decay and acceleration
+PASS recovery and absorption prevent reuse
+PASS purchase gates and all expansion examples
+PASS translation preserves literals strings comments and execution
+TOTAL expansion 12 passed
+
+PASS campaign route: 572 sales, revenue 275798G, balance 2068G; final value 1149G
+basic: sale 69G / materials 9G / net 60G
+silver: sale 179G / materials 29G / net 150G
+star: sale 281G / materials 64G / net 217G
+charged: sale 431G / materials 94G / net 337G
+dragon: sale 909G / materials 142G / net 767G
+final: sale 1149G / materials 232G / net 917G
+PASS improved process ROI, 1/2/3 diamond tiers, no invalid rewards, curse protection and 25% unprotected destruction

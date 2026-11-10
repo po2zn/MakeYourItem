@@ -20,7 +20,7 @@ public static class ForgeCampaignChecks
         public void Buy(string id)
         {
             var offer=ForgeTechnology.Find(id);
-            while(Gold<offer.Price+250){Craft(Recipe);Require(Sales<200,"progression stalled");}
+            while(Gold<offer.Price+250){Craft(Recipe);Require(Sales<200000,"progression stalled");}
             Require(Tech.TryPurchase(offer,ref Gold,ref Iron,ref Stocks,false,out var message),message);
         }
         public ForgeProduct Craft(string source)

@@ -90,7 +90,7 @@ public sealed partial class BlueprintRuntime
         case BlueprintFeature.Protect:if(d.protectedItem)Fail("이미 보호 중입니다.");Consume(6);d.protectedItem=true;Action(667,p,"저주 파괴 보호 적용");break;
         case BlueprintFeature.Curse:
             if(d.cursed)Fail("저주는 한 번만 적용할 수 있습니다.");randomState=unchecked(randomState*1664525u+1013904223u);bool broken=randomState%4==0;d.cursed=true;
-            if(broken){if(d.protectedItem)d.protectedItem=false;else d.destroyed=true;}Action(666,p,d.destroyed?"저주 실패 · 작업물 파괴":"저주 적용 · 판매가 10배");break;
+            if(broken){if(d.protectedItem)d.protectedItem=false;else d.destroyed=true;}Action(666,p,d.destroyed?"저주 실패 · 작업물 파괴":"저주 적용 · 판매가 "+ForgeBalance.CurseMultiplier+"배");break;
         case BlueprintFeature.Recover:
             if(d.recovered)Fail("이미 회수한 작업물입니다.");d.recovered=true;if(p.material>0)usedMaterials[p.material]=Math.Max(0,usedMaterials[p.material]-1);Action(404,p,"바탕 재료 회수 · 추가 부품과 소모 재료는 회수하지 않습니다.");result.steps[result.steps.Count-1].refund=p.material;
             if(p.material==1)iron++;else if(p.material>1&&stocks!=null){stocks.TryGetValue(p.material,out long amount);stocks[p.material]=amount+1;}break;

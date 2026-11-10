@@ -30,7 +30,7 @@ public static class ForgeBlacksmithChecks
         state.Chances(0,33,out _,out double fire);Require(fire==.5,"burning probability");
         state.smiths[0].favor=99;state.smiths[0].required=1;state.Gift(0,1,ref diamonds);Require(state.smiths[0].favor==100,"upper clamp");
         state.smiths[0].favor=-99;state.smiths[0].required=1;state.Gift(0,2,ref diamonds);Require(state.smiths[0].favor==-100,"lower clamp");
-        for(int tier=0;tier<5;tier++){int before=diamonds;Require(state.Hire(ref diamonds,33)&&state.smiths.Count==ForgeBlacksmiths.Counts[tier+1]&&before-diamonds==ForgeBlacksmiths.HireCosts[tier],"hire tier "+tier);}
+        diamonds=ForgeBlacksmiths.HireCosts.Sum()+100;for(int tier=0;tier<5;tier++){int before=diamonds;Require(state.Hire(ref diamonds,33)&&state.smiths.Count==ForgeBlacksmiths.Counts[tier+1]&&before-diamonds==ForgeBlacksmiths.HireCosts[tier],"hire tier "+tier);}
         Require(!state.Hire(ref diamonds,33),"max hire cap");
         state.runes.Add(new ForgeBlacksmiths.GiantRune{rune=1,x=0,y=0});state.runes.Add(new ForgeBlacksmiths.GiantRune{rune=7,x=0,y=1});
         Require(Math.Abs(state.RuneBonus(0,1)-.03)<1e-8&&state.RuneBonus(15,1)==0,"rune range and strongest only");

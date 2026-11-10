@@ -1,0 +1,4 @@
+PASS 154 numeric/English pages; minimum guide/code window sizes; fold/unfold; diagnostic reveal; material tooltips.
+PASS 800x600, 1280x720, 1920x1080, 3840x2160 guide text metrics.
+All four final guide captures visually reviewed: duplicate description removed, toast no longer overlaps open book, long prose remains scrollable.
+Shortened GuideNew button label to fit.

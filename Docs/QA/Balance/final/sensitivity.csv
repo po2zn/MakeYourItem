@@ -1,0 +1,7 @@
+cohort,seed,ending_seconds,total_seconds,engine_seconds,assumed_learning_seconds,assumed_interaction_seconds,tree25_seconds,tree50_seconds,tree75_seconds,sales,crafts,failures,gold,workers
+novice_human_time_x0.5,1,8330.85,8330.85,1946.85,2580.00,3804.00,3615.02,7386.97,-1.00,617,637,44,3131,2
+novice_human_time_x1.5,1,18625.67,18625.67,1955.67,7740.00,8930.00,8342.28,16698.50,-1.00,610,644,58,4900,2
+intermediate_human_time_x0.5,1,3980.60,3980.60,1688.10,1470.00,822.50,2032.40,3167.60,-1.00,452,455,16,4504,3
+intermediate_human_time_x1.5,1,8251.52,8251.52,1704.02,4410.00,2137.50,3864.67,6615.10,-1.00,443,459,35,5575,3
+expert_human_time_x0.5,1,2343.70,2343.70,1633.70,530.00,180.00,1122.67,1858.82,-1.00,671,665,20,13944,3
+expert_human_time_x1.5,1,3910.54,3910.54,1735.54,1657.50,517.50,1948.58,3147.83,-1.00,682,690,27,17526,3

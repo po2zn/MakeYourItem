@@ -1,0 +1,138 @@
+cohort,seed,seconds,event,detail,gold,sales,nodes,workers
+novice,1,1440.00,recipe,m1-0 net=60G seconds=4.10,100,0,0,1
+novice,1,1733.70,purchase,automation-root cost=1200,134,18,1,1
+novice,1,2002.50,purchase,function-Heat cost=500,114,26,2,1
+novice,1,2271.30,purchase,function-Polish cost=800,104,35,3,1
+novice,1,2817.70,purchase,material-5 cost=1800,347,61,4,1
+novice,1,3496.80,purchase,function-Plate cost=2400,106,92,5,1
+novice,1,3856.80,recipe,m1-1 net=125G seconds=5.73,106,92,5,1
+novice,1,5435.47,purchase,material-7 cost=12000,122,172,6,1
+novice,1,5795.47,recipe,m7-1 net=192G seconds=5.73,122,172,6,1
+novice,1,6154.67,purchase,function-Lucky cost=2400,148,185,7,1
+novice,1,6387.42,purchase,material-4 cost=1000,258,190,8,1
+novice,1,6655.82,purchase,function-Fuel cost=1400,348,197,9,1
+novice,1,7597.82,purchase,function-Wrap cost=8000,128,232,10,1
+novice,1,7849.12,purchase,speed-1 cost=1200,260,238,11,1
+novice,1,8454.32,purchase,speed-2 cost=6000,148,262,12,1
+novice,1,9696.72,purchase,speed-3 cost=18000,302,322,13,1
+novice,1,9993.83,purchase,material-6 cost=3200,300,331,14,1
+novice,1,10602.33,purchase,function-Charge cost=6000,906,358,15,1
+novice,1,10962.33,recipe,m7-3 net=342G seconds=3.13,906,358,15,1
+novice,1,12237.33,purchase,function-Rune cost=30000,388,431,16,1
+novice,1,12597.33,recipe,m7-7 net=492G seconds=3.98,388,431,16,1
+novice,1,12697.25,hire,tier=1,2172,435,16,2
+novice,1,14535.92,purchase,material-9 cost=100000,970,595,17,2
+novice,1,16154.67,purchase,function-Refine cost=80000,1528,740,18,2
+novice,1,16514.67,recipe,m7-15 net=922G seconds=5.28,1528,740,18,2
+novice,1,23184.35,purchase,master-commission cost=600000,1676,1328,19,2
+novice,1,23321.35,ending,master,2568,1329,19,2
+novice,1,23321.35,purchase,function-Abs cost=300,2268,1329,20,2
+novice,1,23441.35,purchase,function-Len cost=300,1968,1329,21,2
+novice,1,23561.35,purchase,function-Min cost=600,1368,1329,22,2
+novice,1,23698.63,purchase,function-Max cost=1000,2212,1331,23,2
+novice,1,23818.63,purchase,function-Set cost=600,1612,1331,24,2
+novice,1,23955.92,purchase,function-Random cost=1000,2456,1333,25,2
+novice,1,24075.92,purchase,function-IsDay cost=800,1656,1333,26,2
+novice,1,24356.90,purchase,material-8 cost=18000,2060,1348,27,2
+novice,1,24494.18,purchase,function-Inspect cost=1200,2704,1350,28,2
+novice,1,24772.45,purchase,function-Magic cost=16000,1456,1366,29,2
+novice,1,25530.95,purchase,function-Resonate cost=50000,1006,1421,30,2
+novice,1,26007.48,purchase,function-Protect cost=24000,1894,1449,31,2
+novice,1,33061.85,purchase,function-Curse cost=600000,2066,2049,32,2
+novice,1,33199.70,purchase,function-Recover cost=1800,6666,2051,33,2
+novice,1,33428.95,purchase,speed-4 cost=60000,2730,2062,34,2
+novice,1,34130.02,purchase,speed-5 cost=180000,20992,2116,35,2
+intermediate,1,720.00,recipe,m1-0 net=60G seconds=4.10,100,0,0,1
+intermediate,1,902.00,purchase,automation-root cost=1200,150,20,1,1
+intermediate,1,1290.50,purchase,function-Lucky cost=2400,118,56,2,1
+intermediate,1,1420.00,purchase,function-Heat cost=500,158,62,3,1
+intermediate,1,1569.25,purchase,function-Polish cost=800,168,71,4,1
+intermediate,1,1728.42,purchase,material-5 cost=1800,120,83,5,1
+intermediate,1,2056.25,purchase,function-Plate cost=2400,127,109,6,1
+intermediate,1,2236.25,recipe,m1-1 net=155G seconds=6.55,127,109,6,1
+intermediate,1,2317.10,purchase,material-4 cost=1000,212,116,7,1
+intermediate,1,2491.05,purchase,function-Fuel cost=1400,207,125,8,1
+intermediate,1,2988.40,purchase,function-Wrap cost=8000,111,164,9,1
+intermediate,1,3168.40,recipe,m1-32 net=906G seconds=14.72,111,164,9,1
+intermediate,1,3227.55,purchase,speed-1 cost=1200,690,166,10,1
+intermediate,1,3405.85,purchase,speed-2 cost=6000,4183,173,11,1
+intermediate,1,3585.85,recipe,m1-33 net=971G seconds=8.35,4183,173,11,1
+intermediate,1,3822.80,purchase,speed-3 cost=18000,675,188,12,1
+intermediate,1,4011.00,purchase,material-7 cost=12000,3224,199,13,1
+intermediate,1,4191.00,recipe,m7-33 net=1038G seconds=5.68,3224,199,13,1
+intermediate,1,4212.37,purchase,material-6 cost=3200,1022,200,14,1
+intermediate,1,4325.78,purchase,function-Charge cost=6000,212,205,15,1
+intermediate,1,4505.78,recipe,m7-35 net=1158G seconds=6.53,212,205,15,1
+intermediate,1,4815.65,purchase,function-Rune cost=30000,4928,229,16,1
+intermediate,1,4995.65,recipe,m7-39 net=1308G seconds=7.38,4928,229,16,1
+intermediate,1,5758.65,purchase,material-9 cost=100000,1704,290,17,1
+intermediate,1,6063.93,hire,tier=1,22008,306,17,2
+intermediate,1,6416.83,purchase,function-Refine cost=80000,5822,343,18,2
+intermediate,1,6596.83,recipe,m7-47 net=1738G seconds=8.68,5822,343,18,2
+intermediate,1,6812.08,purchase,speed-4 cost=60000,1054,372,19,2
+intermediate,1,7507.02,purchase,speed-5 cost=180000,3010,472,20,2
+intermediate,1,9085.91,purchase,master-commission cost=600000,11860,803,21,2
+intermediate,1,9151.51,ending,master,12754,804,21,2
+intermediate,1,9151.51,purchase,function-Abs cost=300,13578,805,22,2
+intermediate,1,9211.51,purchase,function-Len cost=300,13278,805,23,2
+intermediate,1,9271.51,purchase,function-Min cost=600,12678,805,24,2
+intermediate,1,9331.51,purchase,function-Max cost=1000,11678,805,25,2
+intermediate,1,9391.51,purchase,function-Set cost=600,11078,805,26,2
+intermediate,1,9451.51,purchase,function-Random cost=1000,10078,805,27,2
+intermediate,1,9511.51,purchase,function-IsDay cost=800,9278,805,28,2
+intermediate,1,9605.22,purchase,material-8 cost=18000,1728,811,29,2
+intermediate,1,9673.13,purchase,function-Inspect cost=1200,14332,814,30,2
+intermediate,1,9741.03,purchase,function-Magic cost=16000,2064,816,31,2
+intermediate,1,9921.03,recipe,m7-63 net=1933G seconds=5.93,2064,816,31,2
+intermediate,1,10022.23,purchase,function-Resonate cost=50000,6487,839,32,2
+intermediate,1,10202.23,recipe,m7-127 net=2553G seconds=7.52,6487,839,32,2
+intermediate,1,10262.35,purchase,function-Protect cost=24000,5434,848,33,2
+intermediate,1,11494.91,hire,tier=2,582478,1058,33,3
+intermediate,1,11644.98,purchase,function-Curse cost=600000,5455,1067,34,3
+intermediate,1,11704.98,purchase,function-Recover cost=1800,3655,1067,35,3
+expert,1,285.00,recipe,m1-0 net=60G seconds=4.10,100,0,0,1
+expert,1,387.00,purchase,automation-root cost=1200,150,20,1,1
+expert,1,611.00,purchase,function-Lucky cost=2400,150,60,2,1
+expert,1,642.83,purchase,function-Heat cost=500,335,63,3,1
+expert,1,680.58,purchase,material-4 cost=1000,597,68,4,1
+expert,1,759.75,purchase,function-Fuel cost=1400,106,78,5,1
+expert,1,1251.17,purchase,function-Wrap cost=8000,318,160,6,1
+expert,1,1316.17,recipe,m1-32 net=906G seconds=14.72,318,160,6,1
+expert,1,1347.60,purchase,speed-1 cost=1200,939,162,7,1
+expert,1,1461.90,purchase,speed-2 cost=6000,375,168,8,1
+expert,1,1618.17,purchase,speed-3 cost=18000,573,185,9,1
+expert,1,2027.52,purchase,speed-4 cost=60000,700,243,10,1
+expert,1,2400.60,hire,tier=1,61270,310,10,2
+expert,1,2739.68,purchase,speed-5 cost=180000,659,429,11,2
+expert,1,2763.38,purchase,function-Polish cost=800,1671,431,12,2
+expert,1,2787.08,purchase,material-5 cost=1800,1683,433,13,2
+expert,1,2810.77,purchase,function-Plate cost=2400,1095,435,14,2
+expert,1,2849.26,purchase,material-7 cost=12000,483,446,15,2
+expert,1,2914.26,recipe,m7-32 net=973G seconds=3.20,483,446,15,2
+expert,1,2917.95,purchase,material-6 cost=3200,1068,449,16,2
+expert,1,2949.04,purchase,function-Charge cost=6000,974,455,17,2
+expert,1,3031.89,purchase,function-Rune cost=30000,933,486,18,2
+expert,1,3096.89,recipe,m7-36 net=1123G seconds=3.73,933,486,18,2
+expert,1,3291.09,purchase,material-9 cost=100000,722,575,19,2
+expert,1,3471.47,purchase,function-Refine cost=80000,2703,644,20,2
+expert,1,3536.47,recipe,m7-43 net=1588G seconds=4.87,2703,644,20,2
+expert,1,3579.46,purchase,function-Protect cost=24000,2357,659,21,2
+expert,1,4528.93,purchase,function-Curse cost=600000,1927,998,22,2
+expert,1,4593.93,recipe,m7-47 net=5696G seconds=5.76,1927,998,22,2
+expert,1,4806.65,hire,tier=2,353363,1060,22,3
+expert,1,4924.48,purchase,master-commission cost=600000,10977,1096,23,3
+expert,1,4948.08,ending,master,11405,1097,23,3
+expert,1,4948.08,purchase,function-Abs cost=300,13353,1099,24,3
+expert,1,4968.08,purchase,function-Len cost=300,13053,1099,25,3
+expert,1,4988.08,purchase,function-Min cost=600,12453,1099,26,3
+expert,1,5008.08,purchase,function-Max cost=1000,11453,1099,27,3
+expert,1,5028.08,purchase,function-Set cost=600,10853,1099,28,3
+expert,1,5048.08,purchase,function-Random cost=1000,9853,1099,29,3
+expert,1,5068.08,purchase,function-IsDay cost=800,9053,1099,30,3
+expert,1,5094.34,purchase,material-8 cost=18000,8141,1102,31,3
+expert,1,5114.34,purchase,function-Inspect cost=1200,6941,1102,32,3
+expert,1,5140.60,purchase,function-Magic cost=16000,8029,1105,33,3
+expert,1,5205.60,recipe,m7-63 net=6341G seconds=6.29,8029,1105,33,3
+expert,1,5225.96,purchase,function-Resonate cost=50000,15098,1114,34,3
+expert,1,5290.96,recipe,m7-127 net=8261G seconds=7.88,15098,1114,34,3
+expert,1,5290.96,purchase,function-Recover cost=1800,13298,1114,35,3

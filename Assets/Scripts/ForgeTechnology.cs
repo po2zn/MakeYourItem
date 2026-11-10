@@ -24,7 +24,7 @@ public sealed class ForgeTechnology
         public Offer(int material,int price):this("stock-"+material,ForgePurchaseKind.Material,price,ForgeMaterialGuide.Find(material).Heading,"보유 재고에 추가됩니다.",0,0,material,BlueprintFeature.None,material>3?new[]{"material-"+material}:Array.Empty<string>()){}
         public Offer(BlueprintFeature feature,int price):this("function-"+feature,ForgePurchaseKind.Function,price,BlueprintAliases.Find(feature).Symbol+"() · "+BlueprintAliases.Find(feature).English,BlueprintAliases.Find(feature).Description,1,0,0,feature,Array.Empty<string>()){}
         internal Offer(string id,ForgePurchaseKind kind,int price,string name,string description,int tier,int lane,int material,BlueprintFeature feature,params string[] parents)
-        {Id=id;Kind=kind;Price=price;Name=name;Description=description;Tier=tier+(kind!=ForgePurchaseKind.Material&&id!=AutomationRoot?1:0);Lane=lane;Material=material;Feature=feature;
+        {Id=id;Kind=kind;Price=kind==ForgePurchaseKind.Material?price:ForgeBalance.ResearchPrice(id,price);Name=name;Description=description;Tier=tier+(kind!=ForgePurchaseKind.Material&&id!=AutomationRoot?1:0);Lane=lane;Material=material;Feature=feature;
             Parents=Array.AsReadOnly(parents.Length==0&&kind!=ForgePurchaseKind.Material&&id!=AutomationRoot?new[]{AutomationRoot}:parents);
             Features=Array.AsReadOnly(id==AutomationRoot?(BlueprintFeature[])ControlFeatures.Clone():kind!=ForgePurchaseKind.Function?Array.Empty<BlueprintFeature>():id=="speed-5"?new[]{BlueprintFeature.Speed,BlueprintFeature.AutoSell}:feature==BlueprintFeature.IsDay?new[]{feature,BlueprintFeature.NightTime}:feature==BlueprintFeature.Lucky?new[]{feature,BlueprintFeature.LuckyCode}:new[]{feature});}
     }

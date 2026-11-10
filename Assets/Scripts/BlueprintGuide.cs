@@ -17,7 +17,8 @@ public static class BlueprintGuide
         public bool IsFunctionReference => Alias!=null&&Alias.Syntax==BlueprintSyntaxKind.Builtin||Id=="1"||Id=="2"||Id=="3"||Id=="4"||Id=="finish";
         public BlueprintAlias Alias => BlueprintAliases.Find(Feature);
         public string Heading => FormatHeading(true);
-        public string Description => (Alias==null?"":Alias.Description+"\n"+Alias.Signature+"\n\n")+Body;
+        public string Description => Describe(Body);
+        string Describe(string body)=>Alias==null?body:Alias.Description+"\n"+Alias.Signature+(body==Alias.Description?"":"\n\n"+body);
         public Entry(string id,string section,string title,string body,string example,string expected,string note,BlueprintFeature feature,string numericTitle=null,string numericBody=null,string numericExample=null,string numericNote=null)
         {this.numericTitle=numericTitle??title;this.numericBody=numericBody??body;this.numericExample=numericExample??example;this.numericNote=numericNote??note;Id=id;Section=BlueprintResearchGuide.SectionFor(feature,section);Title=title;Body=body;Example=example;Expected=expected;Note=note;Feature=feature;}
         public string HeadingFor(bool englishUnlocked) => FormatHeading(englishUnlocked);
@@ -38,7 +39,7 @@ public static class BlueprintGuide
             }
             return (english&&alias.Symbol.Length>0?symbol+" / "+alias.English:symbol)+" · "+title;
         }
-        public string DescriptionFor(bool englishUnlocked) => englishUnlocked?Description:(Alias==null?"":Alias.Description+"\n"+Alias.Signature+"\n\n")+numericBody;
+        public string DescriptionFor(bool englishUnlocked) => Describe(englishUnlocked?Body:numericBody);
         public string ExampleFor(bool englishUnlocked) => englishUnlocked?Example:numericExample;
         public string NoteFor(bool englishUnlocked) => englishUnlocked?Note:numericNote;
         public bool Matches(string query,bool englishUnlocked)

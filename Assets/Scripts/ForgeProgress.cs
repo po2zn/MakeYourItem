@@ -148,7 +148,7 @@ public partial class ForgeMvp
         ForgeTextLayout.LayoutLabel("발견 도감");
         if(discoveries.Count==0)ForgeTextLayout.LayoutLabel("아직 발견한 특성이 없습니다.");
         foreach(var discovery in discoveries)ForgeTextLayout.LayoutLabel(discovery+" · "+DiscoveryRule(discovery));
-        ForgeTextLayout.LayoutLabel("미정 기획의 현재 규칙: 행운 완성 검은 판매 +30G, 제작 시 다이아 1개. 다이아는 재료 구매와 분리된 수집 재화입니다.");
+        ForgeTextLayout.LayoutLabel("행운 완성 검은 판매 +30G와 다이아 기본 1개. 별무늬 별철 검 +1개, 최종 의뢰 조건의 명작 +1개로 최대 3개입니다. 다이아는 대장장이 연구·고용·선물·거대한 룬에 사용합니다.");
         bool old=GUI.enabled;GUI.enabled=!busy&&executionSession==null;
         if(GUILayout.Button("공방 저장"))SaveProgress();
         if(GUILayout.Button("현재 도면을 숫자 표기로 변환"))TranslateCurrent(false);
@@ -163,6 +163,7 @@ public partial class ForgeMvp
         switch(name){
             case "담금질 경도 7":return "열 6 이상인 성형 검날을 물(3)로 냉각";
             case "손잡이":return "성형하고 식힌 검날에 철·나무·은·별철로 손잡이 제작, 또는 정제 용뼈 장착";
+            case "연마":return "식힌 성형 검날을 연마하여 판매 가치 향상";
             case "은도금":return "검날을 식힌 뒤 연마하고 은도금";
             case "별무늬":return "성형한 별철 검날이 열 7일 때 냉각";
             case "서리 문양":return "검날의 열과 서리수의 열 4의 차이가 3 이하";
