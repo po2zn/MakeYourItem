@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using UnityEngine;
 
 // Ending is awarded from a committed product, never from a preview or source text.
@@ -16,6 +16,7 @@ public static class ForgeCampaign
     public static string Objective(ForgeTechnology tech,int sales,bool completed)
     {
         if(completed)return "명장 달성 · 새로운 조합으로 자유 제작을 계속하세요.";
+        if(!tech.Owns(ForgeTechnology.AutomationRoot))return "첫 연구: 기본 검을 제작·판매하고 제어문을 150G로 해금하세요. 이후 모든 분야에 투자할 수 있습니다.";
         if(sales==0)return "첫 목표: 기본 검을 만들어 판매하세요. 철·나무·물은 바로 구매할 수 있습니다.";
         if(!tech.Owns("material-5")&&!tech.Owns("material-6"))return "다음 목표: 금속(은 공급) 또는 마력(수정 공급) 분야에 투자하세요.";
         if(!tech.Owns("material-7"))return "금속 성장: 연마 → 은 공급 → 도금 → 별철 공급.";
@@ -36,9 +37,11 @@ public partial class ForgeMvp
     {
         GUILayout.Space(12);
         GUILayout.Label("성장 목표 · "+CampaignObjective);
+        GUILayout.Label("공통 시작: 기본 제작 → 제어문 해금(150G) → 다섯 분야로 분기");
         GUILayout.Label("금속: 열 조회 → 연마 → 은 → 도금 → 별철 → 용뼈 → 정제");
         GUILayout.Label("마력: 수정 → 충전 → 룬 / 보호 · 상태 조회 → 마력 단조 → 공명");
-        GUILayout.Label("운영: 석탄 → 연료 → 봉인 → 가속 → 자동판매");
+        GUILayout.Label("운영: 석탄 → 연료 → 봉인 → 스피드 1~5단계 → 자동판매 무료 해금");
+        GUILayout.Label("기술 연구: 절댓값 → 최솟값 → 최댓값 / 길이 → 집합 → 난수");
         GUILayout.Label("최종 의뢰: "+ForgeCampaign.FinalGoal);
         GUILayout.Label("의뢰 "+(technology.Owns(ForgeTechnology.MasterCommission)?"수락 완료":"미수락")+" · 엔딩 "+(campaignComplete?"달성":"미달성"));
         if(GUILayout.Button("성장 트리 열기")){showProgress=false;OpenTechTree();}

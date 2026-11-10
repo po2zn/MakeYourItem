@@ -52,6 +52,8 @@ public sealed partial class BlueprintRuntime
             result.steps.Add(new ForgeMvp.Step{line=currentLine,module=currentModule.IsMain?null:currentModule.Name,process=-1,duration=duration,productionSeconds=productionSeconds,text="대기 "+duration+"초"});return null;
         case BlueprintFeature.Speed:case BlueprintFeature.AutoSell:
             int setting=Int(args[0]);if(feature==BlueprintFeature.Speed?(setting<1||setting>5):(setting<0||setting>1))Fail("가속은 1~5, 자동판매는 0 또는 1입니다.");
+            if(feature==BlueprintFeature.Speed&&moduleTechnology!=null&&setting>moduleTechnology.MaxSpeedLevel)
+                Fail("테크 트리에서 스피드 "+setting+"단계를 먼저 구매하세요. 현재 해금: "+moduleTechnology.MaxSpeedLevel+"단계");
             if(feature==BlueprintFeature.Speed)context.Speed=setting;
             result.steps.Add(new ForgeMvp.Step{line=currentLine,module=currentModule.IsMain?null:currentModule.Name,process=-2,setting=feature==BlueprintFeature.Speed?1:2,settingValue=setting,duration=0,text=feature==BlueprintFeature.Speed?"가속 "+setting+"배":"자동판매 "+(setting==1?"켜짐":"꺼짐")});return null;
         }

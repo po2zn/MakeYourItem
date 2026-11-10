@@ -53,6 +53,7 @@ public static class ForgeCampaignChecks
     {
         var run=new Run();
         run.Craft(Base);
+        run.Buy(ForgeTechnology.AutomationRoot);
         foreach(var id in new[]{"function-Heat","function-Polish","material-5","function-Plate"})run.Buy(id);
         run.Recipe=Plated;
         run.Buy("material-7");run.Recipe=Star;

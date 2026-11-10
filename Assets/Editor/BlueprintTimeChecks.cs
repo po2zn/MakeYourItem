@@ -21,11 +21,13 @@ public static class BlueprintTimeChecks
    Require((int)session.Evaluation.values["a"]==1050&&(int)session.Evaluation.values["b"]==1&&(int)session.Evaluation.values["c"]==0,"live stepped clock");
   }
   var tech=new ForgeTechnology();int gold=100,iron=0;ForgeMaterialStock[] stocks=null;
+  tech.Restore(new[]{BlueprintFeature.If});
+  Require(ForgeMvp.Evaluate("print(12(),24(),24(60))",technology:tech).compileError,"time bundle starts locked");
+  var timeOffer=ForgeTechnology.Find("function-IsDay");
+  Require(tech.TryPurchase(timeOffer,ref gold,ref iron,ref stocks,false,out var purchaseMessage),purchaseMessage);
+  Require(gold==60,"time bundle charged once");
   foreach(var feature in new[]{BlueprintFeature.IsDay,BlueprintFeature.NightTime}){
    string source=feature==BlueprintFeature.IsDay?"print(12())":"print(24(),24(60))";
-   Require(ForgeMvp.Evaluate(source,technology:tech).compileError,"locked");
-   var offer=ForgeTechnology.Offers.First(o=>o.Feature==feature);
-   Require(tech.TryPurchase(offer,ref gold,ref iron,ref stocks,false,out var message),message);
    Require(ForgeMvp.Evaluate(source,technology:tech,clockHour:()=>23).error==null,"unlocked");
   }
   var modules=new Dictionary<string,string>{{"clockwork","def read():\n    return 24(60)"}};

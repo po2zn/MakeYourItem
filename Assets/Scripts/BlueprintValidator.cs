@@ -74,6 +74,8 @@ public sealed class BlueprintValidator
             if(s.Error!=null)continue;
             try {
             if(ended)Error(s.Token,"완성품 반환 뒤에는 명령을 쓸 수 없습니다.");
+            if(technology!=null&&Array.IndexOf(ForgeTechnology.ControlFeatures,s.Token.Feature)>=0&&!technology.Owns(s.Token.Feature))
+                Error(s.Token,"먼저 테크 트리의 '제어문 해금 · 자동화 시작'을 구매하세요: "+s.Token.Raw);
             switch(s.Kind) {
                 case BlueprintStatementKind.Import:
                 case BlueprintStatementKind.FromImport:

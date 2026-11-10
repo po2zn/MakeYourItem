@@ -40,6 +40,9 @@ public partial class ForgeMvp
             gold=saved.gold;iron=saved.iron;worldSeed=saved.seed;diamonds=saved.diamonds;totalSales=saved.sales;tutorialStage=saved.tutorial;earnedGold=saved.earned;
             lesson=ForgeTutorialLesson.Restore(saved.introStage,saved.introCode);
             craftSpeed=Mathf.Clamp(saved.speed,1,5);autoSell=saved.autoSell;materialStocks=saved.stocks??Array.Empty<ForgeMaterialStock>();technology.Restore(saved.features,saved.technologyNodes,saved.stocks);campaignComplete=saved.campaignComplete;endingSeen=saved.endingSeen;
+            craftSpeed=Mathf.Clamp(craftSpeed,1,Math.Max(1,technology.MaxSpeedLevel));
+            bool legacySpeed=saved.technologyNodes==null?Array.Exists(saved.features??Array.Empty<BlueprintFeature>(),f=>f==BlueprintFeature.Speed||f==BlueprintFeature.AutoSell):Array.Exists(saved.technologyNodes,id=>id=="function-Speed"||id=="function-AutoSell");
+            autoSell=technology.Owns(BlueprintFeature.AutoSell)&&(saved.autoSell||legacySpeed);
             DayCycle.Clock.Restore(saved.day,saved.hour);
             foreach(var entry in saved.discoveries??Array.Empty<string>())discoveries.Add(entry);
             foreach(var item in items)shop.Add(item);

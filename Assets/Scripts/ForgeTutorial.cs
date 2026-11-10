@@ -83,7 +83,7 @@ public partial class ForgeMvp
         Rect panel=new Rect(12,24,width,Mathf.Max(160,Screen.height-48));
         Color old=GUI.color;GUI.color=TutorialTint(new Color(.09f,.13f,.19f,.97f));GUI.DrawTexture(panel,Texture2D.whiteTexture);GUI.color=old;
         GUILayout.BeginArea(new Rect(panel.x+24,panel.y+24,width-48,Mathf.Max(1,panel.height-196)));
-        tutorialWelcomeScroll=GUILayout.BeginScrollView(tutorialWelcomeScroll);
+        tutorialWelcomeScroll=GUILayout.BeginScrollView(tutorialWelcomeScroll,false,false,GUIStyle.none,GUIStyle.none);
         GUILayout.Label("나만의 대장간에 오신 것을 환영합니다",tutorialTitleStyle);
         GUILayout.Space(20);
         GUILayout.Label("이곳에서는 여러분이 쓴 코드가 대장장이의 작업 지시가 됩니다. 재료를 고르고, 불로 달구고, 망치로 두드리며 나만의 검을 만들어 보세요.",tutorialBodyStyle);
@@ -210,7 +210,8 @@ public partial class ForgeMvp
         float noteHeight=Mathf.Ceil(tutorialBodyStyle.CalcHeight(new GUIContent(footerNote),contentWidth))+4;
         float footerHeight=12+noteHeight+12+54+12+54+20;
         GUILayout.BeginArea(new Rect(panel.x+inset,panel.y+24,contentWidth,Mathf.Max(1,panel.height-48-footerHeight)));
-        tutorialScroll=GUILayout.BeginScrollView(tutorialScroll,false,true);
+        // Keep wheel scrolling without the oversized, always-visible drag bar.
+        tutorialScroll=GUILayout.BeginScrollView(tutorialScroll,false,false,GUIStyle.none,GUIStyle.none);
         GUILayout.Label("첫 검 만들기 · "+Mathf.Min(lesson.Stage+1,8)+" / 8",tutorialTitleStyle);
         GUILayout.Space(8);
         GUILayout.Label("연습 공방 · 실제 재고 소비 없음",tutorialBodyStyle);

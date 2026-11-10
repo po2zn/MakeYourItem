@@ -59,7 +59,13 @@ public partial class ForgeMvp : MonoBehaviour
     string purchaseMessage="선행 노드부터 구매하세요. 고급 재료는 공급 해금 후 재료 상점에서 구매합니다.";
     bool purchaseSucceeded;
     void PurchaseTechnology(ForgeTechnology.Offer offer,int quantity)
-    {purchaseSucceeded=technology.TryPurchase(offer,ref gold,ref iron,ref materialStocks,busy||executionSession!=null,out purchaseMessage,quantity);if(purchaseSucceeded)SaveProgress();}
+    {
+        purchaseSucceeded=technology.TryPurchase(offer,ref gold,ref iron,ref materialStocks,busy||executionSession!=null,out purchaseMessage,quantity);
+        if(purchaseSucceeded){
+            if(offer.SpeedLevel>0){craftSpeed=offer.SpeedLevel;if(offer.SpeedLevel==5){autoSell=true;purchaseMessage+=" · 자동판매 해금 및 활성화";}}
+            SaveProgress();
+        }
+    }
     [SerializeField, Tooltip("안내서의 영문 문법 표시 여부. 추후 구매/저장 상태에서 설정합니다.")]
     bool englishGuideUnlocked;
     public bool EnglishGuideUnlocked => englishGuideUnlocked;
@@ -98,6 +104,16 @@ public partial class ForgeMvp : MonoBehaviour
     string controlName = CodeControl;
 
     bool panning;
+    bool pointerResetPending;
+    bool WorkspacePointerActive => dragButton>=0 || edge>=0 || codePointerControl!=0;
+    void ResetPointerCapture()
+    {
+        EndWorkspaceDrag();techTree.CancelDrag();guideBook.CancelDrag();
+        edge=-1;debugResizeEdge=-1;debugInteracting=false;
+        // Native text selection, scrollbars and GUI.Window dragging also capture the mouse.
+        GUIUtility.hotControl=0;
+        SetResizeCursor(0);
+    }
     Camera workspaceCamera;
     Vector3 cameraOrigin;
     const float WorkspaceUnitsPerPixel = .01f;
@@ -113,7 +129,8 @@ public partial class ForgeMvp : MonoBehaviour
             + workspaceCamera.transform.up * workspaceOffset.y * WorkspaceUnitsPerPixel;
     }
     void LateUpdate() { UpdateWorkspaceCamera(); }
-    void OnApplicationFocus(bool focused) { if (!focused) { EndWorkspaceDrag(); techTree.CancelDrag(); guideBook.CancelDrag(); edge = -1; SetResizeCursor(0); } }
+    void OnApplicationFocus(bool focused) { if (!focused) pointerResetPending=true; }
+    void OnApplicationPause(bool paused) { if (paused) pointerResetPending=true; }
     Vector2 scroll, logs, lastMouse;
     float hoverSince;
     int edge = -1, gold = 100, iron = 10;
@@ -335,7 +352,7 @@ public partial class ForgeMvp : MonoBehaviour
     void DrawDebugContents(int id)
     {
         var ev=Event.current;
-        if(ev.type==EventType.MouseDown)debugInteracting=true;
+        if(ev.type==EventType.MouseDown&&new Rect(0,0,debugWindow.width,debugWindow.height).Contains(ev.mousePosition))debugInteracting=true;
         int resizeId=GUIUtility.GetControlID("DebugResize".GetHashCode(),FocusType.Passive);
         int edge=DebugResizeEdge(ev.mousePosition+debugWindow.position);
         if(ev.type==EventType.MouseDown&&ev.button==0&&edge>=0){debugResizeEdge=edge;debugResizeStart=debugWindow;debugResizeMouse=GUIUtility.GUIToScreenPoint(ev.mousePosition);GUIUtility.hotControl=resizeId;ev.Use();}
@@ -371,6 +388,7 @@ public partial class ForgeMvp : MonoBehaviour
     }
     void OnGUI()
     {
+        if(pointerResetPending){ResetPointerCapture();pointerResetPending=false;}
         InitializeCodeStyle();
         if(returnToTitleRequested&&!busy&&!tutorialAnimating)FinishTitleReturn();
         if(showTitle){DrawTitle();return;}
@@ -381,9 +399,6 @@ public partial class ForgeMvp : MonoBehaviour
         if(showProgress){DrawProgress();return;}
         if(showTechTree){if(techTree.Draw(codeStyle.font,technology,gold,iron,materialStocks,busy||executionSession!=null,purchaseMessage,PurchaseTechnology,purchaseSucceeded,CampaignObjective)){showTechTree=false;GUI.FocusControl(null);}return;}
         if (!windowsInitialized) { workspaceWindow=InitialCodeWindow; windowsInitialized = true; nextWindowId = 1; codeWindows.Add(new CodeWindow { rect = workspaceWindow, id = 0, name = "f1" }); }
-        EventType resourceEvent = Event.current.type;
-        bool maskResources = deleteWindowId < 0 && DebugResourcesRect.Contains(Event.current.mousePosition) && (Event.current.isMouse || Event.current.type == EventType.ScrollWheel);
-        if(maskResources)Event.current.type=EventType.Ignore;
         EventType modalEvent = Event.current.type;
         bool modalOpen = deleteWindowId >= 0;
         if (modalOpen && Event.current.type != EventType.Layout && Event.current.type != EventType.Repaint) Event.current.type = EventType.Ignore;
@@ -399,20 +414,24 @@ public partial class ForgeMvp : MonoBehaviour
                 codePointerControl=0;
             }
         }
-        if(ev.rawType==EventType.MouseUp)codePointerControl=0;
+        // Existing pointer owners must receive drag/release before overlay hit testing.
+        EventType resourceEvent=ev.type;
+        bool pointerOwned=WorkspacePointerActive||guideBook.Dragging||debugInteracting||debugResizeEdge>=0;
+        bool maskResources=!modalOpen&&!pointerOwned&&DebugResourcesRect.Contains(ev.mousePosition)&&(ev.isMouse||ev.type==EventType.ScrollWheel);
+        if(maskResources)ev.type=EventType.Ignore;
         EventType toolbarEvent=ev.type;
-        bool maskToolbar=!panning&&(ev.mousePosition.y<ToolbarHeight||new Rect(12,Screen.height-36,190,28).Contains(ev.mousePosition))&&(ev.isMouse||ev.type==EventType.ScrollWheel);
+        bool maskToolbar=!pointerOwned&&(ev.mousePosition.y<ToolbarHeight||new Rect(12,Screen.height-36,190,28).Contains(ev.mousePosition))&&(ev.isMouse||ev.type==EventType.ScrollWheel);
         if(maskToolbar)ev.type=EventType.Ignore;
         if(showGuideBook)InitializeGuideBook();
         EventType bookUnderlyingEvent=ev.type;
-        bool maskBook=!panning&&showGuideBook&&(guideBook.Dragging||guideBook.Contains(BookWorkspacePoint(ev.mousePosition)))&&(ev.isMouse||ev.type==EventType.ScrollWheel);
+        bool maskBook=(!pointerOwned||guideBook.Dragging)&&showGuideBook&&(guideBook.Dragging||guideBook.Contains(BookWorkspacePoint(ev.mousePosition)))&&(ev.isMouse||ev.type==EventType.ScrollWheel);
         if(maskBook)ev.type=EventType.Ignore;
         EventType debugUnderlyingEvent=ev.type;
-        bool maskDebug=!panning&&showDebugWindow&&(debugInteracting||debugWindow.Contains(ev.mousePosition))&&(ev.isMouse||ev.type==EventType.ScrollWheel);
+        bool maskDebug=!WorkspacePointerActive&&!guideBook.Dragging&&showDebugWindow&&(debugInteracting||debugWindow.Contains(ev.mousePosition))&&(ev.isMouse||ev.type==EventType.ScrollWheel);
         if(maskDebug)ev.type=EventType.Ignore;
         CodeWindow diagnosticOwner = codeWindows.Count > 0 ? codeWindows[activeWindow] : null;
         EventType diagnosticEvent = ev.type;
-        bool maskDiagnostic = !panning && diagnosticOwner != null && diagnosticOwner.showDiagnostic && diagnosticOwner.diagnostic != null
+        bool maskDiagnostic = !pointerOwned && diagnosticOwner != null && diagnosticOwner.showDiagnostic && diagnosticOwner.diagnostic != null
             && DiagnosticRect().Contains(ev.mousePosition) && (ev.isMouse || ev.type == EventType.ScrollWheel);
         if (maskDiagnostic) ev.type = EventType.Ignore;
         Vector2 mouse = ev.mousePosition / workspaceZoom;
@@ -482,7 +501,9 @@ public partial class ForgeMvp : MonoBehaviour
         if (ev.type == EventType.MouseDown && (ev.button == 0 || ev.button == 1)
             && ev.mousePosition.y > ToolbarHeight && GUIUtility.hotControl == 0)
         {
-            if (overSalesEdge >= 0 && ev.button == 0 && edge < 0)
+            if(ev.button==1&&hit>=0&&!codeWindows[hit].collapsed&&mouse.y>=codeWindows[hit].rect.y+workspaceOffset.y+34)
+            { panning=true;dragStartPosition=workspaceOffset; }
+            else if (overSalesEdge >= 0 && ev.button == 0 && edge < 0)
             { salesResizeEdge = overSalesEdge; salesResizeStart = salesWindow; }
             else if (overSales && new Rect(salesScreen.x + 8, salesScreen.y + 4, salesScreen.width - 50, 30).Contains(mouse))
             { movingSales = true; draggedTitle = false; dragStartPosition = salesWindow.position; }
@@ -567,7 +588,7 @@ public partial class ForgeMvp : MonoBehaviour
         workspaceWindow = current.rect; source = current.text; scroll = current.scroll; undoHistory = current.undo;
         controlName = CodeControl + current.id;
         EventType underlyingEvent = ev.type;
-        bool maskEditor = overSales && ev.isMouse || overSales && ev.type == EventType.ScrollWheel;
+        bool maskEditor = !WorkspacePointerActive&&overSales&&(ev.isMouse||ev.type==EventType.ScrollWheel);
         if (maskEditor) ev.type = EventType.Ignore;
         DrawCodeWindow();
         if (maskEditor) ev.type = underlyingEvent;
@@ -593,6 +614,8 @@ public partial class ForgeMvp : MonoBehaviour
         if(!modalOpen)DrawDebugResources();
         if (modalOpen) Event.current.type = modalEvent;
         if(deleteWindowId>=0)DrawDeleteDialog();
+        // Keep text selection ownership through MouseUp so overlays cannot swallow its release.
+        if(ev.rawType==EventType.MouseUp)codePointerControl=0;
     }
     Vector2 debugResourceScroll;
     Rect DebugResourcesRect {
