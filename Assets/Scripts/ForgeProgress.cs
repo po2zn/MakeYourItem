@@ -68,8 +68,8 @@ public partial class ForgeMvp
     {
         if(busy||executionSession!=null)return;
         StopSmithJobs();blacksmiths=new ForgeBlacksmiths();showSmithTree=false;
-        EndWorkspaceDrag();techTree.CancelDrag();guideBook.CancelDrag();
-        GUIUtility.hotControl=0;if(Event.current!=null)GUI.FocusControl(null);
+        EndWorkspaceDrag();CancelHierarchyTreeDrag();guideBook.CancelDrag();
+        GUIUtility.hotControl=0;if(Event.current!=null)ClearUIFocus();
         campaignComplete=false;endingSeen=false;
         gold=100;iron=10;diamonds=0;totalSales=0;earnedGold=0;tutorialStage=0;
         lesson=new ForgeTutorialLesson();showTutorial=false;tutorialAnimating=false;
@@ -97,7 +97,7 @@ public partial class ForgeMvp
         purchaseSucceeded=false;
         progressLoaded=persist;if(persist)SaveProgress();
     }
-    void OnApplicationQuit(){SaveProgress();}
+    void OnApplicationQuit(){ForgeMouseTrace.Mark("APPLICATION_QUIT","",true);SaveProgress();StopMouseTrace();}
     bool CommitExtraMaterials(Step step)
     {
         if(step.consumed==null)return true;
@@ -126,7 +126,7 @@ public partial class ForgeMvp
     void ProgressStep(Step step){if(step.process>=1&&step.process<=4)tutorialStage=Math.Max(tutorialStage,step.process);}
     void DrawProgressButton()
     {
-        if(GUI.Button(new Rect(12,Screen.height-36,190,28),"성장 목표 · 공방 기록"))showProgress=true;
+        if(ForgeTextLayout.Button(ProgressButtonRect,"성장 목표 · 공방 기록"))showProgress=true;
     }
     void DrawProgress()
     {
@@ -137,25 +137,25 @@ public partial class ForgeMvp
         if(GUILayout.Button("저장하고 타이틀로"))ReturnToTitle();
         GUI.enabled=canReturn;
         progressScroll=GUILayout.BeginScrollView(progressScroll);
-        GUILayout.Label("공방 기록 · Day "+DayCycle.Day+" · "+((int)DayCycle.CurrentHour).ToString("00")+":"+((int)(DayCycle.CurrentHour*60)%60).ToString("00"));
-        GUILayout.Label("골드 "+gold+"G · 다이아몬드 "+diamonds+" · 판매 "+totalSales+"개 · 누적 판매액 "+earnedGold+"G");
-        GUILayout.Label("가속 "+craftSpeed+"배 · 자동판매 "+(autoSell?"켜짐":"꺼짐"));
-        GUILayout.Label(lesson.Complete?"첫 검 만들기 튜토리얼 완료":"첫 검 만들기 · "+(lesson.Stage+1)+" / 8 단계");
+        ForgeTextLayout.LayoutLabel("공방 기록 · Day "+DayCycle.Day+" · "+((int)DayCycle.CurrentHour).ToString("00")+":"+((int)(DayCycle.CurrentHour*60)%60).ToString("00"));
+        ForgeTextLayout.LayoutLabel("골드 "+gold+"G · 다이아몬드 "+diamonds+" · 판매 "+totalSales+"개 · 누적 판매액 "+earnedGold+"G");
+        ForgeTextLayout.LayoutLabel("가속 "+craftSpeed+"배 · 자동판매 "+(autoSell?"켜짐":"꺼짐"));
+        ForgeTextLayout.LayoutLabel(lesson.Complete?"첫 검 만들기 튜토리얼 완료":"첫 검 만들기 · "+(lesson.Stage+1)+" / 8 단계");
         bool tutorialEnabled=GUI.enabled;GUI.enabled=tutorialEnabled&&!busy&&executionSession==null;
         if(GUILayout.Button(lesson.Complete?"검 제작 튜토리얼 다시 보기":"검 제작 튜토리얼 시작 / 이어하기"))OpenTutorial();
         GUI.enabled=tutorialEnabled;
         DrawCampaignProgress();
-        GUILayout.Label("발견 도감");
-        if(discoveries.Count==0)GUILayout.Label("아직 발견한 특성이 없습니다.");
-        foreach(var discovery in discoveries)GUILayout.Label(discovery+" · "+DiscoveryRule(discovery));
-        GUILayout.Label("미정 기획의 현재 규칙: 행운 완성 검은 판매 +30G, 제작 시 다이아 1개. 다이아는 재료 구매와 분리된 수집 재화입니다.");
+        ForgeTextLayout.LayoutLabel("발견 도감");
+        if(discoveries.Count==0)ForgeTextLayout.LayoutLabel("아직 발견한 특성이 없습니다.");
+        foreach(var discovery in discoveries)ForgeTextLayout.LayoutLabel(discovery+" · "+DiscoveryRule(discovery));
+        ForgeTextLayout.LayoutLabel("미정 기획의 현재 규칙: 행운 완성 검은 판매 +30G, 제작 시 다이아 1개. 다이아는 재료 구매와 분리된 수집 재화입니다.");
         bool old=GUI.enabled;GUI.enabled=!busy&&executionSession==null;
         if(GUILayout.Button("공방 저장"))SaveProgress();
         if(GUILayout.Button("현재 도면을 숫자 표기로 변환"))TranslateCurrent(false);
         if(GUILayout.Button("현재 도면을 영문 표기로 변환"))TranslateCurrent(true);
         GUI.enabled=old;
-        GUILayout.Label(saveMessage);
-        GUILayout.Label("제작·판매·구매 후 자동 저장. 실행 도중 종료하면 지불한 재료는 유지되며 실행 스택과 작업 중 물체는 복원하지 않습니다. 종료 중에는 시간이 흐르지 않습니다.");
+        ForgeTextLayout.LayoutLabel(saveMessage);
+        ForgeTextLayout.LayoutLabel("제작·판매·구매 후 자동 저장. 실행 도중 종료하면 지불한 재료는 유지되며 실행 스택과 작업 중 물체는 복원하지 않습니다. 종료 중에는 시간이 흐르지 않습니다.");
         GUILayout.EndScrollView();GUILayout.EndArea();
     }
     static string DiscoveryRule(string name)
@@ -227,13 +227,13 @@ public partial class ForgeMvp
         activeSaveSlot=slot;
         if(LoadProgress()){showTitle=false;DayCycle.Paused=false;titleMessage="";}
         else {titleMessage=saveMessage;activeSaveSlot=0;}
-        if(Event.current!=null)GUI.FocusControl(null);
+        if(Event.current!=null)ClearUIFocus();
     }
     void StartNewSlot(int slot)
     {
         activeSaveSlot=slot;ResetProgressForDebug();
         if(saveMessage.StartsWith("저장 실패")){titleMessage=saveMessage;progressLoaded=false;return;}
-        showTitle=false;DayCycle.Paused=false;titleMessage="";if(Event.current!=null)GUI.FocusControl(null);
+        showTitle=false;DayCycle.Paused=false;titleMessage="";if(Event.current!=null)ClearUIFocus();
         OpenTutorial();
     }
     void ReturnToTitle()
@@ -242,7 +242,7 @@ public partial class ForgeMvp
         SaveProgress();
         if(saveMessage.StartsWith("저장 실패"))return;
         showProgress=false;showTitle=true;titlePage=0;titleMessage="";DayCycle.Paused=true;progressLoaded=false;
-        if(Event.current!=null)GUI.FocusControl(null);
+        if(Event.current!=null)ClearUIFocus();
     }
     void QuitFromTitle()
     {
@@ -267,8 +267,8 @@ public partial class ForgeMvp
         Rect panel=new Rect((Screen.width-width)/2,Mathf.Max(12,(Screen.height-650)/2),width,Mathf.Max(1,Mathf.Min(650,Screen.height-24)));
         GUILayout.BeginArea(panel);
         titleScroll=GUILayout.BeginScrollView(titleScroll);
-        GUILayout.Space(18);GUILayout.Label("MAKE YOUR ITEM",menuTitle);GUILayout.Space(8);
-        GUILayout.Label("숫자로 도면을 그리고, 나만의 무기를 만드세요.",menuText);GUILayout.Space(24);
+        GUILayout.Space(18);ForgeTextLayout.LayoutLabel("MAKE YOUR ITEM",menuTitle);GUILayout.Space(8);
+        ForgeTextLayout.LayoutLabel("숫자로 도면을 그리고, 나만의 무기를 만드세요.",menuText);GUILayout.Space(24);
         if(titlePage==0){
             if(GUILayout.Button("게임 시작",menuButton,GUILayout.MinHeight(58))){titlePage=1;titleMessage="";}
             if(GUILayout.Button("이어하기",menuButton,GUILayout.MinHeight(58))){titlePage=2;titleMessage="";}
@@ -276,7 +276,7 @@ public partial class ForgeMvp
             if(GUILayout.Button("종료",menuButton,GUILayout.MinHeight(58)))QuitFromTitle();
         }else if(titlePage==1||titlePage==2){
             bool fresh=titlePage==1;
-            GUILayout.Label(fresh?"새 게임을 저장할 슬롯을 선택하세요.":"이어할 슬롯을 선택하세요.",menuText);
+            ForgeTextLayout.LayoutLabel(fresh?"새 게임을 저장할 슬롯을 선택하세요.":"이어할 슬롯을 선택하세요.",menuText);
             for(int slot=1;slot<=SlotCount;slot++){
                 bool enabled=GUI.enabled;GUI.enabled=enabled&&(fresh||PlayerPrefs.HasKey(SlotKey(slot)));
                 if(GUILayout.Button("슬롯 "+slot+" · "+SlotSummary(slot),menuButton,GUILayout.MinHeight(86))){
@@ -286,14 +286,14 @@ public partial class ForgeMvp
             }
             if(GUILayout.Button("뒤로",menuButton))titlePage=0;
         }else if(titlePage==3){
-            GUILayout.Label("슬롯 "+confirmSlot+"에서 새 게임을 시작할까요?",menuTitle);
+            ForgeTextLayout.LayoutLabel("슬롯 "+confirmSlot+"에서 새 게임을 시작할까요?",menuTitle);
             GUILayout.Space(16);
-            GUILayout.Label(PlayerPrefs.HasKey(SlotKey(confirmSlot))?"이 슬롯의 기존 진행 상황과 작성한 도면을 덮어씁니다. 되돌릴 수 없습니다. 다른 슬롯은 유지됩니다.":"100G와 철 10개로 Day 1 오전 8시에 시작합니다. 진행 상황은 선택한 슬롯에 저장됩니다.",menuText);
+            ForgeTextLayout.LayoutLabel(PlayerPrefs.HasKey(SlotKey(confirmSlot))?"이 슬롯의 기존 진행 상황과 작성한 도면을 덮어씁니다. 되돌릴 수 없습니다. 다른 슬롯은 유지됩니다.":"100G와 철 10개로 Day 1 오전 8시에 시작합니다. 진행 상황은 선택한 슬롯에 저장됩니다.",menuText);
             GUILayout.Space(20);
             if(GUILayout.Button("확인 · 새 게임 시작",menuButton,GUILayout.MinHeight(58)))StartNewSlot(confirmSlot);
             if(GUILayout.Button("취소",menuButton,GUILayout.MinHeight(58)))titlePage=1;
         }
-        if(!string.IsNullOrEmpty(titleMessage)){GUILayout.Space(12);GUILayout.Label(titleMessage,menuText);}
+        if(!string.IsNullOrEmpty(titleMessage)){GUILayout.Space(12);ForgeTextLayout.LayoutLabel(titleMessage,menuText);}
         GUILayout.EndScrollView();GUILayout.EndArea();
     }
 }

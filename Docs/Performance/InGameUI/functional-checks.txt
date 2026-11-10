@@ -1,0 +1,22 @@
+PASS add code prefab
+PASS collapse
+PASS expand
+PASS window drag
+PASS drag persists after refresh
+PASS wheel does not move caret
+PASS craft execution completes
+PASS crafted items appear in sale prefabs
+PASS sale button commits gold
+PASS guide opens
+PASS locked research section hidden
+PASS purchase adds unread guide notice
+PASS research section unlocked
+PASS tree transition
+PASS return from tree
+PASS workshop records
+PASS menu
+PASS delete confirmation
+PASS delete cancelled
+PASS confirmed code removal
+PASS tutorial input and submit
+PASS tutorial return

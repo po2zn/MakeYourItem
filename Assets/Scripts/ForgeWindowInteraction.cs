@@ -79,17 +79,20 @@ public sealed class ForgeWindowInteraction
     public void Handle(IForgeWindow window,int hint,Rect moveArea,bool enabled=true)
     {
         var ev=Event.current;control=GUIUtility.GetControlID(hint,FocusType.Passive);
+        bool trace=ForgeMouseTrace.Enabled&&(ev.isMouse||ev.rawType==EventType.MouseDown||ev.rawType==EventType.MouseDrag||ev.rawType==EventType.MouseUp||ev.rawType==EventType.ScrollWheel);
+        if(trace)ForgeMouseTrace.Mark("WINDOW_HANDLER","hint="+hint+" enabled="+enabled+" control="+control+" hot="+GUIUtility.hotControl+" edge="+edge+" type="+ev.type+" raw="+ev.rawType+" localMouse="+ev.mousePosition+" bounds="+window.Bounds);
         if(!enabled){Cancel();return;}
         if(Active&&GUIUtility.hotControl!=control){edge=-1;return;}
         int hit=ForgeWindowGeometry.HitResize(window,window.Bounds,ev.mousePosition);
         if(hit<0&&window.Rules.Movable&&moveArea.Contains(ev.mousePosition))hit=3;
         if(ev.type==EventType.MouseDown&&ev.button==0&&hit>=0&&GUIUtility.hotControl==0){
+            if(trace)ForgeMouseTrace.Mark("WINDOW_ACQUIRE","hint="+hint+" hit="+hit+" control="+control);
             edge=hit;start=window.Bounds;pointer=ev.mousePosition;GUIUtility.hotControl=control;GUI.FocusControl(null);ev.Use();
         }
         if(Active&&ev.type==EventType.MouseDrag&&ev.button==0){
             Vector2 delta=ev.mousePosition-pointer;
             window.Bounds=edge==3?ForgeWindowGeometry.Move(window,start,delta):ForgeWindowGeometry.Resize(window,start,edge,delta);ev.Use();
         }
-        if(Active&&ev.rawType==EventType.MouseUp&&ev.button==0){Cancel();ev.Use();}
+        if(Active&&ev.rawType==EventType.MouseUp&&ev.button==0){if(trace)ForgeMouseTrace.Mark("WINDOW_RELEASE","hint="+hint+" control="+control);Cancel();ev.Use();}
     }
 }

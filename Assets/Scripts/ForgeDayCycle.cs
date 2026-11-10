@@ -109,17 +109,18 @@ public sealed class ForgeDayCycle : MonoBehaviour, ISerializationCallbackReceive
         sunDisc.gameObject.SetActive(direction.y > -.08f);
         moonDisc.gameObject.SetActive(direction.y < .08f);
     }
+    public bool UseHierarchyUI {get;set;}
     void OnGUI()
     {
-        if(Paused)return;
+        if(Paused||UseHierarchyUI)return;
         float alpha = AnnouncementAlpha;
         if (alpha <= 0) return;
         if (title == null) title = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.UpperCenter, fontSize = 56, fontStyle = FontStyle.Bold };
         var oldColor = GUI.color; int oldDepth = GUI.depth; GUI.depth = -1000;
-        float height = Mathf.Max(80, title.CalcHeight(new GUIContent("Day " + Day), Screen.width));
+        float height = Mathf.Max(80, ForgeTextLayout.Height("Day " + Day,title,Screen.width));
         var rect = new Rect(0, 12, Screen.width, height);
-        GUI.color = new Color(0, 0, 0, alpha * .8f); GUI.Label(new Rect(2, 14, Screen.width, height), "Day " + Day, title);
-        GUI.color = new Color(1, 1, 1, alpha); GUI.Label(rect, "Day " + Day, title);
+        GUI.color = new Color(0, 0, 0, alpha * .8f); ForgeTextLayout.Label(new Rect(2, 14, Screen.width, height), "Day " + Day, title);
+        GUI.color = new Color(1, 1, 1, alpha); ForgeTextLayout.Label(rect, "Day " + Day, title);
         GUI.color = oldColor; GUI.depth = oldDepth;
     }
     void OnDestroy()

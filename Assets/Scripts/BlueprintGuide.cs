@@ -6,19 +6,38 @@ using System.Collections.ObjectModel;
 public static class BlueprintGuide
 {
     public const string IntroductionTitle="대장간에 오신 것을 환영합니다!";
-    public const string Introduction="도면을 보고 나만의 무기를 만들어보세요. 단, 도면은 숫자로 된 언어입니다!\n\n여러분은 도면에 명령을 적어 대장장이를 움직입니다. 재료를 올리고, 불에 달구고, 망치로 두드리고, 식히면서 하나의 무기를 완성해보세요. 어떤 재료와 공정을 선택하느냐에 따라 결과가 달라집니다.\n\n처음이라면 왼쪽 ‘시작’ 책갈피에서 ‘첫 검날 만들기’를 펼쳐보세요. 예제를 코드 창에 옮기고 한 줄씩 실행하며 숫자가 어떤 동작으로 이어지는지 살펴볼 수 있습니다. 재료와 함수가 궁금할 때는 이 안내서의 책갈피를 찾아보세요.\n\n이 게임의 도면 언어는 Python의 문법을 참고했습니다. 변수에 값을 저장하고, 들여쓰기로 명령을 묶습니다. 지원하는 숫자·기호 문법과 함수는 안내서에서 확인할 수 있습니다.\n\n작은 철 조각에서 시작해, 여러분만의 도면과 무기를 만들어가세요!";
+    public const string Introduction="이 안내서는 현재 성장 트리와 대장장이 트리의 기능을 설명합니다. 먼저 ‘테크’ 책갈피에서 구매 순서와 준비물을 확인하고, 분야별 책갈피에서 함수와 예제를 찾아보세요.\n\n처음부터 쓸 수 있는 것은 재료 올리기 1, 가열 2, 타격 3, 냉각 4, 손잡이 제작 5와 ! 제출입니다. 철·나무·물은 공급 연구 없이 재료 상점에서 구매합니다. 기본 공정으로 제작하고 완성품을 판매해 첫 연구 자금을 모으세요.\n\n제어문 해금은 조건·반복·반복 제어·사용자 함수를 한 번에 엽니다. 이후 금속 가공, 행운, 마력 가공, 공방 운영, 시간 조회, 기술 연구로 분기합니다. 함수마다 필요한 선행 연구가 다르며, 연결된 조건은 모두 구매해야 합니다.\n\n스피드는 1~5단계를 순서대로 구매합니다. 마지막 단계까지 구매하면 자동판매가 추가 비용 없이 해금되고 켜집니다. 재료 공급 해금비와 실제 재료 구매비는 별개입니다.\n\n대장장이 트리는 다이아로 고용 인원을 늘리고 조회 기능을 연구합니다. ‘대장장이’ 책갈피에서 고용, 병렬 제작, 선물과 거대한 룬을 확인하세요.\n\n각 페이지의 ‘연구 및 준비’를 읽은 뒤 예제를 실행하세요. 안내서의 예제를 복사하는 것만으로 연구나 재료가 지급되지는 않습니다. ▷ 한 줄 실행도 실제 재료를 소비합니다.";
     public sealed class Entry
     {
         public readonly string Id,Section,Title,Body,Example,Expected,Note;
         public readonly BlueprintFeature Feature;
         readonly string numericTitle,numericBody,numericExample,numericNote;
+        string numericResearch,englishResearch;
+        public string ResearchFor(bool englishUnlocked)=>englishUnlocked?(englishResearch??(englishResearch=BlueprintResearchGuide.EntryResearch(this,true))):(numericResearch??(numericResearch=BlueprintResearchGuide.EntryResearch(this,false)));
         public bool IsFunctionReference => Alias!=null&&Alias.Syntax==BlueprintSyntaxKind.Builtin||Id=="1"||Id=="2"||Id=="3"||Id=="4"||Id=="finish";
         public BlueprintAlias Alias => BlueprintAliases.Find(Feature);
-        public string Heading => Alias==null?Title:(Alias.Symbol.Length==0?Alias.English:Alias.Symbol+" / "+Alias.English)+" · "+Title;
+        public string Heading => FormatHeading(true);
         public string Description => (Alias==null?"":Alias.Description+"\n"+Alias.Signature+"\n\n")+Body;
         public Entry(string id,string section,string title,string body,string example,string expected,string note,BlueprintFeature feature,string numericTitle=null,string numericBody=null,string numericExample=null,string numericNote=null)
-        {this.numericTitle=numericTitle??title;this.numericBody=numericBody??body;this.numericExample=numericExample??example;this.numericNote=numericNote??note;Id=id;Section=section;Title=title;Body=body;Example=example;Expected=expected;Note=note;Feature=feature;}
-        public string HeadingFor(bool englishUnlocked) => englishUnlocked?Heading:(Alias==null?numericTitle:(Alias.Symbol.Length==0?Alias.English:Alias.Symbol)+" · "+numericTitle);
+        {this.numericTitle=numericTitle??title;this.numericBody=numericBody??body;this.numericExample=numericExample??example;this.numericNote=numericNote??note;Id=id;Section=BlueprintResearchGuide.SectionFor(feature,section);Title=title;Body=body;Example=example;Expected=expected;Note=note;Feature=feature;}
+        public string HeadingFor(bool englishUnlocked) => FormatHeading(englishUnlocked);
+        string FormatHeading(bool english)
+        {
+            string title=english?Title:numericTitle;
+            var alias=Alias;
+            if(alias==null)return title;
+            string symbol=alias.Symbol.Length==0?alias.English:alias.Symbol;
+            bool included=title.StartsWith(symbol,StringComparison.Ordinal)
+                &&(title.Length==symbol.Length||!char.IsLetterOrDigit(title[symbol.Length])&&title[symbol.Length]!='_');
+            if(included){
+                if(!english||alias.Symbol.Length==0)return title;
+                int end=symbol.Length;
+                if(title.Substring(end).StartsWith("()",StringComparison.Ordinal))end+=2;
+                string suffix=title.Substring(end).TrimStart(' ','·');
+                return title.Substring(0,end)+" / "+alias.English+(suffix.Length==0?"":" · "+suffix);
+            }
+            return (english&&alias.Symbol.Length>0?symbol+" / "+alias.English:symbol)+" · "+title;
+        }
         public string DescriptionFor(bool englishUnlocked) => englishUnlocked?Description:(Alias==null?"":Alias.Description+"\n"+Alias.Signature+"\n\n")+numericBody;
         public string ExampleFor(bool englishUnlocked) => englishUnlocked?Example:numericExample;
         public string NoteFor(bool englishUnlocked) => englishUnlocked?Note:numericNote;
@@ -64,9 +83,10 @@ public static class BlueprintGuide
         new Entry("stages","완성 예제","반복으로 공정 순서 만들기","a를 1부터 늘리며 한 회차에 한 공정을 선택합니다. 첫 회차에서 만든 res를 다음 회차와 반복문 밖에서도 사용합니다.","a = 1\n888(True):\n    1? a == 1:\n        res = 1(a)\n    01? a == 2:\n        2(res, 7)\n    01? a == 3:\n        3(res)\n    01? a == 4:\n        4(res, 0)\n    01? a == 5:\n        !!\n    a = a + 1\n!res","철 1개 · 제작비 0G · 완성품 생성","a가 5가 되면 !!로 반복을 끝내고, 바깥의 !res로 완성품을 판정합니다.",BlueprintFeature.None),
         new Entry("choose","완성 예제","첫 적합 열 찾기","사용자 함수가 [9, 7, 5]를 검사해 제한 7 이하인 첫 후보를 반환합니다. !!로 탐색을 끝내고 가열은 한 번만 합니다.","333 choose(values, limit):\n    selected = None\n    123(candidate in values):\n        1?(candidate <= limit):\n            selected = candidate\n            !!\n    << selected\nTarget = choose([9, 7, 5], 7)\n1?(Target != None):\n    Blade = 1(1)\n    2(Blade, Target)\n    3(Blade)\n    4(Blade, 0)\n    !Blade\n0?:\n    print(\"맞는 열 단계가 없습니다\")","후보 7 선택 · 가열 1회 · 제작비 0G","목록을 [9, 8]로 바꾸면 공정과 비용 없이 안내 메시지만 출력합니다.",BlueprintFeature.None),
         new Entry("errors","문제가 생겼을 때","오류와 비용 확인","▷로 시작하면 앞부분부터 실행하고 문법·함수 이름·인자 수 오류는 해당 줄에 도달했을 때 표시합니다. 새로 ▶로 시작할 때는 전체 문법 검사를 먼저 합니다.\n변수의 값과 현재 타입, 공정 상태는 실제 실행 시점에 확인합니다. 함수·분기 안의 오류도 실행 경로가 도달했을 때 중단합니다. 괄호·따옴표·들여쓰기 오류는 안전하게 해석 가능한 앞부분까지만 진행합니다. 오류 줄 이후는 실행하지 않습니다.\n실제 제작에서 이미 소비한 재료는 돌아오지 않습니다. ▷로 한 줄씩 확인할 수 있지만 실제 재료가 소비됩니다. 아직 실행하지 않은 줄의 공정과 출력은 발생하지 않습니다.\n실행 명령 10000, 함수 호출 깊이 32입니다. 재귀도 같은 한도를 공유합니다.","Material = 1\nBlade = 1(Material)\n2(Blade, 7)\n3(Blade)\n4(Blade, 0)\n!Blade","정상 기본 도면: 제작비 0G · 판매가 28G","가열을 한 번 더 해도 같은 상태의 검날 판매가는 28G입니다. 추가 가열에도 골드는 소비되지 않습니다.",BlueprintFeature.None)
-    }.Concat(ForgeExpansion.Definitions.Where(d=>d.Alias.Id!=BlueprintFeature.Attach).Select(d=>new Entry("extension-"+d.Alias.Symbol,(d.Alias.Id==BlueprintFeature.Lucky||d.Alias.Id==BlueprintFeature.LuckyCode)?"조회와 계산":"확장 제작",d.Alias.Symbol+"()",d.Alias.Description,d.Example,"함수 설명에 따라 공정·반환값이 적용됩니다.",d.Alias.Id==BlueprintFeature.Speed?"스피드 1~5단계를 순서대로 구매합니다. 단계별 100/150/200/300/450G, 구매한 단계까지만 설정할 수 있습니다.":d.Alias.Id==BlueprintFeature.AutoSell?"스피드 5단계까지 모두 구매하면 추가 비용 없이 해금되어 자동판매가 켜집니다.":d.Price>0?"테크 트리에서 "+ForgeTechnology.Find("function-"+d.Alias.Id).Price+"G로 해금합니다. "+(d.Alias.Id==BlueprintFeature.Lucky||d.Alias.Id==BlueprintFeature.LuckyCode?"777()와 778()이 함께 해금됩니다. ":"")+"필요한 재료도 구매하세요.":"기본 제공 함수입니다. 공정에 필요한 재료는 별도로 보유해야 합니다.",d.Alias.Id))).Concat(new[]{
-        new Entry("is-day","시간 조회","12() · 낮인지 확인","정오의 12에서 연상합니다. 06:00 이상 18:00 미만이면 정수 1, 나머지 시간에는 0입니다. 호출 순간의 게임 시각을 읽으며 자원은 소비하지 않습니다.","Daylight = 12()\nprint(Daylight)\n1? Daylight == 1:\n    print(\"낮입니다\")","오전 8시 예: 1과 낮입니다 출력","시간 조회 묶음(12 + 24)을 40G로 함께 해금합니다. 반환값은 bool이 아닌 정수이므로 조건에는 12() == 1처럼 비교하세요.",BlueprintFeature.IsDay),
-        new Entry("night-time","시간 조회","24() · 밤인지 확인","자정의 24에서 연상합니다. 18:00 이상 또는 06:00 미만이면 정수 1, 낮이면 0입니다. 24(60) 시각 조회도 함께 해금됩니다.","Night = 24()\nprint(Night)\n1? Night == 1:\n    print(\"밤입니다\")","오전 8시 예: 0 출력","시간 조회 묶음(12 + 24)을 40G로 함께 해금합니다. 조건에는 24() == 1처럼 비교하세요. 호출 비용은 0G입니다.",BlueprintFeature.NightTime),
+    }.Concat(ForgeExpansion.Definitions.Where(d=>d.Alias.Id!=BlueprintFeature.Attach).Select(d=>new Entry("extension-"+d.Alias.Symbol,(d.Alias.Id==BlueprintFeature.Lucky||d.Alias.Id==BlueprintFeature.LuckyCode)?"조회와 계산":"확장 제작",d.Alias.Symbol+"()",d.Alias.Description,d.Example,"함수 설명에 따라 공정·반환값이 적용됩니다.","연구 및 준비에 표시된 조건을 먼저 충족하세요. 함수 호출의 골드 비용과 연구비·재료 구매비는 별개입니다.",d.Alias.Id))).Concat(new[]{
+        new Entry("is-day","시간 조회","12() · 낮인지 확인","정오의 12에서 연상합니다. 06:00 이상 18:00 미만이면 정수 1, 나머지 시간에는 0입니다. 호출 순간의 게임 시각을 읽으며 자원은 소비하지 않습니다.","Daylight = 12()\nprint(Daylight)\n1? Daylight == 1:\n    print(\"낮입니다\")","오전 8시 예: 1과 낮입니다 출력","시간 조회 묶음(12 + 24)을 "+ForgeTechnology.Find("function-IsDay").Price+"G로 함께 해금합니다. 반환값은 bool이 아닌 정수이므로 조건에는 12() == 1처럼 비교하세요.",BlueprintFeature.IsDay),
+        new Entry("night-time","시간 조회","24() · 밤인지 확인","자정의 24에서 연상합니다. 18:00 이상 또는 06:00 미만이면 정수 1, 낮이면 0입니다. 24(60) 시각 조회도 함께 해금됩니다.","Night = 24()\nprint(Night)\n1? Night == 1:\n    print(\"밤입니다\")","오전 8시 예: 0 출력","시간 조회 묶음(12 + 24)을 "+ForgeTechnology.Find("function-IsDay").Price+"G로 함께 해금합니다. 조건에는 24() == 1처럼 비교하세요. 호출 비용은 0G입니다.",BlueprintFeature.NightTime),
         new Entry("clock-minutes","시간 조회","24(60) · 현재 시각 조회","하루 24시간과 한 시간 60분을 연결합니다. 자정부터 지난 분을 0~1439의 정수로 반환하며 초는 버립니다. 24:00에는 0으로 돌아갑니다. 한 줄 실행에서도 각 호출 시점의 시각을 읽습니다.","Minutes = 24(60)\nHour = Minutes // 60\nMinute = Minutes % 60\nprint(Hour, Minute)","오전 8시 예: 8 0 출력","24() 해금에 포함됩니다. 인자는 정수 60만 허용합니다. 현실 시간이 아닌 게임 속 시각이며 기본 하루는 현실 10분입니다. 호출 비용과 재료 소비는 없습니다.",BlueprintFeature.None),
+        new Entry("masterwork-example","완성 예제","명장의 마지막 의뢰 · 완성 도면","별무늬 별철 검날에 정제 용뼈 손잡이를 장착하고 약한 충전을 세 번 진행한 뒤 서로 다른 계열 룬을 각인합니다. 필요한 연구와 최종 의뢰를 먼저 구매하세요.","p = 1(7)\n2(p, 7)\n3(p)\n4(p, 3)\n6(p)\n7(p)\nb = 1(9)\n10(b, p, 100, 13)\n5(p, b)\n9(p, 1)\n9(p, 1)\n9(p, 1)\n123(r in [7, 8, 9]):\n    211(p, r)\n!p","별무늬·정제 용뼈 손잡이·충전 3회·서로 다른 룬 계열 3개를 갖춘 무균열 검 제출","재료: 별철 1개, 은 1개, 용뼈 1개, 물 2개, 수정 4개. 최종 의뢰 수락 전에는 같은 검을 만들어도 엔딩이 완료되지 않습니다.",BlueprintFeature.None),
     }).Concat(ForgeSmithLanguage.Aliases.Select(a=>new Entry("extension-smith-"+a.Symbol,"대장장이와 다이아몬드",a.Symbol+"()",a.Description+"\n"+a.Signature,ForgeSmithLanguage.Example(a.Id),a.Id==BlueprintFeature.SmithRun?"고용한 대장장이 1번이 독립 실행하고 반환한 검을 제출합니다.":"공방의 해당 대장장이 상태를 조회하거나 변경합니다.","대장장이 번호는 0부터 시작합니다. 첫 위치는 (0,0)입니다. 대장장이 함수는 코드창에서 연파랑으로 표시합니다. 조회 연구와 고용은 대장장이 테크 트리에서 다이아로 구매합니다. 예제 실행 전 필요한 고용·연구·재료를 준비하세요.",a.Id))).ToArray());
 }

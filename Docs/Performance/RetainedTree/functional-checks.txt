@@ -1,0 +1,1 @@
+PASS: header button raycast, 53 serialized cards, function/material/smith purchases, green ownership, invalid quantity, wheel zoom, drag release, fixed child text, tooltip, zero added UI objects. Current screen 1920x1080. Overflow: 

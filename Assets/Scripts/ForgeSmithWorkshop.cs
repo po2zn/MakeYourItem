@@ -12,7 +12,6 @@ public partial class ForgeMvp
     readonly List<GameObject> giantRuneViews=new List<GameObject>();
     readonly List<Material> giantRuneMaterials=new List<Material>();
     bool showSmithTree;
-    Vector2 smithTreeScroll;
     string smithMessage="";
     double SmithHours=>(DayCycle.Day-1)*24d+DayCycle.CurrentHour;
     void UpdateSmiths()

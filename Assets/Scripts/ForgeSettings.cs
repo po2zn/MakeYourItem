@@ -26,7 +26,7 @@ public partial class ForgeMvp
         return style;
     }
     Font settingsLanguageFont;
-    Vector2 settingsDropdownScroll;
+    Vector2 settingsDropdownScroll,settingsPageScroll;
     int settingsDropdown;
     Rect settingsDropdownAnchor;
     void AddDisplaySize(int width,int height)
@@ -76,40 +76,42 @@ public partial class ForgeMvp
         bool popupOpen=settingsDropdown!=0;
         if(popupOpen&&(ev.isMouse||ev.isKey||ev.type==EventType.ScrollWheel))ev.type=EventType.Ignore;
         Color old=GUI.color;GUI.color=new Color(.075f,.085f,.10f);GUI.DrawTexture(new Rect(0,0,Screen.width,Screen.height),Texture2D.whiteTexture);GUI.color=old;
-        float width=Mathf.Min(840,Mathf.Max(1,Screen.width-48));
-        float x=(Screen.width-width)/2,y=Mathf.Max(16,(Screen.height-520)/2);
-        GUI.Label(new Rect(x,y,width,58),"Settings · 설정",settingsTitle);
-        GUI.Label(new Rect(x,y+64,width,30),"게임 환경을 원하는 방식으로 설정하세요.",settingsText);
+        float width=Mathf.Min(840,Mathf.Max(1,Screen.width-68));
+        float x=(Screen.width-20-width)/2,y=Mathf.Max(16,(Screen.height-680)/2);
+        settingsPageScroll=GUI.BeginScrollView(new Rect(0,0,Screen.width,Screen.height),settingsPageScroll,new Rect(0,0,Screen.width-20,Mathf.Max(Screen.height,y+680)));
+        ForgeTextLayout.Label(new Rect(x,y,width,58),"Settings · 설정",settingsTitle);
+        ForgeTextLayout.Label(new Rect(x,y+64,width,30),"게임 환경을 원하는 방식으로 설정하세요.",settingsText);
         float labelWidth=width*.28f,controlX=x+labelWidth,controlWidth=width-labelWidth;
         y+=120;
-        GUI.Label(new Rect(x,y,labelWidth-16,48),"언어",settingsRowLabel);
-        if(GUI.Button(new Rect(controlX,y,controlWidth,48),languageLabels[selectedLanguage]+"  ▾",settingsOption))OpenSettingsDropdown(1,new Rect(controlX,y,controlWidth,48),selectedLanguage);
-        GUI.Label(new Rect(controlX,y+52,controlWidth,28),"선택값만 저장됩니다. 번역 기능은 추후 지원됩니다.",settingsRowLabel);
+        ForgeTextLayout.Label(new Rect(x,y,labelWidth-16,48),"언어",settingsRowLabel);
+        if(ForgeTextLayout.Button(new Rect(controlX,y,controlWidth,48),languageLabels[selectedLanguage]+"  ▾",settingsOption))OpenSettingsDropdown(1,new Rect(controlX,y,controlWidth,48),selectedLanguage);
+        ForgeTextLayout.Label(new Rect(controlX,y+52,controlWidth,28),"선택값만 저장됩니다. 번역 기능은 추후 지원됩니다.",settingsRowLabel);
         y+=94;
-        GUI.Label(new Rect(x,y,labelWidth-16,48),"해상도",settingsRowLabel);
+        ForgeTextLayout.Label(new Rect(x,y,labelWidth-16,48),"해상도",settingsRowLabel);
         var size=displaySizes[selectedDisplaySize];
-        if(GUI.Button(new Rect(controlX,y,controlWidth,48),size.x+" × "+size.y+"  ▾",settingsOption))OpenSettingsDropdown(2,new Rect(controlX,y,controlWidth,48),selectedDisplaySize);
+        if(ForgeTextLayout.Button(new Rect(controlX,y,controlWidth,48),size.x+" × "+size.y+"  ▾",settingsOption))OpenSettingsDropdown(2,new Rect(controlX,y,controlWidth,48),selectedDisplaySize);
         y+=72;
-        GUI.Label(new Rect(x,y,labelWidth-16,48),"화면 모드",settingsRowLabel);
-        if(GUI.Button(new Rect(controlX,y,controlWidth,48),(Screen.fullScreen?"전체 화면":"창 모드")+"  ▾",settingsOption))OpenSettingsDropdown(3,new Rect(controlX,y,controlWidth,48),Screen.fullScreen?0:1);
+        ForgeTextLayout.Label(new Rect(x,y,labelWidth-16,48),"화면 모드",settingsRowLabel);
+        if(ForgeTextLayout.Button(new Rect(controlX,y,controlWidth,48),(Screen.fullScreen?"전체 화면":"창 모드")+"  ▾",settingsOption))OpenSettingsDropdown(3,new Rect(controlX,y,controlWidth,48),Screen.fullScreen?0:1);
         y+=72;
-        GUI.Label(new Rect(x,y,labelWidth-16,48),"전체 음량",settingsRowLabel);
-        GUI.Label(new Rect(controlX+controlWidth-64,y,64,48),Mathf.RoundToInt(masterVolume*100)+"%",settingsRowLabel);
+        ForgeTextLayout.Label(new Rect(x,y,labelWidth-16,48),"전체 음량",settingsRowLabel);
+        ForgeTextLayout.Label(new Rect(controlX+controlWidth-64,y,64,48),Mathf.RoundToInt(masterVolume*100)+"%",settingsRowLabel);
         float volume=GUI.HorizontalSlider(new Rect(controlX,y+16,Mathf.Max(1,controlWidth-80),24),masterVolume,0,1,settingsSlider,settingsSliderThumb);
         if(!Mathf.Approximately(volume,masterVolume)){masterVolume=volume;AudioListener.volume=volume;PlayerPrefs.SetFloat("MakeYourItem.Settings.Volume",volume);PlayerPrefs.Save();}
         y+=72;
-        if(GUI.Button(new Rect(x,y,140,48),"뒤로",SettingsButton)){titlePage=0;settingsDropdown=0;}
-        if(GUI.Button(new Rect(x+width-220,y,220,48),"해상도 적용",SettingsButton)){
+        if(ForgeTextLayout.Button(new Rect(x,y,140,48),"뒤로",SettingsButton)){titlePage=0;settingsDropdown=0;}
+        if(ForgeTextLayout.Button(new Rect(x+width-220,y,220,48),"해상도 적용",SettingsButton)){
             size=displaySizes[selectedDisplaySize];Screen.SetResolution(size.x,size.y,Screen.fullScreen);
             PlayerPrefs.SetInt(WidthSetting,size.x);PlayerPrefs.SetInt(HeightSetting,size.y);PlayerPrefs.Save();
             settingsMessage=size.x+" × "+size.y+" 설정을 저장했습니다.";
         }
-        if(settingsMessage.Length>0)GUI.Label(new Rect(x,y+58,width,48),settingsMessage,settingsText);
+        if(settingsMessage.Length>0)ForgeTextLayout.Label(new Rect(x,y+58,width,48),settingsMessage,settingsText);
+        GUI.EndScrollView();
         if(popupOpen)ev.type=savedEvent;
         if(settingsDropdown!=0)DrawSettingsDropdown();
     }
     void OpenSettingsDropdown(int kind,Rect anchor,int selected)
-    {settingsDropdown=kind;settingsDropdownAnchor=anchor;settingsDropdownScroll=new Vector2(0,Mathf.Max(0,selected-2)*44);GUI.FocusControl(null);}
+    {anchor.y-=settingsPageScroll.y;settingsDropdown=kind;settingsDropdownAnchor=anchor;settingsDropdownScroll=new Vector2(0,Mathf.Max(0,selected-2)*44);ClearUIFocus();}
     void DrawSettingsDropdown()
     {
         int count=settingsDropdown==1?languageLabels.Length:settingsDropdown==2?displaySizes.Count:2;
@@ -125,7 +127,7 @@ public partial class ForgeMvp
         settingsDropdownScroll=GUI.BeginScrollView(viewport,settingsDropdownScroll,new Rect(0,0,Mathf.Max(1,viewport.width-20),count*44));
         for(int i=0;i<count;i++){
             string value=settingsDropdown==1?languageLabels[i]:settingsDropdown==2?displaySizes[i].x+" × "+displaySizes[i].y:i==0?"전체 화면":"창 모드";
-            if(GUI.Button(new Rect(0,i*44,Mathf.Max(1,viewport.width-20),42),value,settingsOption)){
+            if(ForgeTextLayout.Button(new Rect(0,i*44,Mathf.Max(1,viewport.width-20),42),value,settingsOption)){
                 if(settingsDropdown==1){selectedLanguage=i;PlayerPrefs.SetString(LanguageSetting,LanguageCodes[i]);PlayerPrefs.Save();settingsMessage="언어 선택을 저장했습니다. 번역은 아직 적용되지 않습니다.";}
                 else if(settingsDropdown==2){selectedDisplaySize=i;settingsMessage="해상도 적용 버튼을 눌러 변경하세요.";}
                 else {Screen.fullScreen=i==0;PlayerPrefs.SetInt("MakeYourItem.Settings.Fullscreen",i==0?1:0);PlayerPrefs.Save();}

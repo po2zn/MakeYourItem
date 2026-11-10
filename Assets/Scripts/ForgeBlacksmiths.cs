@@ -7,6 +7,7 @@ public sealed class ForgeBlacksmiths
 {
     [Serializable] public sealed class Smith { public int favor, required=1; public double decayAt; }
     [Serializable] public sealed class GiantRune { public int rune,x,y; }
+    public const int FavorResearchCost=25,PositionResearchCost=25,DemandResearchCost=50;
     public static readonly int[] Counts={1,2,3,4,9,16};
     public static readonly int[] HireCosts={50,100,300,500,1000};
     public List<Smith> smiths=new List<Smith>();

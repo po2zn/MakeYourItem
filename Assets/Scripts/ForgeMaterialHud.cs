@@ -40,27 +40,38 @@ public sealed class ForgeMaterialHud
         int columns=Math.Max(1,(int)((width-24)/CellWidth));
         return top+((count+columns-1)/columns)*RowHeight+4;
     }
+    static Rect CellRect(int index,float width,float top)
+    {
+        int columns=Math.Max(1,(int)((width-24)/CellWidth));
+        return new Rect(12+(index%columns)*CellWidth,top+(index/columns)*RowHeight,CellWidth-4,IconSize);
+    }
+    public bool Contains(Vector2 point,float width,ForgeMaterialStock[] stocks,float top=42)
+    {
+        int index=0;
+        for(int id=1;id<=9;id++){
+            if(id!=1&&Find(stocks,id)==null)continue;
+            if(CellRect(index++,width,top).Contains(point))return true;
+        }
+        return false;
+    }
     public void Draw(int iron,ForgeMaterialStock[] stocks,Font font,float availableWidth,float top=42)
     {
         if(numberStyle==null){
             numberStyle=new GUIStyle(GUI.skin.label){font=font,fontSize=36,alignment=TextAnchor.MiddleLeft,padding=new RectOffset(0,0,0,0),richText=false};
             tooltipStyle=new GUIStyle(GUI.skin.box){font=font,fontSize=24,wordWrap=true,alignment=TextAnchor.UpperLeft,padding=new RectOffset(16,16,14,14),richText=false};
         }
-        int columns=Math.Max(1,(int)((availableWidth-24)/CellWidth)),index=0;string tooltip=null;
+        int index=0;string tooltip=null;
         for(int id=1;id<=9;id++){
             var stock=Find(stocks,id);if(id!=1&&stock==null)continue;
             long count=id==1?iron:stock.count;
-            Rect icon=new Rect(12+(index%columns)*CellWidth,top+(index/columns)*RowHeight,IconSize,IconSize);index++;
+            Rect icon=CellRect(index++,availableWidth,top);icon.width=IconSize;
             GUI.DrawTexture(icon,GetIcon(id));
-            GUI.Label(new Rect(icon.xMax+6,icon.y,CellWidth-IconSize-10,IconSize),FormatCount(count),numberStyle);
+            ForgeTextLayout.Label(new Rect(icon.xMax+6,icon.y,CellWidth-IconSize-10,IconSize),FormatCount(count),numberStyle);
             if(icon.Contains(Event.current.mousePosition))tooltip=ForgeMaterialGuide.Entries[id].Name+" · "+count.ToString("N0",CultureInfo.InvariantCulture)+"개\n"+descriptions[id];
         }
-        if(tooltip!=null){
-            float width=Mathf.Min(440,Screen.width-8),height=tooltipStyle.CalcHeight(new GUIContent(tooltip),width);
-            Vector2 mouse=Event.current.mousePosition;
-            GUI.Box(new Rect(Mathf.Clamp(mouse.x+14,4,Mathf.Max(4,Screen.width-width-4)),Mathf.Clamp(mouse.y+32,4,Mathf.Max(4,Screen.height-height-4)),width,height),tooltip,tooltipStyle);
-        }
+        if(tooltip!=null)ForgeTreeTooltip.Draw(Event.current.mousePosition,"재료 정보",tooltip,font);
     }
+
     static Texture2D MakeIcon(int id)
     {
         // Small pixel silhouettes, independent of installed emoji fonts.
@@ -87,7 +98,7 @@ public sealed class ForgeMaterialHud
             if(id==8&&(x==12||y==10)&&y<16)color=Color.white;
             color.a=1;pixels[y*24+x]=color;
         }
-        texture.SetPixels(pixels);texture.Apply(false,true);return texture;
+        texture.SetPixels(pixels);texture.Apply(false,Application.isPlaying);return texture;
     }
-    public void Dispose(){foreach(var icon in icons)if(icon)UnityEngine.Object.Destroy(icon);}
+    public void Dispose(){foreach(var icon in icons)if(icon){if(Application.isPlaying)UnityEngine.Object.Destroy(icon);else UnityEngine.Object.DestroyImmediate(icon);}}
 }

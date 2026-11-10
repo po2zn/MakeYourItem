@@ -9,6 +9,10 @@ public sealed class ForgeBookWindow : IForgeWindow
     public ForgeWindowRules Rules => new ForgeWindowRules(true,collapsed?ForgeWindowEdges.None:ForgeWindowEdges.All,280,180,ForgeGuideUI.HeaderHeight);
     readonly ForgeWindowInteraction interaction=new ForgeWindowInteraction();
     readonly ForgeGuideReader reader=new ForgeGuideReader();
+    public void SyncResearch(ForgeTechnology tech,ForgeBlacksmiths smiths)=>reader.Sync(tech,smiths);
+    public bool HasNew=>reader.HasNew;
+    public ForgeGuideReader Reader=>reader;
+    public void DrawNotice(Font font)=>reader.DrawNotice(font);
     bool initialized,collapsed;
     float expandedHeight=ForgeGuideReader.DefaultWindowHeight;
     public void EnsureInitialized(Vector2 position)

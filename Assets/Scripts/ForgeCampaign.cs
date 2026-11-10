@@ -36,14 +36,14 @@ public partial class ForgeMvp
     void DrawCampaignProgress()
     {
         GUILayout.Space(12);
-        GUILayout.Label("성장 목표 · "+CampaignObjective);
-        GUILayout.Label("공통 시작: 기본 제작 → 제어문 해금(150G) → 다섯 분야로 분기");
-        GUILayout.Label("금속: 열 조회 → 연마 → 은 → 도금 → 별철 → 용뼈 → 정제");
-        GUILayout.Label("마력: 수정 → 충전 → 룬 / 보호 · 상태 조회 → 마력 단조 → 공명");
-        GUILayout.Label("운영: 석탄 → 연료 → 봉인 → 스피드 1~5단계 → 자동판매 무료 해금");
-        GUILayout.Label("기술 연구: 절댓값 → 최솟값 → 최댓값 / 길이 → 집합 → 난수");
-        GUILayout.Label("최종 의뢰: "+ForgeCampaign.FinalGoal);
-        GUILayout.Label("의뢰 "+(technology.Owns(ForgeTechnology.MasterCommission)?"수락 완료":"미수락")+" · 엔딩 "+(campaignComplete?"달성":"미달성"));
+        ForgeTextLayout.LayoutLabel("성장 목표 · "+CampaignObjective);
+        ForgeTextLayout.LayoutLabel("공통 시작: 기본 제작 → 제어문 해금(150G) → 다섯 분야로 분기");
+        ForgeTextLayout.LayoutLabel("금속: 열 조회 → 연마 → 은 → 도금 → 별철 → 용뼈 → 정제");
+        ForgeTextLayout.LayoutLabel("마력: 수정 → 충전 → 룬 / 보호 · 상태 조회 → 마력 단조 → 공명");
+        ForgeTextLayout.LayoutLabel("운영: 석탄 → 연료 → 봉인 → 스피드 1~5단계 → 자동판매 무료 해금");
+        ForgeTextLayout.LayoutLabel("기술 연구: 절댓값 → 최솟값 → 최댓값 / 길이 → 집합 → 난수");
+        ForgeTextLayout.LayoutLabel("최종 의뢰: "+ForgeCampaign.FinalGoal);
+        ForgeTextLayout.LayoutLabel("의뢰 "+(technology.Owns(ForgeTechnology.MasterCommission)?"수락 완료":"미수락")+" · 엔딩 "+(campaignComplete?"달성":"미달성"));
         if(GUILayout.Button("성장 트리 열기")){showProgress=false;OpenTechTree();}
         if(campaignComplete&&GUILayout.Button("엔딩 다시 보기")){showProgress=false;endingSeen=false;}
     }
@@ -61,16 +61,16 @@ public partial class ForgeMvp
         GUILayout.BeginArea(new Rect((Screen.width-width)/2,24,width,Mathf.Max(1,Screen.height-48)));
         endingScroll=GUILayout.BeginScrollView(endingScroll);
         GUILayout.Space(40);
-        GUILayout.Label("당신의 도면이 전설이 되었습니다",endingTitle);
+        ForgeTextLayout.LayoutLabel("당신의 도면이 전설이 되었습니다",endingTitle);
         GUILayout.Space(24);
-        GUILayout.Label("작은 철 조각으로 시작한 공방에서, 별철과 용뼈, 마력과 룬을 하나의 검으로 완성했습니다.\n\n재료의 성질을 읽고 코드로 연결한 당신은 이제 공방의 명장입니다.",endingBody);
+        ForgeTextLayout.LayoutLabel("작은 철 조각으로 시작한 공방에서, 별철과 용뼈, 마력과 룬을 하나의 검으로 완성했습니다.\n\n재료의 성질을 읽고 코드로 연결한 당신은 이제 공방의 명장입니다.",endingBody);
         GUILayout.Space(20);
-        GUILayout.Label("명장의 마지막 의뢰 완료\n"+ForgeCampaign.FinalGoal+"\n\nDay "+DayCycle.Day+" · 판매 "+totalSales+"개 · 누적 판매액 "+earnedGold+"G",endingBody);
+        ForgeTextLayout.LayoutLabel("명장의 마지막 의뢰 완료\n"+ForgeCampaign.FinalGoal+"\n\nDay "+DayCycle.Day+" · 판매 "+totalSales+"개 · 누적 판매액 "+earnedGold+"G",endingBody);
         GUILayout.Space(28);
-        if(GUILayout.Button("계속 제작하기",endingButton,GUILayout.Height(52))){endingSeen=true;SaveProgress();}
+        if(GUILayout.Button("계속 제작하기",endingButton,GUILayout.MinHeight(52))){endingSeen=true;SaveProgress();}
         GUILayout.Space(10);
-        if(GUILayout.Button("저장하고 타이틀로",endingButton,GUILayout.Height(52))){endingSeen=true;SaveProgress();ReturnToTitle();}
-        if(saveMessage.StartsWith("저장 실패"))GUILayout.Label(saveMessage,endingBody);
+        if(GUILayout.Button("저장하고 타이틀로",endingButton,GUILayout.MinHeight(52))){endingSeen=true;SaveProgress();ReturnToTitle();}
+        if(saveMessage.StartsWith("저장 실패"))ForgeTextLayout.LayoutLabel(saveMessage,endingBody);
         GUILayout.EndScrollView();GUILayout.EndArea();
     }
 }

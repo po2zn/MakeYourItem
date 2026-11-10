@@ -18,7 +18,7 @@ public partial class ForgeMvp
     {
         if(!workspaceCamera||!workspaceCamera.enabled||WorkspacePointerActive||showGameMenu||showTitle)return;
         var point=Event.current.mousePosition;
-        if(point.y<ToolbarHeight||DebugResourcesRect.Contains(point)||showDebugWindow&&debugWindow.Contains(point))return;
+        if(ToolbarContains(point)||DebugResourcesRect.Contains(point)||showDebugWindow&&debugWindow.Contains(point))return;
         foreach(var window in codeWindows){var r=window.rect;r.position+=workspaceOffset;r=new Rect(r.x*workspaceZoom,r.y*workspaceZoom,r.width*workspaceZoom,r.height*workspaceZoom);if(r.Contains(point))return;}
         if(showGuideBook&&guideBook.Contains(BookWorkspacePoint(point)))return;
         var sales=salesWindow;sales.position+=workspaceOffset;
@@ -28,45 +28,20 @@ public partial class ForgeMvp
         for(int i=0;i<smithMotions.Count;i++)if(smithMotions[i].SmithBounds.IntersectRay(ray,out float hit)&&hit<distance){closest=i;distance=hit;}
         if(closest<0)return;
         SmithStyles();float width=Mathf.Min(320,Screen.width-16);
-        GUI.Box(new Rect(Mathf.Clamp(point.x+18,8,Mathf.Max(8,Screen.width-width-8)),Mathf.Clamp(point.y+20,8,Mathf.Max(8,Screen.height-148)),width,140),SmithInfo(closest),smithTooltip);
+        ForgeTreeTooltip.Draw(point,"대장장이 정보",SmithInfo(closest),codeStyle.font);
     }
-    void BuySmithResearch(ref bool unlocked,int price,string title)
+    bool SmithNodeOwned(int id)=>id==0||id<=5&&blacksmiths.hireTier>=id||id==6&&blacksmiths.favorUnlocked||id==7&&blacksmiths.positionUnlocked||id==8&&blacksmiths.demandUnlocked;
+    int SmithNodePrice(int id)=>id==0?0:id<=5?ForgeBlacksmiths.HireCosts[id-1]:id==8?ForgeBlacksmiths.DemandResearchCost:id==7?ForgeBlacksmiths.PositionResearchCost:ForgeBlacksmiths.FavorResearchCost;
+    string SmithNodeTitle(int id)=>id==0?"기본 대장장이 · 1명":id<=5?"대장장이 "+ForgeBlacksmiths.Counts[id]+"명 고용":id==6?"호감도 조회 · 90902()":id==7?"위치 조회 · 90903()":"요구 수량 조회 · 90909()";
+    string SmithNodeDescription(int id)=>id==0?"선물 90901 · 병렬 명령 90904 · 인원 90905 · 자기 번호 90906 · 작업 여부 90907은 기본 제공됩니다.\n번호는 0부터 시작하며, 각 대장장이는 독립 실행하고 공용 재료를 사용합니다.":id<=5?"고용 인원이 "+ForgeBlacksmiths.Counts[id-1]+"명에서 "+ForgeBlacksmiths.Counts[id]+"명으로 증가합니다.\n90904(번호, 함수)로 병렬 제작을 맡길 수 있습니다. 제작 함수가 반환한 작업물은 자동 제출됩니다.":id==6?"90902([번호])로 호감도 -100~100을 조회합니다.\n호감도는 게임 시간 2시간마다 1 감소합니다.":id==7?"90903([번호])로 공방 격자 좌표 (x, y)를 조회합니다.\n첫 대장장이의 위치는 (0, 0)입니다.":"90909([번호])로 요구 다이아 수량 1~9를 조회합니다.\n선물 수량이 일치하면 호감도 +5, 불일치하면 -10. 요구 수량은 선물마다 다시 정해집니다.";
+    void PurchaseSmithNode(int id)
     {
-        bool enabled=GUI.enabled;GUI.enabled=enabled&&!unlocked&&diamonds>=price;
-        if(GUILayout.Button(title+" · "+(unlocked?"구매 완료":price+" 다이아"),smithButton)){
-            diamonds-=price;unlocked=true;smithMessage=title+" 해금 완료";SaveProgress();
-        }
-        GUI.enabled=enabled;
-    }
-    void DrawSmithTree()
-    {
-        SmithStyles();var old=GUI.color;GUI.color=new Color(.07f,.11f,.17f);GUI.DrawTexture(new Rect(0,0,Screen.width,Screen.height),Texture2D.whiteTexture);GUI.color=old;
-        GUILayout.BeginArea(new Rect(16,12,Screen.width-32,Screen.height-24));
-        GUILayout.BeginHorizontal();GUILayout.Label("대장장이 테크 트리 · 다이아 "+diamonds,smithLabel);
-        if(GUILayout.Button("성장 트리",smithButton,GUILayout.Width(140)))showSmithTree=false;
-        if(GUILayout.Button("대장간",smithButton,GUILayout.Width(120))){showSmithTree=false;showTechTree=false;}
-        GUILayout.EndHorizontal();
-        smithTreeScroll=GUILayout.BeginScrollView(smithTreeScroll);
-        GUILayout.Label("기본 제공 → 선물 90901 · 병렬 명령 90904 · 인원 90905 · 자기 번호 90906 · 작업 여부 90907",smithLabel);
-        GUILayout.Label("고용: 1 → 2 → 3 → 4 → 9 → 16명 / 대장장이마다 독립 실행 · 공용 재료 사용",smithLabel);
-        int tier=blacksmiths.hireTier;bool enabled=GUI.enabled;GUI.enabled=enabled&&tier<5&&diamonds>=(tier<5?ForgeBlacksmiths.HireCosts[tier]:int.MaxValue);
-        if(GUILayout.Button(tier<5?"고용 "+blacksmiths.smiths.Count+" → "+ForgeBlacksmiths.Counts[tier+1]+"명 · "+ForgeBlacksmiths.HireCosts[tier]+" 다이아":"고용 완료 · 16명",smithButton)){
-            blacksmiths.Hire(ref diamonds,SmithHours);UpdateSmiths();SaveProgress();
-        }
-        GUI.enabled=enabled;
-        BuySmithResearch(ref blacksmiths.favorUnlocked,25,"호감도 조회 90902()");
-        BuySmithResearch(ref blacksmiths.positionUnlocked,25,"위치 조회 90903()");
-        BuySmithResearch(ref blacksmiths.demandUnlocked,50,"요구 수량 조회 90909()");
-        GUILayout.Label("선물: 일치 +5 / 불일치 -10 · 요구 수량은 매번 1~9 재추첨\n호감도: 게임 2시간마다 -1 · -100에서 파괴 10%, +100에서 대성공 10%\n매일 한 명이 2시간 동안 불타는 상태: 대성공 50% · 속도 변화 없음",smithLabel);
-        GUILayout.Label("거대한 룬 · 90910(룬 번호, x, y)\n룬 각인 연구 후 수정 1개 + 다이아 25/50/75개. 자신과 상하좌우 한 칸에 적용.\n계열 1: 대성공 +1/2/3%p · 계열 2: 파괴 -1/2/3%p · 계열 3: 판매 +5/10/15%. 같은 계열은 최댓값만 적용.",smithLabel);
-        foreach(var rune in blacksmiths.runes)GUILayout.Label("설치한 거대한 룬 "+rune.rune+" · ("+rune.x+", "+rune.y+")",smithLabel);
-        GUILayout.Label("병렬 제작 예시 (제어문 연구 후):\n333 sword():\n    p = 1(1)\n    2(p, 7)\n    3(p)\n    4(p, 0)\n    5(p, 2)\n    << p\n90904(1, sword)\n90904(2, sword)\n\n제작 함수가 반환한 작업물은 자동 제출됩니다.\n조회와 선물: 90901(1, 90909(1))\n번호는 0부터 시작. 작업 중인 대상에 다시 명령하면 -1 반환. 실행 중인 코드는 시작 당시의 복사본입니다.",smithLabel);
-        if(smithMessage.Length>0)GUILayout.Label(smithMessage,smithLabel);
-        for(int i=0;i<blacksmiths.smiths.Count;i++){
-            blacksmiths.Chances(i,SmithHours,out double destruction,out double great);
-            GUILayout.Box(SmithInfo(i)+"\n파괴 "+(destruction*100).ToString("0.0")+"% · 대성공 "+(great*100).ToString("0.0")+"%",smithTooltip);
-        }
-        if(smithJobs.Count>0&&GUILayout.Button("병렬 작업 모두 중단",smithButton)){StopSmithJobs();smithMessage="이미 소비한 재료는 유지됩니다.";}
-        GUILayout.EndScrollView();GUILayout.EndArea();
+        if(SmithNodeOwned(id)){smithMessage="이미 구매한 항목입니다.";return;}
+        if(id<=5&&blacksmiths.hireTier!=id-1){smithMessage="선행 구매 필요: "+SmithNodeTitle(id-1);return;}
+        int price=SmithNodePrice(id);
+        if(diamonds<price){smithMessage="다이아가 부족합니다.";return;}
+        if(id<=5){if(!blacksmiths.Hire(ref diamonds,SmithHours))return;UpdateSmiths();}
+        else{diamonds-=price;if(id==6)blacksmiths.favorUnlocked=true;else if(id==7)blacksmiths.positionUnlocked=true;else blacksmiths.demandUnlocked=true;}
+        smithMessage=SmithNodeTitle(id)+" 구매 완료";SaveProgress();
     }
 }

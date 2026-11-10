@@ -84,7 +84,7 @@ public sealed class ForgeTechnology
     public static bool RequiresPurchase(BlueprintFeature feature)=>Offers.Any(o=>o.Features.Contains(feature));
     public bool Owns(BlueprintFeature feature)=>Owns("function-"+feature);
     public bool Owns(string id)=>purchased.Contains(CanonicalId(id));
-    public bool Owns(Offer offer)=>offer.Kind!=ForgePurchaseKind.Material&&Owns(offer.Id);
+    public bool Owns(Offer offer)=>offer.Kind!=ForgePurchaseKind.Material&&purchased.Contains(offer.Id);
     public bool MaterialAvailable(int material)=>material>=0&&material<=3||Owns("material-"+material);
     public int MaxSpeedLevel=>Offers.Where(o=>o.SpeedLevel>0&&Owns(o)).Select(o=>o.SpeedLevel).DefaultIfEmpty(0).Max();
     public BlueprintFeature[] Export()=>Offers.Where(o=>o.Kind==ForgePurchaseKind.Function&&Owns(o)).SelectMany(o=>o.Features).Distinct().ToArray();
@@ -113,7 +113,7 @@ public sealed class ForgeTechnology
         var missing=offer.Parents.Where(id=>!Owns(id)).Select(id=>Find(id).Title).ToArray();
         return missing.Length==0?null:"선행 구매 필요: "+string.Join(" + ",missing);
     }
-    public string PrerequisiteText(Offer offer)=>offer.Parents.Count==0?"선행: 기본 공방 (제공)":"선행 모두 필요: "+string.Join(" + ",offer.Parents.Select(id=>Find(id).Title));
+    public string PrerequisiteText(Offer offer)=>offer.Parents.Count==0?"선행: 기본 공방 (제공)":"선행 구매 필요: "+string.Join(" + ",offer.Parents.Select(id=>Find(id).Title));
     public long Stock(Offer offer,int iron,ForgeMaterialStock[] stocks)
     {
         if(offer.Material==1)return iron;

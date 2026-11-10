@@ -19,7 +19,7 @@ public static class ForgeGuideUI
     {
         Color old=GUI.backgroundColor;
         if(selected)GUI.backgroundColor=new Color(.60f,.74f,.85f);
-        bool clicked=GUI.Button(rect,new GUIContent("",tooltip));
+        bool clicked=ForgeTextLayout.Button(rect,new GUIContent("",tooltip));
         GUI.backgroundColor=old;
         if(Event.current.type!=EventType.Repaint)return clicked;
         Matrix4x4 previousMatrix=GUI.matrix;
@@ -75,11 +75,11 @@ public static class ForgeGuideUI
         Fill(new Rect(window.x,window.y,window.width,HeaderHeight),new Color(.16f,.18f,.22f,.98f));
         var title=new GUIStyle(GUI.skin.label){font=font,fontSize=fontSize+4,fontStyle=FontStyle.Bold,alignment=TextAnchor.MiddleLeft,richText=false};
         title.hover.textColor=title.normal.textColor;
-        GUI.Label(new Rect(window.x+10,window.y+2,Mathf.Max(1,window.width-HeaderControlsWidth-12),HeaderHeight-4),"도면 안내서",title);
-        if(GUI.Button(new Rect(window.xMax-134,window.y+6,40,42),new GUIContent(reader.ShowBookmarks?"◀":"▶",reader.ShowBookmarks?"책갈피 숨기기":"책갈피 표시")))reader.ShowBookmarks=!reader.ShowBookmarks;
+        ForgeTextLayout.Label(new Rect(window.x+10,window.y+2,Mathf.Max(1,window.width-HeaderControlsWidth-12),HeaderHeight-4),"도면 안내서",title);
+        if(ForgeTextLayout.Button(new Rect(window.xMax-134,window.y+6,40,42),new GUIContent(reader.ShowBookmarks?"◀":"▶",reader.ShowBookmarks?"책갈피 숨기기":"책갈피 표시")))reader.ShowBookmarks=!reader.ShowBookmarks;
         bool wasCollapsed=collapsed;
-        if(GUI.Button(new Rect(window.xMax-90,window.y+6,40,42),new GUIContent("−",collapsed?"안내서 펼치기":"안내서 접기")))collapsed=!collapsed;
-        if(GUI.Button(new Rect(window.xMax-46,window.y+6,40,42),new GUIContent("×","안내서 닫기")))open=false;
+        if(ForgeTextLayout.Button(new Rect(window.xMax-90,window.y+6,40,42),new GUIContent("−",collapsed?"안내서 펼치기":"안내서 접기")))collapsed=!collapsed;
+        if(ForgeTextLayout.Button(new Rect(window.xMax-46,window.y+6,40,42),new GUIContent("×","안내서 닫기")))open=false;
         if(collapsed||wasCollapsed||!open)return;
         Fill(new Rect(book.x+4,book.y+5,book.width,book.height),new Color(0,0,0,.25f));
         Fill(book,new Color(.25f,.16f,.11f));
@@ -95,4 +95,44 @@ public static class ForgeGuideUI
         reader.Draw(new Rect(book.x+10,book.y+10,book.width-20,book.height-20),font,fontSize,englishGuideUnlocked);
         DrawPageStack(book);
     }
+}
+
+// Use measured height for prose and fitted text only for fixed-size controls.
+public static class ForgeTextLayout
+{
+    public static int FontSize(GUIStyle style)=>style.fontSize>0?style.fontSize:style.font!=null&&style.font.fontSize>0?style.font.fontSize:12;
+    public static float Height(string text,GUIStyle style,float width)
+    {
+        var content=new GUIContent(text??"");
+        return Mathf.Ceil(Mathf.Max(style.CalcHeight(content,Mathf.Max(1,width)),style.lineHeight+style.padding.vertical)+FontSize(style)*.3f+2);
+    }
+    public static bool Fits(Rect rect,GUIContent content,GUIStyle style)
+    {
+        if(string.IsNullOrEmpty(content.text))return true;
+        float min,max;style.CalcMinMaxWidth(content,out min,out max);
+        return (style.wordWrap?min:max)<=rect.width+.5f&&Height(content.text,style,rect.width)<=rect.height+.5f;
+    }
+    public static GUIStyle Fit(Rect rect,GUIContent content,GUIStyle source)
+    {
+        if(Fits(rect,content,source))return source;
+        var style=new GUIStyle(source){fontSize=FontSize(source),fixedHeight=0,fixedWidth=0,contentOffset=Vector2.zero,clipping=TextClipping.Clip};
+        // Preserve full strings. Long-form content must use Height and a scroll view instead.
+        while(style.fontSize>8&&!Fits(rect,content,style))style.fontSize--;
+        if(!Fits(rect,content,style)){
+            style.padding=new RectOffset(1,1,1,1);style.wordWrap=true;
+            while(style.fontSize>1&&!Fits(rect,content,style))style.fontSize--;
+        }
+        return style;
+    }
+    public static void Label(Rect rect,string text,GUIStyle style=null)=>Label(rect,new GUIContent(text),style);
+    public static void Label(Rect rect,GUIContent text,GUIStyle style=null)=>GUI.Label(rect,text,Fit(rect,text,style??GUI.skin.label));
+    public static bool Button(Rect rect,string text,GUIStyle style=null)=>Button(rect,new GUIContent(text),style);
+    public static bool Button(Rect rect,GUIContent text,GUIStyle style=null)=>GUI.Button(rect,text,Fit(rect,text,style??GUI.skin.button));
+    public static void LayoutLabel(string text,GUIStyle source=null,params GUILayoutOption[] options)
+    {
+        var style=new GUIStyle(source??GUI.skin.label){wordWrap=true,fixedHeight=0};
+        style.padding.bottom+=Mathf.CeilToInt(FontSize(style)*.3f)+2;
+        GUILayout.Label(text,style,options);
+    }
+
 }

@@ -33,7 +33,20 @@ public static class BlueprintGuideChecks {
  }
  Require(!entries.Single(e=>e.Id=="min").Matches("min",false)&&entries.Single(e=>e.Id=="min").Matches("min",true)&&entries.Single(e=>e.Id=="min").Matches("000",false),"locked/unlocked search");
  Require(entries.Single(e=>e.Id=="print").HeadingFor(false).Contains("print"),"print must remain documented");
+
+ foreach(var e in entries){
+   Require(e.ResearchFor(true).Length>0&&e.ResearchFor(false).Length>0,"missing research metadata "+e.Id);
+   foreach(var alias in BlueprintAliases.All.Where(a=>a.Symbol.Length>0))Require(!System.Text.RegularExpressions.Regex.IsMatch(e.ResearchFor(false),@"(?<![A-Za-z0-9_])"+alias.English+@"(?![A-Za-z0-9_])"),"research English leak "+e.Id+" / "+alias.English);
+ }
+ string treeGuide=BlueprintResearchGuide.Overview(true);
+ foreach(var offer in ForgeTechnology.Offers)Require(treeGuide.Contains(offer.Kind==ForgePurchaseKind.Material?ForgeMaterialGuide.Find(offer.Material).Heading:offer.Title),"missing current tree offer "+offer.Id);
+ Require(entries.Single(e=>e.Feature==BlueprintFeature.AutoSell).ResearchFor(false).Contains("별도 자동판매 구매 비용은 없습니다"),"speed reward metadata");
+ Require(entries.Single(e=>e.Feature==BlueprintFeature.SmithRun).ResearchFor(false).Contains(ForgeBlacksmiths.HireCosts[0]+" 다이아"),"parallel example hire prerequisite");
+ var master=EvaluateGuide(entries.Single(e=>e.Id=="masterwork-example").Example);
+ Require(master.error==null&&master.product.Data.materials[7]==1&&master.product.Data.materials[5]==1&&master.product.Data.materials[9]==1&&master.product.Data.materials[3]==2&&master.product.Data.materials[6]==4,"masterwork example stock requirements");
+ log.AppendLine("PASS current tree offer coverage, research metadata, speed reward, smith hiring and masterwork materials");
  log.AppendLine("PASS numeric-only examples, equal execution, hidden English, unlock restoration and search");
+ log.AppendLine(BlueprintGuideUnlockChecks.Run());
  log.AppendLine("TOTAL guide "+entries.Count+" examples passed; registry, economy, no-candidate and search passed");return log.ToString();}
  public static void Main(){Console.WriteLine(Run());BlueprintVariableChecks.Main();}
 #if UNITY_EDITOR

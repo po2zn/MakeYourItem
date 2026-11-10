@@ -30,7 +30,7 @@ public partial class ForgeMvp
     void OpenTutorial()
     {
         if(busy||executionSession!=null||showTutorial)return;
-        CommitName();EndWorkspaceDrag();techTree.CancelDrag();guideBook.CancelDrag();
+        CommitName();EndWorkspaceDrag();CancelHierarchyTreeDrag();guideBook.CancelDrag();
         showProgress=false;showTechTree=false;showGuideBook=false;
         tutorialWasPaused=DayCycle.Paused;DayCycle.Paused=true;
         tutorialPreviousOffset=workspaceOffset;tutorialPreviousZoom=workspaceZoom;
@@ -42,7 +42,7 @@ public partial class ForgeMvp
         tutorialCameraFocus=craftMotion.TutorialFocus;
         UpdateWorkspaceCamera();
         StartCoroutine(PlayTutorialIntro());
-        GUI.FocusControl(null);
+        ClearUIFocus();
     }
     IEnumerator PlayTutorialIntro()
     {
@@ -86,26 +86,26 @@ public partial class ForgeMvp
         Color old=GUI.color;GUI.color=TutorialTint(new Color(.09f,.13f,.19f,.97f));GUI.DrawTexture(panel,Texture2D.whiteTexture);GUI.color=old;
         GUILayout.BeginArea(new Rect(panel.x+24,panel.y+24,width-48,Mathf.Max(1,panel.height-196)));
         tutorialWelcomeScroll=GUILayout.BeginScrollView(tutorialWelcomeScroll,false,false,GUIStyle.none,GUIStyle.none);
-        GUILayout.Label("나만의 대장간에 오신 것을 환영합니다",tutorialTitleStyle);
+        ForgeTextLayout.LayoutLabel("나만의 대장간에 오신 것을 환영합니다",tutorialTitleStyle);
         GUILayout.Space(20);
-        GUILayout.Label("이곳에서는 여러분이 쓴 코드가 대장장이의 작업 지시가 됩니다. 재료를 고르고, 불로 달구고, 망치로 두드리며 나만의 검을 만들어 보세요.",tutorialBodyStyle);
+        ForgeTextLayout.LayoutLabel("이곳에서는 여러분이 쓴 코드가 대장장이의 작업 지시가 됩니다. 재료를 고르고, 불로 달구고, 망치로 두드리며 나만의 검을 만들어 보세요.",tutorialBodyStyle);
         GUILayout.Space(28);
-        GUILayout.Label("코드가 도면이 됩니다",tutorialTitleStyle);
+        ForgeTextLayout.LayoutLabel("코드가 도면이 됩니다",tutorialTitleStyle);
         GUILayout.Space(10);
-        GUILayout.Label("한 줄의 명령을 실행하면 대장장이가 직접 움직입니다. 작업물의 변화를 보면서 제작 순서를 익힐 수 있습니다. 코드를 처음 접해도 한 단계씩 따라오면 됩니다.",tutorialBodyStyle);
+        ForgeTextLayout.LayoutLabel("한 줄의 명령을 실행하면 대장장이가 직접 움직입니다. 작업물의 변화를 보면서 제작 순서를 익힐 수 있습니다. 코드를 처음 접해도 한 단계씩 따라오면 됩니다.",tutorialBodyStyle);
         GUILayout.Space(28);
-        GUILayout.Label("만들고, 팔고, 더 넓혀 보세요",tutorialTitleStyle);
+        ForgeTextLayout.LayoutLabel("만들고, 팔고, 더 넓혀 보세요",tutorialTitleStyle);
         GUILayout.Space(10);
-        GUILayout.Label("완성품을 판매해 골드를 모으고, 테크 트리에서 새로운 재료와 기능을 구매하세요. 다양한 재료와 공정을 조합하며 더 가치 있는 작품을 만드는 것이 이 공방의 목표입니다.",tutorialBodyStyle);
+        ForgeTextLayout.LayoutLabel("완성품을 판매해 골드를 모으고, 테크 트리에서 새로운 재료와 기능을 구매하세요. 다양한 재료와 공정을 조합하며 더 가치 있는 작품을 만드는 것이 이 공방의 목표입니다.",tutorialBodyStyle);
         GUILayout.Space(28);
-        GUILayout.Label("첫 목표는 검 한 자루",tutorialTitleStyle);
+        ForgeTextLayout.LayoutLabel("첫 목표는 검 한 자루",tutorialTitleStyle);
         GUILayout.Space(10);
-        GUILayout.Label("튜토리얼에서는 재료와 변수부터 시작해 검날과 손잡이를 직접 만듭니다. 연습용 재료를 사용하므로 실제 골드나 재고가 줄지 않습니다. 틀려도 다시 시도하거나 이전 단계로 돌아갈 수 있습니다.",tutorialBodyStyle);
+        ForgeTextLayout.LayoutLabel("튜토리얼에서는 재료와 변수부터 시작해 검날과 손잡이를 직접 만듭니다. 연습용 재료를 사용하므로 실제 골드나 재고가 줄지 않습니다. 틀려도 다시 시도하거나 이전 단계로 돌아갈 수 있습니다.",tutorialBodyStyle);
         GUILayout.Space(12);
         GUILayout.EndScrollView();GUILayout.EndArea();
         bool enabled=GUI.enabled;GUI.enabled=enabled&&!tutorialAnimating;
-        if(GUI.Button(new Rect(panel.x+24,panel.yMax-148,width-48,60),"튜토리얼 시작 · 첫 검 만들기",tutorialPrimaryStyle))StartCoroutine(RevealTutorialLesson());
-        if(GUI.Button(new Rect(panel.x+24,panel.yMax-76,width-48,52),"나중에 시작하기",tutorialButtonStyle))CloseTutorial();
+        if(ForgeTextLayout.Button(new Rect(panel.x+24,panel.yMax-148,width-48,60),"튜토리얼 시작 · 첫 검 만들기",tutorialPrimaryStyle))StartCoroutine(RevealTutorialLesson());
+        if(ForgeTextLayout.Button(new Rect(panel.x+24,panel.yMax-76,width-48,52),"나중에 시작하기",tutorialButtonStyle))CloseTutorial();
         GUI.enabled=enabled;
     }
     void UpdateTutorialCamera()
@@ -128,7 +128,7 @@ public partial class ForgeMvp
         tutorialWindowInteraction.Cancel();SetResizeCursor(0);
         showTutorial=false;DayCycle.Paused=tutorialWasPaused;
         workspaceOffset=tutorialPreviousOffset;workspaceZoom=tutorialPreviousZoom;UpdateWorkspaceCamera();
-        craftMotion.BeginRun();SaveProgress();GUI.FocusControl(null);
+        craftMotion.BeginRun();SaveProgress();ClearUIFocus();
     }
     IEnumerator AnimateTutorial(Evaluation evaluation,int first)
     {
@@ -144,7 +144,7 @@ public partial class ForgeMvp
         if(!lesson.SubmitDocument(tutorialInput,out tutorialFeedback))return;
         tutorialInput=lesson.Code;tutorialHint=false;tutorialSuccessAt=Time.unscaledTime;
         tutorialScroll=Vector2.zero;
-        GUI.FocusControl(null);SaveProgress();
+        ClearUIFocus();SaveProgress();
         StartCoroutine(AnimateTutorial(lesson.Evaluation,previous));
     }
     void PreviousTutorial()
@@ -154,7 +154,7 @@ public partial class ForgeMvp
         tutorialInput=lesson.Code;tutorialEditorScroll=Vector2.zero;tutorialPendingCaret=-1;
         tutorialHint=false;tutorialScroll=Vector2.zero;tutorialSuccessAt=-100;
         tutorialFeedback="이전 단계로 돌아왔습니다. 코드를 확인하고 다시 실행해 보세요.";
-        craftMotion.BeginRun();SaveProgress();GUI.FocusControl(null);
+        craftMotion.BeginRun();SaveProgress();ClearUIFocus();
         if(lesson.Evaluation!=null)StartCoroutine(AnimateTutorial(lesson.Evaluation,0));
     }
     float DrawTutorialMaterials()
@@ -162,12 +162,12 @@ public partial class ForgeMvp
         float width=Mathf.Min(520,Screen.width-24);
         int columns=width>=440?4:2;
         float cellWidth=(width-(columns-1)*8)/columns;
-        GUI.Label(new Rect(12,12,width,28),"연습용 재료 · 실제 재고와 별도",tutorialBodyStyle);
+        ForgeTextLayout.Label(new Rect(12,12,width,28),"연습용 재료 · 실제 재고와 별도",tutorialBodyStyle);
         for(int id=0;id<4;id++){
             Rect cell=new Rect(12+(id%columns)*(cellWidth+8),44+(id/columns)*72,cellWidth,64);
             GUI.DrawTexture(new Rect(cell.x,cell.y+8,48,48),materialHud.GetIcon(id));
             string amount=id==0?"무제한":(id==1?lesson.RemainingIron:0)+"개";
-            GUI.Label(new Rect(cell.x+50,cell.y,cell.width-50,64),ForgeMaterialGuide.Find(id).Heading+"\n"+amount,tutorialStockStyle);
+            ForgeTextLayout.Label(new Rect(cell.x+50,cell.y,cell.width-50,64),ForgeMaterialGuide.Find(id).Heading+"\n"+amount,tutorialStockStyle);
         }
         return 44+((4+columns-1)/columns)*72+12;
     }
@@ -202,35 +202,35 @@ public partial class ForgeMvp
         const float inset=24;
         float contentWidth=Mathf.Max(1,panel.width-inset*2);
         const string footerNote="진행은 자동 저장됩니다. 편하게 쉬어 가세요.";
-        float noteHeight=Mathf.Ceil(tutorialBodyStyle.CalcHeight(new GUIContent(footerNote),contentWidth))+4;
+        float noteHeight=ForgeTextLayout.Height(footerNote,tutorialBodyStyle,contentWidth);
         float footerHeight=12+noteHeight+12+54+12+54+20;
         GUILayout.BeginArea(new Rect(panel.x+inset,panel.y+24,contentWidth,Mathf.Max(1,panel.height-48-footerHeight)));
         // Keep wheel scrolling without the oversized, always-visible drag bar.
         tutorialScroll=GUILayout.BeginScrollView(tutorialScroll,false,false,GUIStyle.none,GUIStyle.none);
-        GUILayout.Label("첫 검 만들기 · "+Mathf.Min(lesson.Stage+1,8)+" / 8",tutorialTitleStyle);
+        ForgeTextLayout.LayoutLabel("첫 검 만들기 · "+Mathf.Min(lesson.Stage+1,8)+" / 8",tutorialTitleStyle);
         GUILayout.Space(8);
-        GUILayout.Label("연습 공방 · 실제 재고 소비 없음",tutorialBodyStyle);
+        ForgeTextLayout.LayoutLabel("연습 공방 · 실제 재고 소비 없음",tutorialBodyStyle);
         GUILayout.Space(16);
         Rect bar=GUILayoutUtility.GetRect(1,6,GUILayout.ExpandWidth(true));
         GUI.color=TutorialTint(new Color(.25f,.8f,.65f));GUI.DrawTexture(new Rect(bar.x,bar.y,bar.width*lesson.Stage/8f,6),Texture2D.whiteTexture);GUI.color=old;
         GUILayout.Space(28);
         bool enabled=GUI.enabled;GUI.enabled=enabled&&!tutorialAnimating;
         if(lesson.Complete){
-            GUILayout.Label("첫 번째 검을 완성했습니다!",tutorialTitleStyle);
+            ForgeTextLayout.LayoutLabel("첫 번째 검을 완성했습니다!",tutorialTitleStyle);
             GUILayout.Space(12);
-            GUILayout.Label("직접 작성한 도면입니다. 철 2개로 검날과 손잡이를 만들었습니다. 공방 기록에서 언제든 다시 연습할 수 있습니다.",tutorialBodyStyle);
+            ForgeTextLayout.LayoutLabel("직접 작성한 도면입니다. 철 2개로 검날과 손잡이를 만들었습니다. 공방 기록에서 언제든 다시 연습할 수 있습니다.",tutorialBodyStyle);
             GUILayout.Space(20);
             GUILayout.Space(24);
             if(GUILayout.Button("도면 복사",tutorialPrimaryStyle,GUILayout.MinHeight(60)))GUIUtility.systemCopyBuffer=lesson.Code;
             GUILayout.Space(12);
             if(GUILayout.Button("처음부터 다시 연습",tutorialButtonStyle,GUILayout.MinHeight(54))){lesson=new ForgeTutorialLesson();tutorialInput="";tutorialSuccessAt=-100;showTutorialWelcome=true;tutorialWelcomeScroll=Vector2.zero;tutorialFeedback="재료부터 다시 골라 보세요.";craftMotion.BeginRun();SaveProgress();}
         }else{
-            GUILayout.Label(ForgeTutorialLesson.Titles[lesson.Stage],tutorialTitleStyle);
+            ForgeTextLayout.LayoutLabel(ForgeTutorialLesson.Titles[lesson.Stage],tutorialTitleStyle);
             GUILayout.Space(12);
-            GUILayout.Label(ForgeTutorialLesson.Instructions[lesson.Stage],tutorialBodyStyle);
+            ForgeTextLayout.LayoutLabel(ForgeTutorialLesson.Instructions[lesson.Stage],tutorialBodyStyle);
             GUILayout.Space(24);
             if(lesson.Stage==0){
-                GUILayout.Label("코드 미리보기 · Material = 1\n철의 번호를 Material이라는 이름에 담습니다.",tutorialBodyStyle);
+                ForgeTextLayout.LayoutLabel("코드 미리보기 · Material = 1\n철의 번호를 Material이라는 이름에 담습니다.",tutorialBodyStyle);
                 GUILayout.Space(20);
                 for(int row=0;row<5;row++){
                     GUILayout.BeginHorizontal();
@@ -243,26 +243,26 @@ public partial class ForgeMvp
                     GUILayout.Space(12);
                 }
             }else{
-                GUILayout.Label("오른쪽 코드창에서 "+lesson.Stage+"번째 줄을 이어서 작성하세요.",tutorialBodyStyle);
+                ForgeTextLayout.LayoutLabel("오른쪽 코드창에서 "+lesson.Stage+"번째 줄을 이어서 작성하세요.",tutorialBodyStyle);
                 GUILayout.Space(12);
                 if(GUILayout.Button(tutorialHint?"힌트 숨기기":"막히셨나요? 힌트 보기",tutorialButtonStyle,GUILayout.MinHeight(54)))tutorialHint=!tutorialHint;
-                if(tutorialHint&&!lesson.Complete){GUILayout.Space(16);GUILayout.Label(ForgeTutorialLesson.Hints[lesson.Stage],tutorialBodyStyle);}
+                if(tutorialHint&&!lesson.Complete){GUILayout.Space(16);ForgeTextLayout.LayoutLabel(ForgeTutorialLesson.Hints[lesson.Stage],tutorialBodyStyle);}
             }
         }
         GUI.enabled=enabled;
         GUILayout.Space(24);
         if(tutorialSuccessAt>=0)GUI.color=TutorialTint(new Color(.5f,1f,.7f));
-        GUILayout.Label(tutorialAnimating?"작업물의 변화를 확인하세요…":tutorialFeedback,tutorialBodyStyle);GUI.color=old;
+        ForgeTextLayout.LayoutLabel(tutorialAnimating?"작업물의 변화를 확인하세요…":tutorialFeedback,tutorialBodyStyle);GUI.color=old;
         GUILayout.Space(12);
         GUILayout.EndScrollView();GUILayout.EndArea();
         // Keep leaving/resuming separate from the exercise and reachable without scrolling.
         Rect footer=new Rect(panel.x+inset,panel.yMax-footerHeight,contentWidth,footerHeight-20);
         GUI.color=TutorialTint(new Color(.3f,.4f,.52f,.6f));GUI.DrawTexture(new Rect(footer.x,footer.y,footer.width,1),Texture2D.whiteTexture);GUI.color=old;
-        GUI.Label(new Rect(footer.x,footer.y+12,footer.width,noteHeight),footerNote,tutorialBodyStyle);
+        ForgeTextLayout.Label(new Rect(footer.x,footer.y+12,footer.width,noteHeight),footerNote,tutorialBodyStyle);
         GUI.enabled=enabled&&!tutorialAnimating&&lesson.Stage>0;
-        if(GUI.Button(new Rect(footer.x,footer.y+24+noteHeight,footer.width,54),"← 이전 단계 다시 배우기",tutorialButtonStyle))PreviousTutorial();
+        if(ForgeTextLayout.Button(new Rect(footer.x,footer.y+24+noteHeight,footer.width,54),"← 이전 단계 다시 배우기",tutorialButtonStyle))PreviousTutorial();
         GUI.enabled=enabled&&!tutorialAnimating;
-        if(GUI.Button(new Rect(footer.x,footer.y+90+noteHeight,footer.width,54),lesson.Complete?"대장간으로 돌아가기":"여기까지 하고 나중에 계속",tutorialButtonStyle))CloseTutorial();
+        if(ForgeTextLayout.Button(new Rect(footer.x,footer.y+90+noteHeight,footer.width,54),lesson.Complete?"대장간으로 돌아가기":"여기까지 하고 나중에 계속",tutorialButtonStyle))CloseTutorial();
         GUI.enabled=enabled;
         DrawTutorialEditor(panelTop);
     }
@@ -290,10 +290,10 @@ public partial class ForgeMvp
         GUI.color=TutorialTint(new Color(.4f,.65f,.8f,.6f));
         GUI.DrawTexture(new Rect(window.x+1,window.center.y-18,2,36),Texture2D.whiteTexture);
         GUI.DrawTexture(new Rect(window.xMax-3,window.center.y-18,2,36),Texture2D.whiteTexture);GUI.color=color;
-        GUI.Label(new Rect(window.x+16,window.y+12,width-32,38),"튜토리얼 코드창",tutorialTitleStyle);
+        ForgeTextLayout.Label(new Rect(window.x+16,window.y+12,width-32,38),"튜토리얼 코드창",tutorialTitleStyle);
         string caption=lesson.Stage==0?"왼쪽에서 철을 선택하면 코드를 작성할 수 있습니다.":lesson.Complete?"완성한 도면입니다.":"이전 코드 아래에 이번 단계의 한 줄을 추가하세요.";
-        float captionHeight=tutorialBodyStyle.CalcHeight(new GUIContent(caption),Mathf.Max(1,width-32));
-        GUI.Label(new Rect(window.x+16,window.y+54,width-32,captionHeight),caption,tutorialBodyStyle);
+        float captionHeight=ForgeTextLayout.Height(caption,tutorialBodyStyle,Mathf.Max(1,width-32));
+        ForgeTextLayout.Label(new Rect(window.x+16,window.y+54,width-32,captionHeight),caption,tutorialBodyStyle);
         Rect view=new Rect(window.x+40,window.y+66+captionHeight,width-52,Mathf.Max(40,height-150-captionHeight));
         GUI.color=TutorialTint(new Color(.48f,.52f,.58f,.4f));
         GUI.DrawTexture(new Rect(view.x-4,view.y+2,1,view.height-4),Texture2D.whiteTexture);GUI.color=color;
@@ -323,7 +323,7 @@ public partial class ForgeMvp
         }
         DrawEditorScrollbars(view,content,ref tutorialEditorScroll);
         Color background=GUI.backgroundColor;GUI.backgroundColor=new Color(.55f,.85f,1f);
-        if(GUI.Button(new Rect(window.x+16,window.yMax-68,width-32,52),"이번 단계 실행",tutorialPrimaryStyle))SubmitTutorial();
+        if(ForgeTextLayout.Button(new Rect(window.x+16,window.yMax-68,width-32,52),"이번 단계 실행",tutorialPrimaryStyle))SubmitTutorial();
         GUI.backgroundColor=background;GUI.enabled=enabled;
     }
 }

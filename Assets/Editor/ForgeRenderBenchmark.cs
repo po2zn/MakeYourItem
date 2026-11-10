@@ -53,8 +53,8 @@ public static class ForgeRenderBenchmark
             SetSaved(game,"showGuideBook",true);
             SetSaved(game,"workspaceZoom",1f);SetSaved(game,"workspaceOffset",Vector2.zero);
             if(game.DayCycle){bool paused=game.DayCycle.Paused;game.DayCycle.Paused=true;restore.Add(()=>{if(game&&game.DayCycle)game.DayCycle.Paused=paused;});}
-            var tree=Field(game,"techTree").GetValue(game);
-            SetSaved(tree,"zoom",.35f);SetSaved(tree,"offset",new Vector2(16,20));SetSaved(tree,"focusRoot",false);SetSaved(tree,"tab",0);
+            var tree=game.HierarchyTree;
+            if(tree!=null){var content=tree.maps[0].content;var scale=content.localScale;var position=content.anchoredPosition;restore.Add(()=>{if(content){content.localScale=scale;content.anchoredPosition=position;}});content.localScale=Vector3.one*.35f;content.anchoredPosition=new Vector2(16,-20); }
             // An unexecuted fixture makes long-code comparisons repeatable, even on a new save.
             var windows=(System.Collections.IList)Field(game,"codeWindows").GetValue(game);
             if(windows.Count==0)throw new InvalidOperationException("Open gameplay once before measuring, so a code window exists.");
@@ -62,6 +62,7 @@ public static class ForgeRenderBenchmark
             SetSaved(windows[0],"text",text.ToString());SetSaved(windows[0],"scroll",Vector2.zero);
             cases.Clear();
             foreach(bool treeMode in new[]{false,true}){
+                if(treeMode){Add("tree_hierarchy",true,true);Add("tree_hierarchy_without_world",true,true,ForgeRenderLayer.World);continue;}
                 string prefix=treeMode?"tree":"game";
                 Add(prefix+"_before",treeMode,false);
                 Add(prefix+"_after",treeMode,true);
