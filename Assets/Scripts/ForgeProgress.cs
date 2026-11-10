@@ -19,7 +19,7 @@ public partial class ForgeMvp
     [Serializable] public class SavedWindow { public string name,text; public Rect rect; public uint seed; }
     [Serializable] public class SavedItem { public string owner; public int material,heat,iron,cost;public bool shaped;public ForgeTraits traits;public ForgeItemData data;public double seconds; }
     [Serializable] public class SavedProgress {
-        public int introStage;public string introCode;
+        public int introStage;public string introCode;public string[] technologyNodes;public bool campaignComplete,endingSeen;
         public string savedAt;
         public int version=1,gold,iron,day,seed,diamonds,sales,tutorial;public long earned;public double hour;public float speed;public bool autoSell;
         public ForgeMaterialStock[] stocks;public BlueprintFeature[] features;public string[] discoveries;
@@ -39,7 +39,7 @@ public partial class ForgeMvp
             ResetProgressForDebug(false);
             gold=saved.gold;iron=saved.iron;worldSeed=saved.seed;diamonds=saved.diamonds;totalSales=saved.sales;tutorialStage=saved.tutorial;earnedGold=saved.earned;
             lesson=ForgeTutorialLesson.Restore(saved.introStage,saved.introCode);
-            craftSpeed=Mathf.Clamp(saved.speed,1,5);autoSell=saved.autoSell;materialStocks=saved.stocks??Array.Empty<ForgeMaterialStock>();technology.Restore(saved.features);
+            craftSpeed=Mathf.Clamp(saved.speed,1,5);autoSell=saved.autoSell;materialStocks=saved.stocks??Array.Empty<ForgeMaterialStock>();technology.Restore(saved.features,saved.technologyNodes,saved.stocks);campaignComplete=saved.campaignComplete;endingSeen=saved.endingSeen;
             DayCycle.Clock.Restore(saved.day,saved.hour);
             foreach(var entry in saved.discoveries??Array.Empty<string>())discoveries.Add(entry);
             foreach(var item in items)shop.Add(item);
@@ -51,7 +51,7 @@ public partial class ForgeMvp
     {
         if(!progressLoaded||activeSaveSlot<1||DayCycle==null)return;
         try {
-            var saved=new SavedProgress{savedAt=DateTime.Now.ToString("yyyy-MM-dd HH:mm"),gold=gold,iron=iron,seed=worldSeed,diamonds=diamonds,sales=totalSales,tutorial=tutorialStage,earned=earnedGold,day=DayCycle.Day,hour=DayCycle.CurrentHour,speed=craftSpeed,autoSell=autoSell,stocks=materialStocks,features=technology.Export(),discoveries=new List<string>(discoveries).ToArray()};
+            var saved=new SavedProgress{savedAt=DateTime.Now.ToString("yyyy-MM-dd HH:mm"),gold=gold,iron=iron,seed=worldSeed,diamonds=diamonds,sales=totalSales,tutorial=tutorialStage,earned=earnedGold,day=DayCycle.Day,hour=DayCycle.CurrentHour,speed=craftSpeed,autoSell=autoSell,stocks=materialStocks,features=technology.Export(),technologyNodes=technology.ExportNodes(),campaignComplete=campaignComplete,endingSeen=endingSeen,discoveries=new List<string>(discoveries).ToArray()};
             saved.introStage=lesson.Stage;saved.introCode=lesson.Code;
             for(int i=0;i<codeWindows.Count;i++){var w=codeWindows[i];saved.windows.Add(new SavedWindow{name=w.name,text=i==activeWindow?source:w.text,rect=w.rect,seed=w.seed});}
             foreach(var entry in shop.Items){var p=entry.Product;saved.items.Add(new SavedItem{owner=p.BlueprintName,material=p.Material,heat=p.FinalHeat,shaped=p.Shaped,traits=p.Traits,cost=p.CashCost,iron=p.IronConsumed,data=p.Data,seconds=p.ProductionSeconds});}
@@ -63,12 +63,13 @@ public partial class ForgeMvp
         if(busy||executionSession!=null)return;
         EndWorkspaceDrag();techTree.CancelDrag();guideBook.CancelDrag();
         GUIUtility.hotControl=0;if(Event.current!=null)GUI.FocusControl(null);
+        campaignComplete=false;endingSeen=false;
         gold=100;iron=10;diamonds=0;totalSales=0;earnedGold=0;tutorialStage=0;
         lesson=new ForgeTutorialLesson();showTutorial=false;tutorialAnimating=false;
         showGameMenu=false;returnToTitleRequested=false;
         worldSeed=Guid.NewGuid().GetHashCode();craftSpeed=1;autoSell=false;
         materialStocks=new ForgeMaterialStock[8];
-        for(int i=0;i<materialStocks.Length;i++)materialStocks[i]=new ForgeMaterialStock{material=i+2};
+        for(int i=0;i<materialStocks.Length;i++)materialStocks[i]=new ForgeMaterialStock{material=i+2,unlocked=i<2};
         technology.Restore(Array.Empty<BlueprintFeature>());discoveries.Clear();shop.Clear();
         DayCycle.Clock.Restore(1,8);
         workspaceOffset=Vector2.zero;workspaceZoom=1;UpdateWorkspaceCamera();
@@ -85,7 +86,7 @@ public partial class ForgeMvp
         if(craftMotion!=null)craftMotion.BeginRun();
         reportError=false;resultOwner="아직 실행하지 않음";
         report="게임을 초기화했습니다. ▷로 한 줄씩 실행하거나 ▶로 전체 실행하세요.";
-        purchaseMessage="재료는 반복 구매, 기능은 한 번 구매해 해금합니다.";
+        purchaseMessage="선행 노드부터 구매하세요. 고급 재료는 공급 해금 후 재료 상점에서 구매합니다.";
         purchaseSucceeded=false;
         progressLoaded=persist;if(persist)SaveProgress();
     }
@@ -104,6 +105,7 @@ public partial class ForgeMvp
     }
     void CompleteProgress(ForgeProduct product)
     {
+        if(ForgeCampaign.CanComplete(technology,product))campaignComplete=true;
         diamonds=checked(diamonds+product.DiamondReward);
         foreach(var bonus in ForgePricing.Bonuses(product))if(bonus.Value>0)discoveries.Add(bonus.Key);
         if(product.Kind!=ForgeProductKind.Unfinished)tutorialStage=Math.Max(tutorialStage,5);
@@ -117,7 +119,7 @@ public partial class ForgeMvp
     void ProgressStep(Step step){if(step.process>=1&&step.process<=4)tutorialStage=Math.Max(tutorialStage,step.process);}
     void DrawProgressButton()
     {
-        if(GUI.Button(new Rect(12,Screen.height-36,190,28),"공방 기록 · 다이아 "+diamonds))showProgress=true;
+        if(GUI.Button(new Rect(12,Screen.height-36,190,28),"성장 목표 · 공방 기록"))showProgress=true;
     }
     void DrawProgress()
     {
@@ -135,7 +137,7 @@ public partial class ForgeMvp
         bool tutorialEnabled=GUI.enabled;GUI.enabled=tutorialEnabled&&!busy&&executionSession==null;
         if(GUILayout.Button(lesson.Complete?"검 제작 튜토리얼 다시 보기":"검 제작 튜토리얼 시작 / 이어하기"))OpenTutorial();
         GUI.enabled=tutorialEnabled;
-        GUILayout.Label(earnedGold>=5000&&diamonds>=5?"공방의 명장 달성! 자유 제작을 계속할 수 있습니다.":"명장 목표: 누적 판매 5000G · 다이아몬드 5개");
+        DrawCampaignProgress();
         GUILayout.Label("발견 도감");
         if(discoveries.Count==0)GUILayout.Label("아직 발견한 특성이 없습니다.");
         foreach(var discovery in discoveries)GUILayout.Label(discovery+" · "+DiscoveryRule(discovery));

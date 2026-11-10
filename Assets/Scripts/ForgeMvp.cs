@@ -56,7 +56,7 @@ public partial class ForgeMvp : MonoBehaviour
     bool showGuideBook,showTechTree;
     readonly ForgeTechTreeScreen techTree=new ForgeTechTreeScreen();
     readonly ForgeTechnology technology=new ForgeTechnology();
-    string purchaseMessage="재료는 반복 구매, 기능은 한 번 구매해 해금합니다.";
+    string purchaseMessage="선행 노드부터 구매하세요. 고급 재료는 공급 해금 후 재료 상점에서 구매합니다.";
     bool purchaseSucceeded;
     void PurchaseTechnology(ForgeTechnology.Offer offer,int quantity)
     {purchaseSucceeded=technology.TryPurchase(offer,ref gold,ref iron,ref materialStocks,busy||executionSession!=null,out purchaseMessage,quantity);if(purchaseSucceeded)SaveProgress();}
@@ -376,9 +376,10 @@ public partial class ForgeMvp : MonoBehaviour
         if(showTitle){DrawTitle();return;}
         if(Event.current.type==EventType.KeyDown&&Event.current.keyCode==KeyCode.Escape){ToggleGameMenu();Event.current.Use();}
         if(showGameMenu){DrawGameMenu();return;}
+        if(campaignComplete&&!endingSeen&&!busy&&executionSession==null&&!showTutorial){DrawCampaignEnding();return;}
         if(showTutorial){DrawTutorial();return;}
         if(showProgress){DrawProgress();return;}
-        if(showTechTree){if(techTree.Draw(codeStyle.font,technology,gold,iron,materialStocks,busy||executionSession!=null,purchaseMessage,PurchaseTechnology,purchaseSucceeded)){showTechTree=false;GUI.FocusControl(null);}return;}
+        if(showTechTree){if(techTree.Draw(codeStyle.font,technology,gold,iron,materialStocks,busy||executionSession!=null,purchaseMessage,PurchaseTechnology,purchaseSucceeded,CampaignObjective)){showTechTree=false;GUI.FocusControl(null);}return;}
         if (!windowsInitialized) { workspaceWindow=InitialCodeWindow; windowsInitialized = true; nextWindowId = 1; codeWindows.Add(new CodeWindow { rect = workspaceWindow, id = 0, name = "f1" }); }
         EventType resourceEvent = Event.current.type;
         bool maskResources = deleteWindowId < 0 && DebugResourcesRect.Contains(Event.current.mousePosition) && (Event.current.isMouse || Event.current.type == EventType.ScrollWheel);

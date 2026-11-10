@@ -77,8 +77,8 @@ public static class ForgeExpansionChecks
  check("purchase gates and all expansion examples",()=>{
   foreach(var d in ForgeExpansion.Definitions){
    var tech=new ForgeTechnology();int gold=10000,iron=10;ForgeMaterialStock[] stocks=null;
-   foreach(var o in ForgeTechnology.Offers.Where(o=>o.Kind==ForgePurchaseKind.Function&&o.Feature!=d.Alias.Id))Require(tech.TryPurchase(o,ref gold,ref iron,ref stocks,false,out var message),message);
-   if(d.Price>0){Require(ForgeMvp.Evaluate(d.Example,technology:tech).compileError,"locked "+d.Alias.Symbol);var offer=ForgeTechnology.Offers.Single(o=>o.Feature==d.Alias.Id);Require(tech.TryPurchase(offer,ref gold,ref iron,ref stocks,false,out var message),message);}
+   if(d.Price>0)Require(ForgeMvp.Evaluate(d.Example,technology:tech).compileError,"locked "+d.Alias.Symbol);
+   ForgeTechnologyChecks.BuyAllNodes(tech,ref gold,ref iron,ref stocks);
    Require(ForgeMvp.Evaluate(d.Example,technology:tech).error==null,"example "+d.Alias.Symbol);
   }
  });
