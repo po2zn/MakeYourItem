@@ -30,7 +30,7 @@ public static class BlueprintResearchGuide
             requirements.Add(entry.Id,features);
         }
         if(features.Any(f=>!FeatureVisible(f,tech,smiths)))return false;
-        if(entry.Id=="import"&&!tech.Owns(ForgeTechnology.AutomationRoot))return false;
+        if(entry.Id=="import"&&!tech.Owns(ForgeTechnology.ImportResearch))return false;
         if(entry.Feature==BlueprintFeature.SmithRun&&(smiths==null||smiths.hireTier<1))return false;
         if(entry.Id=="masterwork-example"&&!tech.Owns(ForgeTechnology.MasterCommission))return false;
         foreach(Match match in Regex.Matches(entry.ExampleFor(false),@"(?<![0-9])1\(\s*([4-9])\s*\)"))
@@ -105,7 +105,7 @@ public static class BlueprintResearchGuide
             if(offer!=null&&offer!=own&&!needed.Contains(offer))needed.Add(offer);
             if(token.Feature==BlueprintFeature.GiantRune){offer=FeatureOffer(BlueprintFeature.Rune);if(!needed.Contains(offer))needed.Add(offer);}
         }
-        if(entry.Id=="import"&&!needed.Any(o=>o.Id==ForgeTechnology.AutomationRoot))needed.Add(ForgeTechnology.Find(ForgeTechnology.AutomationRoot));
+        if(entry.Id=="import"&&!needed.Any(o=>o.Id==ForgeTechnology.ImportResearch))needed.Add(ForgeTechnology.Find(ForgeTechnology.ImportResearch));
         if(needed.Count>0)lines.Add("예제에 필요한 추가 연구 (각 선행 조건 포함):\n"+string.Join("\n",needed.Select(o=>"• "+OfferInfo(o,english))));
         if(entry.Feature==BlueprintFeature.SmithRun)lines.Add("예제는 대장장이 1번을 사용합니다. 2명 고용("+ForgeBlacksmiths.HireCosts[0]+" 다이아)과 제어문 해금이 필요합니다. 번호는 0부터 시작합니다.");
         if(entry.Id=="masterwork-example")lines.Add(OfferInfo(ForgeTechnology.Find(ForgeTechnology.MasterCommission),english));

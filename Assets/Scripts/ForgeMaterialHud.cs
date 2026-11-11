@@ -36,7 +36,7 @@ public sealed class ForgeMaterialHud
     }
     public float Height(float width,ForgeMaterialStock[] stocks,float top=42)
     {
-        int count=1;for(int id=2;id<=9;id++)if(Find(stocks,id)!=null)count++;
+        int count=2;for(int id=2;id<=9;id++)if(Find(stocks,id)!=null)count++;
         int columns=Math.Max(1,(int)((width-24)/CellWidth));
         return top+((count+columns-1)/columns)*RowHeight+4;
     }
@@ -48,8 +48,8 @@ public sealed class ForgeMaterialHud
     public bool Contains(Vector2 point,float width,ForgeMaterialStock[] stocks,float top=42)
     {
         int index=0;
-        for(int id=1;id<=9;id++){
-            if(id!=1&&Find(stocks,id)==null)continue;
+        for(int id=0;id<=9;id++){
+            if(id>1&&Find(stocks,id)==null)continue;
             if(CellRect(index++,width,top).Contains(point))return true;
         }
         return false;
@@ -61,13 +61,13 @@ public sealed class ForgeMaterialHud
             tooltipStyle=new GUIStyle(GUI.skin.box){font=font,fontSize=24,wordWrap=true,alignment=TextAnchor.UpperLeft,padding=new RectOffset(16,16,14,14),richText=false};
         }
         int index=0;string tooltip=null;
-        for(int id=1;id<=9;id++){
-            var stock=Find(stocks,id);if(id!=1&&stock==null)continue;
-            long count=id==1?iron:stock.count;
+        for(int id=0;id<=9;id++){
+            var stock=Find(stocks,id);if(id>1&&stock==null)continue;
+            long count=id==0?0:id==1?iron:stock.count;
             Rect icon=CellRect(index++,availableWidth,top);icon.width=IconSize;
             GUI.DrawTexture(icon,GetIcon(id));
-            ForgeTextLayout.Label(new Rect(icon.xMax+6,icon.y,CellWidth-IconSize-10,IconSize),FormatCount(count),numberStyle);
-            if(icon.Contains(Event.current.mousePosition))tooltip=ForgeMaterialGuide.Entries[id].Name+" · "+count.ToString("N0",CultureInfo.InvariantCulture)+"개\n"+descriptions[id];
+            ForgeTextLayout.Label(new Rect(icon.xMax+6,icon.y,CellWidth-IconSize-10,IconSize),id==0?"무제한":FormatCount(count),numberStyle);
+            if(CellRect(index-1,availableWidth,top).Contains(Event.current.mousePosition))tooltip=ForgeMaterialGuide.Entries[id].Name+" · 재료 번호 "+id+"\n"+(id==0?"무제한 · 재고 소비 없음":count.ToString("N0",CultureInfo.InvariantCulture)+"개")+"\n"+(id==0?"작업대와 냉각에 사용할 수 있습니다.":descriptions[id]);
         }
         if(tooltip!=null)ForgeTreeTooltip.Draw(Event.current.mousePosition,"재료 정보",tooltip,font);
     }

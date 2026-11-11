@@ -79,6 +79,7 @@ public sealed class BlueprintValidator
             switch(s.Kind) {
                 case BlueprintStatementKind.Import:
                 case BlueprintStatementKind.FromImport:
+                    if(technology!=null&&!technology.Owns(ForgeTechnology.ImportResearch))Error(s.Token,"먼저 기술 연구의 import · 모듈 가져오기를 구매하세요.");
                     foreach(var item in s.Imports){if(item.Name=="*"&&function)Error(s.Token,"import *는 함수 밖에서만 사용할 수 있습니다.");if(item.Alias!=null)names[item.Alias]=BlueprintType.Unknown;}break;
                 case BlueprintStatementKind.Def:if(!root)Error(s.Token,"함수는 최상위에서만 정의하세요.");break;
                 case BlueprintStatementKind.Assign:

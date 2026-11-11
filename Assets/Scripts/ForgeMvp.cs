@@ -730,14 +730,14 @@ public partial class ForgeMvp : MonoBehaviour
     {
         if(ForgeRenderDiagnostics.SkipPaint(ForgeRenderLayer.Developer))return;
         Rect panel=DebugResourcesRect;
-        GUI.Box(panel,"디버그 · 자원 +1,000 / 하루 넘기기");
+        GUI.Box(panel,"디버그 · 자원 추가 / 하루 넘기기");
         var debugButtonStyle=new GUIStyle(GUI.skin.button){font=codeStyle.font,fontSize=36};
         Rect viewport=new Rect(panel.x+8,panel.y+28,panel.width-16,panel.height-36);
         debugResourceScroll=GUI.BeginScrollView(viewport,debugResourceScroll,new Rect(0,0,780,693));
         bool enabled=GUI.enabled;
         GUI.enabled=enabled&&!busy&&executionSession==null;
         for(int i=0;i<12;i++){
-            string name=i==11?"게임 초기화":i==10?"하루 넘기기":(i==0?"골드":ForgeMaterialGuide.Find(i).Name)+" +1,000";
+            string name=i==11?"게임 초기화":i==10?"하루 넘기기":i==0?"골드 +100,000":ForgeMaterialGuide.Find(i).Name+" +1,000";
             Rect button=new Rect((i%2)*390,(i/2)*99,378,87);
             if(ForgeTextLayout.Button(button,new GUIContent(name,i==11?"자원·날짜·해금·완성품·기록·작성한 도면을 초기화하고 저장합니다.":i==10?"현재 시각을 유지하며 다음 날로 이동합니다.":"제작을 멈춘 상태에서 자원을 추가합니다."),debugButtonStyle)){
                 if(i==11){ResetProgressForDebug();continue;}
@@ -746,7 +746,7 @@ public partial class ForgeMvp : MonoBehaviour
                     SaveProgress();
                     continue;
                 }
-                if(i==0)gold=(int)Math.Min(int.MaxValue,(long)gold+1000);
+                if(i==0)gold=(int)Math.Min(int.MaxValue,(long)gold+100000);
                 else if(i==1)iron=(int)Math.Min(int.MaxValue,(long)iron+1000);
                 else {
                     var stock=Array.Find(materialStocks,s=>s!=null&&s.material==i);

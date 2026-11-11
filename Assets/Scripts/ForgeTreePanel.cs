@@ -21,7 +21,7 @@ public sealed class ForgeTreePanel : MonoBehaviour
     public Canvas canvas;
     ForgeMvp owner;ForgeTreeCard hovered;
     int page;bool bound;int lastStamp;float nextStatus;
-    bool leaving;float leaveAt,noticeUntil,nextNoticeTick;
+    float noticeUntil,nextNoticeTick;
     Vector2 lastPointer=new Vector2(float.NaN,float.NaN);
     public int RefreshCount {get;private set;}
     static readonly Unity.Profiling.ProfilerMarker RefreshMarker=new Unity.Profiling.ProfilerMarker("ForgeTree.Refresh");
@@ -56,8 +56,7 @@ public sealed class ForgeTreePanel : MonoBehaviour
 #endif
         // Compare cheap scalar state at 5 Hz; text changes only when gameplay state changed.
         if(Time.unscaledTime>=nextStatus){nextStatus=Time.unscaledTime+.2f;int stamp=owner.HierarchyTreeStamp;if(stamp!=lastStamp||page==3)Refresh();}
-        if(hovered!=null&&leaving){if(!RectTransformUtility.RectangleContainsScreenPoint(tooltip,pointer,null)&&Time.unscaledTime>leaveAt)HideTooltip();}
-        if(hovered!=null&&!leaving&&pointer!=lastPointer){PositionTooltip(pointer);lastPointer=pointer;}
+        if(hovered!=null&&pointer!=lastPointer){PositionTooltip(pointer);lastPointer=pointer;}
     }
     public void Refresh()
     {
@@ -81,9 +80,9 @@ public sealed class ForgeTreePanel : MonoBehaviour
         }
     }
     public void Purchase(ForgeTreeCard card){if(card.smithId>=0)owner.HierarchyBuySmith(card.smithId);else if(card.offer!=null)owner.HierarchyBuy(card.offer,card.Quantity);if(owner.HierarchyGuideHasNew)noticeUntil=Time.unscaledTime+3;Refresh();}
-    public void Hover(ForgeTreeCard card,Vector2 position){if(page<3&&maps[page].Dragging)return;hovered=card;leaving=false;RefreshHover(card);PositionTooltip(position);}
-    public void Leave(ForgeTreeCard card){if(hovered==card){leaving=true;leaveAt=Time.unscaledTime+.2f;}}
-    public void HideTooltip(){hovered=null;leaving=false;if(tooltip!=null)tooltip.gameObject.SetActive(false);}
+    public void Hover(ForgeTreeCard card,Vector2 position){if(page<3&&maps[page].Dragging)return;hovered=card;RefreshHover(card);PositionTooltip(position);}
+    public void Leave(ForgeTreeCard card){if(hovered==card)HideTooltip();}
+    public void HideTooltip(){hovered=null;if(tooltip!=null)tooltip.gameObject.SetActive(false);}
     public void RefreshHover(ForgeTreeCard card)
     {
         if(hovered!=card)return;

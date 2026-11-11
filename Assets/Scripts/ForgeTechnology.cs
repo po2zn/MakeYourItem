@@ -10,6 +10,7 @@ public sealed class ForgeTechnology
 {
     public const string MasterCommission="master-commission";
     public const string AutomationRoot="automation-root";
+    public const string ImportResearch="research-import";
     public static readonly BlueprintFeature[] ControlFeatures={BlueprintFeature.If,BlueprintFeature.Elif,BlueprintFeature.Else,BlueprintFeature.For,BlueprintFeature.While,BlueprintFeature.Break,BlueprintFeature.Continue,BlueprintFeature.Def,BlueprintFeature.Return};
     public sealed class Offer
     {
@@ -26,7 +27,7 @@ public sealed class ForgeTechnology
         internal Offer(string id,ForgePurchaseKind kind,int price,string name,string description,int tier,int lane,int material,BlueprintFeature feature,params string[] parents)
         {Id=id;Kind=kind;Price=kind==ForgePurchaseKind.Material?price:ForgeBalance.ResearchPrice(id,price);Name=name;Description=description;Tier=tier+(kind!=ForgePurchaseKind.Material&&id!=AutomationRoot?1:0);Lane=lane;Material=material;Feature=feature;
             Parents=Array.AsReadOnly(parents.Length==0&&kind!=ForgePurchaseKind.Material&&id!=AutomationRoot?new[]{AutomationRoot}:parents);
-            Features=Array.AsReadOnly(id==AutomationRoot?(BlueprintFeature[])ControlFeatures.Clone():kind!=ForgePurchaseKind.Function?Array.Empty<BlueprintFeature>():id=="speed-5"?new[]{BlueprintFeature.Speed,BlueprintFeature.AutoSell}:feature==BlueprintFeature.IsDay?new[]{feature,BlueprintFeature.NightTime}:feature==BlueprintFeature.Lucky?new[]{feature,BlueprintFeature.LuckyCode}:new[]{feature});}
+            Features=Array.AsReadOnly(id==AutomationRoot?(BlueprintFeature[])ControlFeatures.Clone():kind!=ForgePurchaseKind.Function||feature==BlueprintFeature.None?Array.Empty<BlueprintFeature>():id=="speed-5"?new[]{BlueprintFeature.Speed,BlueprintFeature.AutoSell}:feature==BlueprintFeature.IsDay?new[]{feature,BlueprintFeature.NightTime}:feature==BlueprintFeature.Lucky?new[]{feature,BlueprintFeature.LuckyCode}:new[]{feature});}
     }
     static Offer F(BlueprintFeature f,int price,int tier,int lane,params string[] parents)
     {var a=BlueprintAliases.Find(f);return new Offer("function-"+f,ForgePurchaseKind.Function,price,a.Symbol+"() · "+a.English,a.Description,tier,lane,0,f,parents);}
@@ -41,11 +42,12 @@ public sealed class ForgeTechnology
     public static readonly ReadOnlyCollection<Offer> Offers=Array.AsReadOnly(new[]{
         new Offer(1,5),new Offer(2,3),new Offer(3,1),new Offer(4,8),new Offer(5,20),
         new Offer(6,30),new Offer(7,40),new Offer(8,25),new Offer(9,50),
-        new Offer(AutomationRoot,ForgePurchaseKind.Function,150,"제어문 해금 · 자동화 시작","기본 공정으로 자금을 모아 첫 연구를 시작하세요. 조건(if/elif/else), 반복(for/while), 반복 제어(break/continue), 사용자 함수(def/return)를 함께 해금합니다. 구매 후 모든 분야의 첫 노드를 구매할 수 있습니다.",1,4,0,BlueprintFeature.If),
+        new Offer(AutomationRoot,ForgePurchaseKind.Function,500,"제어문 해금 · 자동화 시작","기본 공정으로 자금을 모아 첫 연구를 시작하세요. 조건(if/elif/else), 반복(for/while), 반복 제어(break/continue), 사용자 함수(def/return)를 함께 해금합니다. 구매 후 모든 분야의 첫 노드를 구매할 수 있습니다.",1,4,0,BlueprintFeature.If),
         F(BlueprintFeature.Heat,20,1,0),
         // General computation branches start from the workshop, independently of forging.
         F(BlueprintFeature.Abs,15,1,10),
         F(BlueprintFeature.Len,15,1,11),
+        new Offer(ImportResearch,ForgePurchaseKind.Function,500,"import · 모듈 가져오기","다른 코드 창을 모듈로 가져옵니다. import, from ... import ..., as 별칭을 함께 해금합니다. 파일이나 외부 Python 패키지는 가져올 수 없습니다.",1,12,0,BlueprintFeature.None),
         F(BlueprintFeature.Min,20,2,10,"function-Abs"),
         F(BlueprintFeature.Max,20,3,10,"function-Min"),
         F(BlueprintFeature.Random,30,3,11,"function-Set"),
