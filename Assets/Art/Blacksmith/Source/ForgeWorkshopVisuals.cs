@@ -92,7 +92,7 @@ public sealed class ForgeWorkshopVisuals : MonoBehaviour
         for(int i=0;i<d.seals.Count;i++)Add("Seal "+d.seals[i],new Vector3(0,.25f+i*.065f,0),new Vector3(1.2f,.15f,.5f),DetailMaterial(ref sealMaterial,new Color(.3f,.6f,1)));
         if(d.activated||d.charge>=3)Add("Charged crystal",new Vector3(0,-.125f,-.04f),Vector3.one*.5f,DetailMaterial(ref crystalMaterial,Color.cyan));
     }
-    public void SetBurning(bool value){if(apronMaterial)apronMaterial.SetColor("_BaseColor",value?new Color(1,.3f,.05f):apronColor);}
+    public void SetBurning(bool value){if(apronMaterial)apronMaterial.SetColor("_BaseColor",value?new Color(1f,.05f,.05f):apronColor);}
     void ResetPose()
     {
         foreach(var p in rest)if(p.Key)p.Key.localRotation=p.Value;

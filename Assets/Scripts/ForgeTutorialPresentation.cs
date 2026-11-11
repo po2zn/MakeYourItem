@@ -1,0 +1,82 @@
+using UnityEngine;
+using UnityEngine.UI;
+
+public sealed partial class ForgeGameUI
+{
+ CanvasGroup tutorialGroup;
+ Image tutorialBlackout;
+ bool tutorialStyled;
+ void UpdateTutorialPresentation()
+ {
+  if(!game||!nodes.TryGetValue("Tutorial",out var tutorial)||!tutorial)return;
+  // Unity missing/destroyed components are not necessarily CLR null.
+  if(!tutorialGroup){
+   tutorialGroup=tutorial.GetComponent<CanvasGroup>();
+   if(!tutorialGroup)tutorialGroup=tutorial.gameObject.AddComponent<CanvasGroup>();
+  }
+  if(!tutorialStyled||!tutorialBlackout)StyleTutorial();
+  tutorialGroup.alpha=game.TutorialOpacity;
+  tutorialGroup.interactable=game.TutorialInputReady;
+  // Keep the invisible intro modal so clicks cannot reach the workspace.
+  tutorialGroup.blocksRaycasts=true;
+  tutorialBlackout.color=new Color(0,0,0,game.TutorialBlackout);
+  tutorialBlackout.gameObject.SetActive(game.TutorialBlackout>0);
+  if(tutorialBlackout.gameObject.activeSelf)tutorialBlackout.transform.SetAsLastSibling();
+  if(tutorialGroup.gameObject.activeInHierarchy)FitTutorialText();
+ }
+ void StyleTutorial()
+ {
+  var tutorial=Node("Tutorial");
+  tutorialGroup.alpha=0;
+  tutorial.GetComponent<Image>().color=Color.clear;
+  // Match the existing guide's warm paper and dark ink; reuse authored button skins.
+  var paper=Node("Guide").Find("LegacyPaper");
+  var panel=Node("TutorialScroll").GetComponent<Image>();
+  panel.sprite=null;panel.color=paper?paper.GetComponent<Image>().color:new Color(.96f,.92f,.82f);
+  var ink=texts["GuideBody"].color;
+  foreach(var text in tutorial.GetComponentsInChildren<Text>(true)){
+   text.font=texts["GuideBody"].font;
+   if(!text.GetComponentInParent<Button>()&&!text.GetComponentInParent<InputField>()){
+    text.color=ink;text.fontSize=text.name=="TutorialHeading"?22:18;
+    text.horizontalOverflow=HorizontalWrapMode.Wrap;text.verticalOverflow=VerticalWrapMode.Overflow;
+   }
+  }
+  var prototype=buttons["GuideClose"];
+  foreach(var button in tutorial.GetComponentsInChildren<Button>(true)){
+   var surface=button.GetComponent<Image>();var source=prototype.GetComponent<Image>();
+   if(surface){surface.sprite=source.sprite;surface.type=source.type;surface.color=source.color;}
+   button.colors=prototype.colors;
+   var label=button.GetComponentInChildren<Text>(true);
+   if(label){label.color=prototype.GetComponentInChildren<Text>(true).color;label.fontSize=18;label.resizeTextForBestFit=false;label.horizontalOverflow=HorizontalWrapMode.Wrap;label.verticalOverflow=VerticalWrapMode.Overflow;}
+  }
+  var editor=Node("TutorialEditor").GetComponent<Image>();
+  var window=Node("Debug").GetComponent<Image>();
+  editor.sprite=window.sprite;editor.type=window.type;editor.color=window.color;
+  texts["TutorialEditorTitle"].color=texts["DebugTitle"].color;
+  texts["TutorialEditorTitle"].fontSize=18;
+  var title=texts["TutorialEditorTitle"].rectTransform;title.offsetMax=new Vector2(-12,title.offsetMax.y);
+  Label("TutorialClose","나중에 계속하기");
+  var existing=transform.Find("TutorialBlackout");
+  var overlay=existing?existing.gameObject:new GameObject("TutorialBlackout",typeof(RectTransform),typeof(Image));
+  overlay.layer=gameObject.layer;overlay.transform.SetParent(transform,false);
+  var rect=(RectTransform)overlay.transform;rect.anchorMin=Vector2.zero;rect.anchorMax=Vector2.one;rect.offsetMin=rect.offsetMax=Vector2.zero;
+  tutorialBlackout=overlay.GetComponent<Image>();
+  if(!tutorialBlackout)tutorialBlackout=overlay.AddComponent<Image>();
+  tutorialBlackout.color=Color.clear;tutorialBlackout.raycastTarget=true;
+  tutorialStyled=true;
+ }
+ void FitTutorialText()
+ {
+  foreach(var text in tutorialGroup.GetComponentsInChildren<Text>(false)){
+   if(text.GetComponentInParent<InputField>())continue;
+   var button=text.GetComponentInParent<Button>();
+   var element=button?button.GetComponent<LayoutElement>():text.GetComponent<LayoutElement>();
+   if(!element)continue;
+   float width=Mathf.Max(1,text.rectTransform.rect.width);
+   var settings=text.GetGenerationSettings(new Vector2(width,0));
+   float height=text.cachedTextGeneratorForLayout.GetPreferredHeight(text.text,settings)/text.pixelsPerUnit;
+   float wanted=Mathf.Max(button?54:24,height+(button?16:4));
+   if(Mathf.Abs(element.preferredHeight-wanted)>.5f)element.minHeight=element.preferredHeight=wanted;
+  }
+ }
+}

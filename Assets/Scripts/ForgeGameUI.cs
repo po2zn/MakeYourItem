@@ -3,13 +3,22 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
-public sealed class ForgeGameUI:MonoBehaviour
+public sealed partial class ForgeGameUI:MonoBehaviour
 {
  public RectTransform codeHelp;public Text codeHelpText;public Canvas canvas; public RectTransform workspace; public ForgeCodeView codePrefab; public Button salePrefab;public Transform salesList;
  readonly Dictionary<string,Transform> nodes=new Dictionary<string,Transform>();readonly Dictionary<string,Text> texts=new Dictionary<string,Text>();readonly Dictionary<string,Button> buttons=new Dictionary<string,Button>();readonly Dictionary<string,InputField> inputs=new Dictionary<string,InputField>();
  public readonly Dictionary<int,ForgeCodeView> codes=new Dictionary<int,ForgeCodeView>();readonly Dictionary<int,Button> sales=new Dictionary<int,Button>();
  ForgeMvp game; float nextRefresh;int screenWidth,screenHeight,layoutPasses;int enabledFrame=-1;public bool Bound=>game!=null;
- public void Bind(ForgeMvp owner){if(game==owner&&nodes.Count>0)return;if(nodes.Count==0)DiscardCodeViews();game=owner;EnsureAirMaterial();ConfigureMaterialInput();Font.textureRebuilt+=FontRebuilt;foreach(var t in GetComponentsInChildren<Transform>(true)){nodes[t.name]=t;if(t.TryGetComponent<Text>(out var text))texts[t.name]=text;if(t.TryGetComponent<Button>(out var button))buttons[t.name]=button;if(t.TryGetComponent<InputField>(out var input))inputs[t.name]=input;}foreach(var a in GetComponentsInChildren<ForgeUIAction>(true)){string key=a.action;a.button.onClick.AddListener(()=>{ForgeMouseTrace.Mark("UI_CLICK",key);game.GameUIAction(key);Refresh();});}foreach(var hover in GetComponentsInChildren<ForgeUIHover>(true))hover.Bind(this);inputs["GuideSearch"].onValueChanged.AddListener(_=>game.GameGuideSearch());ForgeCodeColors.Apply(inputs["TutorialInput"].textComponent);inputs["TutorialInput"].onValueChanged.AddListener(value=>game.GameTutorialInput(value));}
+ public void Bind(ForgeMvp owner){if(game==owner&&nodes.Count>0)return;if(nodes.Count==0)DiscardCodeViews();game=owner;EnsureAirMaterial();ConfigureMaterialInput();Font.textureRebuilt+=FontRebuilt;foreach(var t in GetComponentsInChildren<Transform>(true)){nodes[t.name]=t;if(t.TryGetComponent<Text>(out var text))texts[t.name]=text;if(t.TryGetComponent<Button>(out var button))buttons[t.name]=button;if(t.TryGetComponent<InputField>(out var input))inputs[t.name]=input;}foreach(var a in GetComponentsInChildren<ForgeUIAction>(true)){string key=a.action;a.button.onClick.AddListener(()=>{ForgeMouseTrace.Mark("UI_CLICK",key);game.GameUIAction(key);Refresh();});}foreach(var hover in GetComponentsInChildren<ForgeUIHover>(true))hover.Bind(this);ConfigureCurrencyDisplay();foreach(var guideText in nodes["Guide"].GetComponentsInChildren<Text>(true))ForgeGuideMaterialColors.Apply(guideText);inputs["GuideSearch"].onValueChanged.AddListener(_=>game.GameGuideSearch());ForgeCodeColors.Apply(inputs["TutorialInput"].textComponent);inputs["TutorialInput"].onValueChanged.AddListener(value=>game.GameTutorialInput(value));}
+ void ConfigureCurrencyDisplay(){
+ var label=texts["Gold"];
+ label.fontSize=24;label.resizeTextForBestFit=true;label.resizeTextMinSize=16;label.resizeTextMaxSize=24;
+ label.horizontalOverflow=HorizontalWrapMode.Wrap;label.verticalOverflow=VerticalWrapMode.Truncate;
+ label.alignment=TextAnchor.MiddleCenter;
+ // Leave room for currency artwork, which is wider than its G/D source glyph.
+ var rect=label.rectTransform;rect.offsetMin=new Vector2(12,12);rect.offsetMax=new Vector2(-12,-12);
+ ForgeGoldGlyph.Attach(label);
+ }
  void EnsureDiamondButton(){
  var actions=GetComponentsInChildren<ForgeUIAction>(true);
  foreach(var a in actions)if(a.action=="diamonds")return;
@@ -47,8 +56,9 @@ public sealed class ForgeGameUI:MonoBehaviour
  // foreground window/button always gets both input and tooltip priority.
  var material=FindMaterialHover(point,blocked||mouse.leftButton.isPressed||mouse.rightButton.isPressed||mouse.middleButton.isPressed);
  if(material!=null){ShowCodeHelp(material.description,point);materialHelp=true;return;}
- string info=blocked?null:game.SmithHoverInfo(point);
- if(info!=null){ShowCodeHelp(info,point);smithHelp=true;}else if(smithHelp||materialHelp)HideCodeHelp();
+ bool burning=false;
+ string info=blocked?null:game.SmithHoverInfo(point,out burning);
+ if(info!=null){ShowCodeHelp(info,point,burning?new Color(1f,.2f,.2f):(Color?)null);smithHelp=true;}else if(smithHelp||materialHelp)HideCodeHelp();
 #endif
  }
  ForgeUIHover FindMaterialHover(Vector2 point,bool blocked){
@@ -75,7 +85,8 @@ public sealed class ForgeGameUI:MonoBehaviour
  if(mouse.leftButton.wasReleasedThisFrame)ForgeMouseTrace.Mark("UI_POINTER_UP",state);
 #endif
  }
- public void ShowCodeHelp(string value,Vector2 pointer){smithHelp=false;materialHelp=false;codeHelp.gameObject.SetActive(true);codeHelp.SetAsLastSibling();codeHelp.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal,Mathf.Min(420,((RectTransform)transform).rect.width-24));codeHelpText.text=value;Canvas.ForceUpdateCanvases();float height=Mathf.Min(((RectTransform)transform).rect.height-24,codeHelpText.preferredHeight+24);codeHelp.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical,height);RectTransformUtility.ScreenPointToLocalPointInRectangle((RectTransform)transform,pointer,null,out var p);var root=(RectTransform)transform;codeHelp.anchoredPosition=new Vector2(Mathf.Clamp(p.x+16,root.rect.xMin,root.rect.xMax-codeHelp.rect.width),Mathf.Clamp(p.y-16,root.rect.yMin+height,root.rect.yMax));}
+ Color defaultCodeHelpColor;bool codeHelpColorCached;
+ public void ShowCodeHelp(string value,Vector2 pointer,Color? textColor=null){if(!codeHelpColorCached){defaultCodeHelpColor=codeHelpText.color;codeHelpColorCached=true;}codeHelpText.color=textColor??defaultCodeHelpColor;smithHelp=false;materialHelp=false;codeHelp.gameObject.SetActive(true);codeHelp.SetAsLastSibling();codeHelp.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal,Mathf.Min(420,((RectTransform)transform).rect.width-24));codeHelpText.text=value;Canvas.ForceUpdateCanvases();float height=Mathf.Min(((RectTransform)transform).rect.height-24,codeHelpText.preferredHeight+24);codeHelp.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical,height);RectTransformUtility.ScreenPointToLocalPointInRectangle((RectTransform)transform,pointer,null,out var p);var root=(RectTransform)transform;codeHelp.anchoredPosition=new Vector2(Mathf.Clamp(p.x+16,root.rect.xMin,root.rect.xMax-codeHelp.rect.width),Mathf.Clamp(p.y-16,root.rect.yMin+height,root.rect.yMax));}
  public void HideCodeHelp(){smithHelp=false;materialHelp=false;if(codeHelp)codeHelp.gameObject.SetActive(false);}
  public void Refresh(){nextRefresh=Time.unscaledTime+.15f;if(game)game.RefreshGameUI();}
  void FontRebuilt(Font font){layoutPasses=2;}
@@ -106,8 +117,8 @@ public sealed class ForgeGameUI:MonoBehaviour
  rect.sizeDelta=size;rect.anchoredPosition=new Vector2(slot.z,slot.w)+Vector2.Scale(box-size,new Vector2(.5f,.5f)-rect.pivot);
  }
  }
- void LateUpdate(){if(game)UpdateSmithHover();if(layoutPasses<=0)return;layoutPasses--;foreach(var group in GetComponentsInChildren<VerticalLayoutGroup>(false))LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)group.transform);}
- void OnDisable(){HideCodeHelp();}
+ void LateUpdate(){UpdateMaterialUseAnimation();UpdateTutorialPresentation();if(game)UpdateSmithHover();if(layoutPasses<=0)return;layoutPasses--;foreach(var group in GetComponentsInChildren<VerticalLayoutGroup>(false))LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)group.transform);}
+ void OnDisable(){ResetMaterialUseAnimation();HideCodeHelp();}
  void Update(){if(!game)return;UpdateGuideNewGlow();TracePointerHit();if(screenWidth!=Screen.width||screenHeight!=Screen.height){screenWidth=Screen.width;screenHeight=Screen.height;layoutPasses=3;}
 #if ENABLE_INPUT_SYSTEM
  if(Time.frameCount!=enabledFrame&&UnityEngine.InputSystem.Keyboard.current?.escapeKey.wasPressedThisFrame==true){game.GameUIAction("menu");Refresh();}

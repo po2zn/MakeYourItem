@@ -141,6 +141,7 @@ public partial class ForgeMvp
         foreach(var pair in needed){if(pair.Key==1){if(iron<pair.Value)return false;}else{var stock=Array.Find(materialStocks,s=>s!=null&&s.material==pair.Key&&s.unlocked);if(stock==null||stock.count<pair.Value)return false;}}
         needed.TryGetValue(1,out int ironCost);if(!ledger.TrySpend(step.cost,ironCost,ref gold,ref iron))return false;
         foreach(var pair in needed)if(pair.Key!=1)Array.Find(materialStocks,s=>s!=null&&s.material==pair.Key&&s.unlocked).count-=pair.Value;
+        if(hierarchyGame)foreach(var pair in needed)if(pair.Value>0)hierarchyGame.AnimateMaterialUse(pair.Key);
         return true;
     }
     ForgeProduct FinishSmithProduct(int id,ForgeProduct product)

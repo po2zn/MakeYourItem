@@ -48,7 +48,7 @@ public partial class ForgeMvp
     {
         tutorialAnimating=true;
         const float screenFadeSeconds=.4f,zoomSeconds=1.8f,fadeSeconds=.35f;
-        // Hide the camera reset behind black, then reveal the incoming zoom.
+        // Finish each transition before advancing to the camera or tutorial UI.
         for(float elapsed=0;elapsed<screenFadeSeconds;elapsed+=Time.unscaledDeltaTime){
             tutorialScreenFade=Mathf.SmoothStep(0,1,elapsed/screenFadeSeconds);
             yield return null;
@@ -57,9 +57,14 @@ public partial class ForgeMvp
         yield return null;
         craftMotion.BeginRun();tutorialCameraActive=true;
         UpdateWorkspaceCamera();
+        for(float elapsed=0;elapsed<screenFadeSeconds;elapsed+=Time.unscaledDeltaTime){
+            tutorialScreenFade=1-Mathf.SmoothStep(0,1,elapsed/screenFadeSeconds);
+            yield return null;
+        }
+        tutorialScreenFade=0;
+        yield return null;
         for(float elapsed=0;elapsed<zoomSeconds;elapsed+=Time.unscaledDeltaTime){
             tutorialCameraBlend=Mathf.SmoothStep(0,1,elapsed/zoomSeconds);
-            tutorialScreenFade=1-Mathf.SmoothStep(0,1,elapsed/screenFadeSeconds);
             yield return null;
         }
         tutorialCameraBlend=1;tutorialScreenFade=0;

@@ -19,7 +19,7 @@ public sealed class ForgeCraftMotion : MonoBehaviour
     public Vector3 SmithPosition=>workshop?workshop.SmithPosition:smith?smith.position:transform.position;
     public Bounds SmithBounds { get {var b=new Bounds(SmithPosition+Vector3.up*.9f,new Vector3(.9f,1.9f,.7f));return b;} }
     public void SetStationOffset(Vector3 offset){transform.localPosition=offset;}
-    public void SetBurning(bool value){if(workshop){workshop.SetBurning(value);return;}if(value==burning||!apron)return;burning=value;apron.material.color=value?new Color(1,.3f,.05f):new Color(.3f,.18f,.1f);}
+    public void SetBurning(bool value){if(workshop){workshop.SetBurning(value);return;}if(value==burning||!apron)return;burning=value;apron.material.color=value?new Color(1f,.05f,.05f):new Color(.3f,.18f,.1f);}
     readonly Vector3 bench = new Vector3(2, 1, 0);
     readonly Vector3 supply = new Vector3(3.5f, 1, 0);
     readonly Vector3 furnace = new Vector3(2, 1, 2);

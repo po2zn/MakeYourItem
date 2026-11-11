@@ -41,6 +41,7 @@ public sealed class ForgeSmithIdle : MonoBehaviour
         nose=smith.GetComponentsInChildren<Transform>().FirstOrDefault(t=>t.name=="ButterflyNoseAnchor");
         if(butterfly&&nose){
             visitor=Instantiate(butterfly,transform).transform;visitor.name="Idle Butterfly";
+            visitor.localScale*=2f;
             wings=visitor.GetComponentsInChildren<Transform>().Where(t=>t.name.EndsWith("ForeWing")||t.name.EndsWith("HindWing")).ToArray();
             wingRest=wings.Select(t=>t.localRotation).ToArray();visitor.gameObject.SetActive(false);
         }

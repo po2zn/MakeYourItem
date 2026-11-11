@@ -7,6 +7,9 @@ public partial class ForgeMvp
 {
  [SerializeField] ForgeGameUI hierarchyGame;public ForgeGameUI HierarchyGame=>hierarchyGame;public void SetHierarchyGame(ForgeGameUI ui){hierarchyGame=ui;}
  bool showProductInventory;
+ public float TutorialOpacity=>showTutorial&&!showGameMenu?tutorialFade:0;
+ public float TutorialBlackout=>showTutorial?tutorialScreenFade:0;
+ public bool TutorialInputReady=>showTutorial&&!showGameMenu&&!tutorialAnimating&&tutorialFade>=1;
  public void SellInventoryProduct(int id){SellProduct(id);hierarchyGame.Refresh();}
  static void ClearUIFocus(){if(Event.current!=null)GUI.FocusControl(null);else if(EventSystem.current)EventSystem.current.SetSelectedGameObject(null);}
  void SyncHierarchyGame(){if(!hierarchyGame)return;hierarchyGame.Bind(this);bool visible=!showTitle&&!showTechTree||!showTitle&&showGameMenu;if(hierarchyGame.gameObject.activeSelf!=visible){hierarchyGame.gameObject.SetActive(visible);if(visible)hierarchyGame.Refresh();}if(DayCycle)DayCycle.UseHierarchyUI=true;hierarchyGame.workspace.localScale=Vector3.one*workspaceZoom;hierarchyGame.workspace.anchoredPosition=new Vector2(workspaceOffset.x,-workspaceOffset.y)*workspaceZoom/Mathf.Max(.01f,hierarchyGame.canvas.scaleFactor);if(returnToTitleRequested&&!busy&&!tutorialAnimating)FinishTitleReturn();}
@@ -48,7 +51,7 @@ public partial class ForgeMvp
  ui.Inventory(showProductInventory&&normal,shop);
  ui.Active("Play",world);ui.Active("Menu",showGameMenu);ui.Active("Progress",showProgress&&!showGameMenu);ui.Active("Tutorial",showTutorial&&!showGameMenu);ui.Active("Ending",ending&&!showGameMenu);ui.Active("Delete",deleteWindowId>=0&&world);
  if(world){if(!windowsInitialized){windowsInitialized=true;nextWindowId=1;codeWindows.Add(new CodeWindow{id=0,name="f1",rect=InitialCodeWindow});}
- ui.Text("Gold","자금\n"+ForgeMaterialHud.FormatCount(gold)+"G");ui.Text("Products","완성품\n"+products);
+ ui.Text("Gold",ForgeMaterialHud.FormatCount(gold)+"G\n"+ForgeMaterialHud.FormatCount(diamonds)+"D");ui.Text("Products","완성품\n"+products);
  ui.Text("DayNotice",DayCycle.AnnouncementAlpha>0?"Day "+DayCycle.Day:"");ui.Tint("DayNotice",new Color(1,1,1,DayCycle.AnnouncementAlpha));ui.Text("Clock","Day "+DayCycle.Day+" · "+((int)DayCycle.CurrentHour).ToString("00")+":"+((int)(DayCycle.CurrentHour*60)%60).ToString("00"));
  for(int material=0;material<=9;material++){var stock=Array.Find(materialStocks,m=>m.material==material);bool visible=material<=1||stock!=null&&stock.unlocked;ui.Active("MaterialTile"+material,visible);if(visible){long count=material==0?0:material==1?iron:stock.count;var info=ForgeMaterialGuide.Find(material);ui.Text("MaterialCount"+material,material==0?"무제한":ForgeMaterialHud.FormatCount(count));ui.Tooltip("MaterialTile"+material,info.Name+" · 재료 번호 "+material+"\n"+(material==0?"무제한 · 재고 소비 없음":count.ToString("N0")+"개")+"\n"+guideBook.Reader.Prose(info.Description));}}
 

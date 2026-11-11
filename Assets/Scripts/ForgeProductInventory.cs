@@ -7,17 +7,19 @@ using UnityEngine.UI;
 public sealed class ForgeProductInventory : MonoBehaviour
 {
     public const int Columns=6;
-    public const float CellHeight=200,Gap=8,RowHeight=CellHeight+Gap;
+    public const float CellHeight=244,Gap=8,RowHeight=CellHeight+Gap;
     public RectTransform gridArea,detailsArea;
     public ScrollRect gridScroll,detailScroll;
     public Button cellTemplate,backButton,sellButton;
     public Text heading,emptyMessage,detailText;
     ForgeMvp game;ForgeShop shop;Font font;
     int revision=-1,selected=-1,detailSelection=int.MinValue,detailRevision=-1;
-    ForgeShop.Entry selectedEntry;
+    ForgeShop.Entry selectedEntry,lastClickedEntry;
+    float lastClickedAt=-1;
+    const float DoubleClickSeconds=.3f;
     Vector2 size,viewportSize;
     readonly List<Cell> cells=new List<Cell>();
-    sealed class Cell {public Button button;public RectTransform rect;public Text order,name,info;public Image blade;public int id=-1;public bool selected;}
+    sealed class Cell {public Button button,sell;public RectTransform rect;public Text order,name,info;public Image blade;public int id=-1;public bool selected;}
     public int PoolCount=>cells.Count;
     public static int Rows(int count)=>count<=0?0:(count-1)/Columns+1;
     public static int PoolLimit(float height)=>Columns*(Mathf.CeilToInt(Mathf.Max(0,height)/RowHeight)+2);
@@ -28,11 +30,14 @@ public sealed class ForgeProductInventory : MonoBehaviour
         if(game)return;game=owner;shop=products;font=textFont;
         foreach(var text in GetComponentsInChildren<Text>(true))text.font=font;
         backButton.onClick.AddListener(()=>game.GameUIAction("products-close"));
-        sellButton.onClick.AddListener(()=>{if(selected>=0)game.SellInventoryProduct(selected);Refresh();});
+        // Retain the authored button only as the visual template for slot actions.
+        sellButton.gameObject.SetActive(false);
+        var detailRect=(RectTransform)detailScroll.transform;
+        detailRect.offsetMin=new Vector2(detailRect.offsetMin.x,12);
         gridScroll.onValueChanged.AddListener(_=>Populate());
         cellTemplate.gameObject.SetActive(false);
     }
-    void OnEnable(){revision=-1;size=Vector2.zero;viewportSize=Vector2.zero;}
+    void OnEnable(){lastClickedEntry=null;lastClickedAt=-1;revision=-1;size=Vector2.zero;viewportSize=Vector2.zero;}
     void LateUpdate(){if(!game)return;Layout();Refresh();}
     public void Refresh()
     {
@@ -65,7 +70,32 @@ public sealed class ForgeProductInventory : MonoBehaviour
     {
         var button=Instantiate(cellTemplate,gridScroll.content);button.name="VisibleProductCell_"+cells.Count;
         var cell=new Cell{button=button,rect=(RectTransform)button.transform,order=button.transform.Find("Order").GetComponent<Text>(),name=button.transform.Find("Name").GetComponent<Text>(),info=button.transform.Find("Info").GetComponent<Text>(),blade=button.transform.Find("Blade").GetComponent<Image>()};
-        button.onClick.AddListener(()=>{if(cell.id<0)return;selected=cell.id;selectedEntry=shop.Find(selected);Populate();Refresh();});cells.Add(cell);return cell;
+        cell.sell=Instantiate(sellButton,cell.rect);cell.sell.name="SellThisProduct";
+        cell.sell.onClick=new Button.ButtonClickedEvent();
+        cell.sell.onClick.AddListener(()=>{if(cell.id==selected)SellEntry(selectedEntry);});
+        var sellRect=(RectTransform)cell.sell.transform;sellRect.anchorMin=new Vector2(0,0);sellRect.anchorMax=new Vector2(1,0);sellRect.pivot=new Vector2(.5f,0);
+        sellRect.anchoredPosition=new Vector2(0,6);sellRect.sizeDelta=new Vector2(-12,38);
+        var sellLabel=cell.sell.GetComponentInChildren<Text>(true);sellLabel.text="판매";sellLabel.font=font;sellLabel.fontSize=16;
+        sellLabel.resizeTextForBestFit=true;sellLabel.resizeTextMinSize=12;sellLabel.resizeTextMaxSize=16;
+        cell.sell.gameObject.SetActive(false);
+        button.onClick.AddListener(()=>SelectCell(cell));cells.Add(cell);return cell;
+    }
+    void SelectCell(Cell cell)
+    {
+        var entry=shop.Find(cell.id);if(entry==null)return;
+        float now=Time.unscaledTime;
+        bool doubleClick=ReferenceEquals(lastClickedEntry,entry)&&now-lastClickedAt<=DoubleClickSeconds;
+        lastClickedEntry=entry;lastClickedAt=now;
+        selected=entry.Id;selectedEntry=entry;
+        if(doubleClick){SellEntry(entry);return;}
+        Populate();Refresh();
+    }
+    void SellEntry(ForgeShop.Entry entry)
+    {
+        // Cells are recycled after a sale/scroll; never sell a replacement item.
+        lastClickedEntry=null;lastClickedAt=-1;
+        if(entry==null||!ReferenceEquals(shop.Find(entry.Id),entry))return;
+        game.SellInventoryProduct(entry.Id);Refresh();
     }
     void Populate()
     {
@@ -82,7 +112,7 @@ public sealed class ForgeProductInventory : MonoBehaviour
             if(cell.id!=entry.Id){cell.id=entry.Id;cell.order.text="#"+entry.Order;cell.name.text=entry.Product.DisplayName;
                 cell.info.text=ForgeMaterialGuide.Find(entry.Product.Material).Name+" · 열 "+entry.Product.FinalHeat+"\n"+ForgeMaterialHud.FormatCount(ForgePricing.Quote(entry.Product).SalePrice)+"G";
                 cell.blade.color=entry.Product.Material==7?new Color(.5f,.75f,1):new Color(.8f,.85f,.9f);}
-            cell.selected=cell.id==selected;cell.button.GetComponent<Image>().color=cell.selected?new Color(.22f,.4f,.55f):new Color(.12f,.17f,.23f);
+            cell.selected=cell.id==selected;cell.sell.gameObject.SetActive(cell.selected);cell.sell.interactable=cell.selected;cell.button.GetComponent<Image>().color=cell.selected?new Color(.22f,.4f,.55f):new Color(.12f,.17f,.23f);
         }
     }
 }

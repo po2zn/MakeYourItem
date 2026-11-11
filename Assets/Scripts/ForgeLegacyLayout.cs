@@ -9,6 +9,6 @@ public sealed class ForgeLegacyLayout:MonoBehaviour {
  if(viewportChanged)foreach(var window in new[]{sales,output,firstLayout?null:guide})if(window){window.sizeDelta=new Vector2(Mathf.Min(window.rect.width,width-24),Mathf.Min(window.rect.height,height-24));window.anchoredPosition=new Vector2(Mathf.Clamp(window.anchoredPosition.x,12,Mathf.Max(12,width-window.rect.width-12)),-Mathf.Clamp(-window.anchoredPosition.y,12,Mathf.Max(12,height-window.rect.height-12)));}
  if(developer){developer.sizeDelta=new Vector2(Mathf.Min(816,width-24),Mathf.Min(488,height-24));developer.anchoredPosition=new Vector2(Mathf.Max(12,width-developer.rect.width-12),-Mathf.Max(12,height-developer.rect.height-12));}
  if(guide&&firstLayout){float bookTop=Mathf.Min(top+124+rows*rowStep-5,height-240);guide.sizeDelta=new Vector2(Mathf.Min(420,width-140),Mathf.Min(660,height-bookTop-12));guide.anchoredPosition=new Vector2(Mathf.Max(118,width-guide.rect.width-12),-bookTop);}
- if(tutorialPanel){float panel=Mathf.Min(460,(width-36)*.48f);Place(tutorialPanel,12,12,panel,height-24);Place(tutorialEditor,panel+24,190,Mathf.Min(600,Mathf.Max(260,width-panel-36)),Mathf.Min(400,height-202));}
+ if(tutorialPanel){float panel=Mathf.Min(460,(width-36)*.48f);Place(tutorialPanel,12,12,panel,height-24);float editorTop=Mathf.Min(190,Mathf.Max(12,height-300));Place(tutorialEditor,panel+24,editorTop,Mathf.Min(600,Mathf.Max(1,width-panel-36)),Mathf.Max(1,Mathf.Min(400,height-editorTop-12)));}
  }
 }
