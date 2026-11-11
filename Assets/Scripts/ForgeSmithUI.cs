@@ -17,7 +17,7 @@ public partial class ForgeMvp
         (blacksmiths.Burning(id,SmithHours)?"\n불타는 대장장이 · 대성공 확률 50%\n남은 시간: "+Math.Ceiling(Math.Max(0,blacksmiths.burningUntil-SmithHours)*60)+"분 (게임 시간)":"");
     public string SmithHoverInfo(Vector2 screenPoint)
     {
-        if(!workspaceCamera||!workspaceCamera.enabled||showTitle||showTechTree||showGameMenu||showProgress||showTutorial||deleteWindowId>=0||campaignComplete&&!endingSeen)return null;
+        if(!workspaceCamera||!workspaceCamera.enabled||showTitle||showTechTree||showGameMenu||showProgress||showProductInventory||showTutorial||deleteWindowId>=0||campaignComplete&&!endingSeen)return null;
         var ray=workspaceCamera.ScreenPointToRay(screenPoint);int closest=-1;float distance=float.MaxValue;
         for(int i=0;i<smithMotions.Count&&i<blacksmiths.smiths.Count;i++)if(smithMotions[i].SmithBounds.IntersectRay(ray,out float hit)&&hit<distance){closest=i;distance=hit;}
         return closest<0?null:SmithInfo(closest);

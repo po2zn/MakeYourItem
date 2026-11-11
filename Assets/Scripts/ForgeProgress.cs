@@ -17,11 +17,11 @@ public partial class ForgeMvp
     readonly HashSet<string> discoveries=new HashSet<string>();
     Vector2 progressScroll;
     [Serializable] public class SavedWindow { public string name,text; public Rect rect; public uint seed; }
-    [Serializable] public class SavedItem { public string owner; public int material,heat,iron,cost;public bool shaped;public ForgeTraits traits;public ForgeItemData data;public double seconds; }
+    [Serializable] public class SavedItem { public long order;public string owner; public int material,heat,iron,cost;public bool shaped;public ForgeTraits traits;public ForgeItemData data;public double seconds; }
     [Serializable] public class SavedProgress {
         public ForgeBlacksmiths blacksmiths;
         public int introStage;public string introCode;public string[] technologyNodes;public bool campaignComplete,endingSeen;
-        public string savedAt;
+        public string savedAt;public long nextProductOrder;
         public int version=1,gold,iron,day,seed,diamonds,sales,tutorial;public long earned;public double hour;public float speed;public bool autoSell;
         public ForgeMaterialStock[] stocks;public BlueprintFeature[] features;public string[] discoveries;
         public List<SavedWindow> windows=new List<SavedWindow>();public List<SavedItem> items=new List<SavedItem>();
@@ -36,7 +36,8 @@ public partial class ForgeMvp
             if(double.IsNaN(saved.hour)||double.IsInfinity(saved.hour)||saved.items==null)throw new Exception("저장 데이터가 손상되었습니다.");
             foreach(var window in saved.windows??new List<SavedWindow>())if(window==null||window.name==null||window.text==null)throw new Exception("도면 데이터가 손상되었습니다.");
             // Parse products before applying state so an invalid product cannot half-load a save.
-            var items=new List<ForgeProduct>();foreach(var item in saved.items)items.Add(new ForgeProduct(item.owner,item.heat,item.shaped,item.traits,item.cost,item.iron,item.material,item.data,item.seconds));
+            var restoredShop=new ForgeShop();foreach(var item in saved.items){if(item==null)throw new Exception("완성품 데이터가 손상되었습니다.");restoredShop.Add(new ForgeProduct(item.owner,item.heat,item.shaped,item.traits,item.cost,item.iron,item.material,item.data,item.seconds),item.order);}
+            restoredShop.RestoreNextOrder(saved.nextProductOrder);
             ResetProgressForDebug(false);
             gold=saved.gold;iron=saved.iron;worldSeed=saved.seed;diamonds=saved.diamonds;totalSales=saved.sales;tutorialStage=saved.tutorial;earnedGold=saved.earned;
             lesson=ForgeTutorialLesson.Restore(saved.introStage,saved.introCode);
@@ -47,7 +48,7 @@ public partial class ForgeMvp
             DayCycle.Clock.Restore(saved.day,saved.hour);
             blacksmiths=saved.blacksmiths??new ForgeBlacksmiths();blacksmiths.Normalize(SmithHours);
             foreach(var entry in saved.discoveries??Array.Empty<string>())discoveries.Add(entry);
-            foreach(var item in items)shop.Add(item);
+            foreach(var item in restoredShop.Items)shop.Add(item.Product,item.Order);shop.RestoreNextOrder(restoredShop.NextOrder);
             if(saved.windows!=null&&saved.windows.Count>0){codeWindows.Clear();nextWindowId=0;foreach(var window in saved.windows)codeWindows.Add(new CodeWindow{id=nextWindowId++,name=window.name,text=window.text,rect=window.rect,seed=window.seed});windowsInitialized=true;activeWindow=0;source=codeWindows[0].text;}
             progressLoaded=true;saveMessage="슬롯 "+activeSaveSlot+"의 공방을 불러왔습니다.";return true;
         }catch(Exception error){saveMessage="저장 불러오기 실패: "+error.Message;progressLoaded=false;return false;}
@@ -57,10 +58,11 @@ public partial class ForgeMvp
         if(!progressLoaded||activeSaveSlot<1||DayCycle==null)return;
         try {
             var saved=new SavedProgress{savedAt=DateTime.Now.ToString("yyyy-MM-dd HH:mm"),gold=gold,iron=iron,seed=worldSeed,diamonds=diamonds,sales=totalSales,tutorial=tutorialStage,earned=earnedGold,day=DayCycle.Day,hour=DayCycle.CurrentHour,speed=craftSpeed,autoSell=autoSell,stocks=materialStocks,features=technology.Export(),technologyNodes=technology.ExportNodes(),campaignComplete=campaignComplete,endingSeen=endingSeen,discoveries=new List<string>(discoveries).ToArray()};
+            saved.nextProductOrder=shop.NextOrder;
             saved.introStage=lesson.Stage;saved.introCode=lesson.Code;
             saved.blacksmiths=blacksmiths;
             for(int i=0;i<codeWindows.Count;i++){var w=codeWindows[i];saved.windows.Add(new SavedWindow{name=w.name,text=i==activeWindow?source:w.text,rect=w.rect,seed=w.seed});}
-            foreach(var entry in shop.Items){var p=entry.Product;saved.items.Add(new SavedItem{owner=p.BlueprintName,material=p.Material,heat=p.FinalHeat,shaped=p.Shaped,traits=p.Traits,cost=p.CashCost,iron=p.IronConsumed,data=p.Data,seconds=p.ProductionSeconds});}
+            foreach(var entry in shop.Items){var p=entry.Product;saved.items.Add(new SavedItem{order=entry.Order,owner=p.BlueprintName,material=p.Material,heat=p.FinalHeat,shaped=p.Shaped,traits=p.Traits,cost=p.CashCost,iron=p.IronConsumed,data=p.Data,seconds=p.ProductionSeconds});}
             PlayerPrefs.SetString(SaveKey,JsonUtility.ToJson(saved));PlayerPrefs.Save();saveMessage="공방 저장 완료";
         }catch(Exception error){saveMessage="저장 실패: "+error.Message;}
     }
@@ -88,7 +90,7 @@ public partial class ForgeMvp
         deleteWindowId=-1;renamingWindow=-1;selectedProductId=-1;
         executionSources.Clear();executionOwner=null;executionLedger=null;executionProduct=null;receiptCursor=0;
         workspaceOffset=Vector2.zero;workspaceZoom=1;englishGuideUnlocked=false;
-        showGuideBook=false;showTechTree=false;showProgress=false;showDebugWindow=false;
+        showGuideBook=false;showTechTree=false;showProgress=false;showDebugWindow=false;showProductInventory=false;
         debugOutput.Clear();debugScroll=Vector2.zero;logs=Vector2.zero;
         if(craftMotion!=null)craftMotion.BeginRun();
         reportError=false;resultOwner="아직 실행하지 않음";

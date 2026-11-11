@@ -60,6 +60,10 @@ public sealed class ForgeGameUI:MonoBehaviour
  if(Time.unscaledTime>=nextRefresh)Refresh();}
  ForgeGuideExample guideExample;
  public void GuideExample(string source,string notes){if(!guideExample)guideExample=ForgeGuideExample.Create(texts["GuideBody"]);guideExample.Show(source,notes);}
+ Button inventoryShortcut;
+ public void InventoryShortcut(){if(inventoryShortcut)return;inventoryShortcut=Instantiate(salePrefab,salesList);inventoryShortcut.name="OpenProductInventory";ForgeLegacyUIFont.Apply(inventoryShortcut.transform);inventoryShortcut.GetComponentInChildren<Text>().text="완성품 목록 열기";inventoryShortcut.onClick.AddListener(()=>{game.GameUIAction("products");Refresh();});}
+ ForgeProductInventory inventory;
+ public void Inventory(bool visible,ForgeShop shop){if(!inventory)inventory=GetComponentInChildren<ForgeProductInventory>(true);if(!inventory)return;inventory.Bind(game,shop,texts["Products"].font);if(inventory.gameObject.activeSelf!=visible)inventory.gameObject.SetActive(visible);if(visible)inventory.Refresh();}
  public Transform Node(string id)=>nodes[id];public void Active(string id,bool active){var go=nodes[id].gameObject;if(go.activeSelf!=active){go.SetActive(active);if(active&&go.GetComponent<ForgeUIWindow>())go.transform.SetAsLastSibling();}}
  public void Text(string id,string value){if(texts[id].text!=value)texts[id].text=value;}
  public void Enabled(string id,bool value){buttons[id].interactable=value;}

@@ -130,23 +130,32 @@ public sealed class ForgeShop
     {
         public int Id { get; }
         public ForgeProduct Product { get; }
-        internal Entry(int id, ForgeProduct product) { Id = id; Product = product; }
+        public long Order { get; }
+        internal Entry(int id, long order, ForgeProduct product) { Id = id; Order = order; Product = product; }
     }
     readonly List<Entry> entries = new List<Entry>();
     readonly ReadOnlyCollection<Entry> view;
     int nextId = 1;
+    long nextOrder = 1;
+    readonly Dictionary<int,Entry> byId=new Dictionary<int,Entry>();
+    public long NextOrder=>nextOrder;
+    public int Revision {get;private set;}
+    public void RestoreNextOrder(long value){nextOrder=Math.Max(nextOrder,value);if(nextOrder<1||nextOrder==long.MaxValue)throw new ArgumentOutOfRangeException(nameof(value));}
     public ForgeShop() { view = entries.AsReadOnly(); }
     public IReadOnlyList<Entry> Items => view;
     public int Count => entries.Count;
-    public void Clear(){entries.Clear();nextId=1;}
-    public int Add(ForgeProduct product)
+    public void Clear(){entries.Clear();byId.Clear();nextId=1;nextOrder=1;Revision++;}
+    public int Add(ForgeProduct product,long order=0)
     {
         ForgePricing.Quote(product); // Reject incomplete/unpriceable records before listing.
-        int id = nextId++;
-        entries.Add(new Entry(id, product));
+        if(order==0)order=nextOrder;
+        if(order<nextOrder||order==long.MaxValue)throw new ArgumentOutOfRangeException(nameof(order));
+        if(nextId==int.MaxValue)throw new InvalidOperationException("완성품 번호 한도에 도달했습니다.");
+        int id = nextId++;nextOrder=order+1;
+        var entry=new Entry(id,order,product);entries.Add(entry);byId.Add(id,entry);Revision++;
         return id;
     }
-    public Entry Find(int id) => entries.Find(entry => entry.Id == id);
+    public Entry Find(int id) => byId.TryGetValue(id,out var entry)?entry:null;
 
     public bool TrySell(int id, ref int gold, out ForgeProduct sold)
     {
@@ -155,7 +164,7 @@ public sealed class ForgeShop
         if (index < 0) return false;
         var product = entries[index].Product;
         int newGold = checked(gold + ForgePricing.Quote(product).SalePrice);
-        entries.RemoveAt(index); // This ID cannot be paid again, including repeated UI events.
+        entries.RemoveAt(index);byId.Remove(id);Revision++; // This ID cannot be paid again, including repeated UI events.
         gold = newGold;
         sold = product;
         return true;
