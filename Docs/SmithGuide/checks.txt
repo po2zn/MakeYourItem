@@ -1,0 +1,76 @@
+Resolution (800, 600)
+PASS 90909() · 원하는 선물 수량 조회: description and signature occur once
+PASS 90901() · 다이아몬드 선물하기: description and signature occur once
+PASS 90902() · 호감도 조회: description and signature occur once
+PASS 90903() · 공방 위치 조회: description and signature occur once
+PASS 90904() · 다른 대장장이에게 작업 맡기기: description and signature occur once
+PASS 90905() · 고용 인원 조회: description and signature occur once
+PASS 90906() · 현재 대장장이 번호 조회: description and signature occur once
+PASS 90907() · 작업 중인지 확인: description and signature occur once
+PASS 90910() · 거대한 룬 설치: description and signature occur once
+PASS 90909() / smith_demand · 원하는 선물 수량 조회: description and signature occur once
+PASS 90901() / smith_gift · 다이아몬드 선물하기: description and signature occur once
+PASS 90902() / smith_favor · 호감도 조회: description and signature occur once
+PASS 90903() / smith_position · 공방 위치 조회: description and signature occur once
+PASS 90904() / smith_run · 다른 대장장이에게 작업 맡기기: description and signature occur once
+PASS 90905() / smith_count · 고용 인원 조회: description and signature occur once
+PASS 90906() / smith_self · 현재 대장장이 번호 조회: description and signature occur once
+PASS 90907() / smith_busy · 작업 중인지 확인: description and signature occur once
+PASS 90910() / giant_rune · 거대한 룬 설치: description and signature occur once
+Resolution (1280, 720)
+PASS 90909() · 원하는 선물 수량 조회: description and signature occur once
+PASS 90901() · 다이아몬드 선물하기: description and signature occur once
+PASS 90902() · 호감도 조회: description and signature occur once
+PASS 90903() · 공방 위치 조회: description and signature occur once
+PASS 90904() · 다른 대장장이에게 작업 맡기기: description and signature occur once
+PASS 90905() · 고용 인원 조회: description and signature occur once
+PASS 90906() · 현재 대장장이 번호 조회: description and signature occur once
+PASS 90907() · 작업 중인지 확인: description and signature occur once
+PASS 90910() · 거대한 룬 설치: description and signature occur once
+PASS 90909() / smith_demand · 원하는 선물 수량 조회: description and signature occur once
+PASS 90901() / smith_gift · 다이아몬드 선물하기: description and signature occur once
+PASS 90902() / smith_favor · 호감도 조회: description and signature occur once
+PASS 90903() / smith_position · 공방 위치 조회: description and signature occur once
+PASS 90904() / smith_run · 다른 대장장이에게 작업 맡기기: description and signature occur once
+PASS 90905() / smith_count · 고용 인원 조회: description and signature occur once
+PASS 90906() / smith_self · 현재 대장장이 번호 조회: description and signature occur once
+PASS 90907() / smith_busy · 작업 중인지 확인: description and signature occur once
+PASS 90910() / giant_rune · 거대한 룬 설치: description and signature occur once
+Resolution (1920, 1080)
+PASS 90909() · 원하는 선물 수량 조회: description and signature occur once
+PASS 90901() · 다이아몬드 선물하기: description and signature occur once
+PASS 90902() · 호감도 조회: description and signature occur once
+PASS 90903() · 공방 위치 조회: description and signature occur once
+PASS 90904() · 다른 대장장이에게 작업 맡기기: description and signature occur once
+PASS 90905() · 고용 인원 조회: description and signature occur once
+PASS 90906() · 현재 대장장이 번호 조회: description and signature occur once
+PASS 90907() · 작업 중인지 확인: description and signature occur once
+PASS 90910() · 거대한 룬 설치: description and signature occur once
+PASS 90909() / smith_demand · 원하는 선물 수량 조회: description and signature occur once
+PASS 90901() / smith_gift · 다이아몬드 선물하기: description and signature occur once
+PASS 90902() / smith_favor · 호감도 조회: description and signature occur once
+PASS 90903() / smith_position · 공방 위치 조회: description and signature occur once
+PASS 90904() / smith_run · 다른 대장장이에게 작업 맡기기: description and signature occur once
+PASS 90905() / smith_count · 고용 인원 조회: description and signature occur once
+PASS 90906() / smith_self · 현재 대장장이 번호 조회: description and signature occur once
+PASS 90907() / smith_busy · 작업 중인지 확인: description and signature occur once
+PASS 90910() / giant_rune · 거대한 룬 설치: description and signature occur once
+Resolution (3840, 2160)
+PASS 90909() · 원하는 선물 수량 조회: description and signature occur once
+PASS 90901() · 다이아몬드 선물하기: description and signature occur once
+PASS 90902() · 호감도 조회: description and signature occur once
+PASS 90903() · 공방 위치 조회: description and signature occur once
+PASS 90904() · 다른 대장장이에게 작업 맡기기: description and signature occur once
+PASS 90905() · 고용 인원 조회: description and signature occur once
+PASS 90906() · 현재 대장장이 번호 조회: description and signature occur once
+PASS 90907() · 작업 중인지 확인: description and signature occur once
+PASS 90910() · 거대한 룬 설치: description and signature occur once
+PASS 90909() / smith_demand · 원하는 선물 수량 조회: description and signature occur once
+PASS 90901() / smith_gift · 다이아몬드 선물하기: description and signature occur once
+PASS 90902() / smith_favor · 호감도 조회: description and signature occur once
+PASS 90903() / smith_position · 공방 위치 조회: description and signature occur once
+PASS 90904() / smith_run · 다른 대장장이에게 작업 맡기기: description and signature occur once
+PASS 90905() / smith_count · 고용 인원 조회: description and signature occur once
+PASS 90906() / smith_self · 현재 대장장이 번호 조회: description and signature occur once
+PASS 90907() / smith_busy · 작업 중인지 확인: description and signature occur once
+PASS 90910() / giant_rune · 거대한 룬 설치: description and signature occur once

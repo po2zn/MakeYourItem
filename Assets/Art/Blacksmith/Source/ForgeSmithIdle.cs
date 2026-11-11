@@ -19,6 +19,19 @@ public sealed class ForgeSmithIdle : MonoBehaviour
     float timer,phase,clock;
     Vector3 start,end;
     bool initialized;
+    float errorAge=-1;
+    public bool IsReactingToError => errorAge>=0;
+    public int ErrorReactionCount {get;private set;}
+    public void ReactToCodeError(){if(!initialized||IsReactingToError)return;BeginWork();errorAge=0;ErrorReactionCount++;}
+    public void CancelErrorReaction(){if(!IsReactingToError)return;errorAge=-1;if(head)head.localRotation=headRest;}
+    void LateUpdate(){
+        if(!IsReactingToError)return;
+        errorAge+=Time.unscaledDeltaTime;
+        // One backward drop, a short pause, then a slower return to neutral.
+        float amount=errorAge<.32f?Mathf.SmoothStep(0,1,errorAge/.32f):errorAge<.48f?1:1-Mathf.SmoothStep(0,1,(errorAge-.48f)/.65f);
+        head.localRotation=headRest*Quaternion.Euler(-32*amount,0,0);
+        if(errorAge>=1.13f)CancelErrorReaction();
+    }
     public void Initialize(Transform character,GameObject butterfly)
     {
         smith=character;random=new System.Random(GetInstanceID());
@@ -35,15 +48,15 @@ public sealed class ForgeSmithIdle : MonoBehaviour
     }
     void Schedule(){State=VisitState.Waiting;timer=Mathf.Lerp(visitInterval.x,visitInterval.y,(float)random.NextDouble());phase=0;}
     public void RestorePose(){if(!initialized)return;spine.localRotation=spineRest;head.localRotation=headRest;}
-    public void BeginWork(){RestorePose();if(visitor&&(State==VisitState.Perched||State==VisitState.Approaching))Depart();}
+    public void BeginWork(){CancelErrorReaction();RestorePose();if(visitor&&(State==VisitState.Perched||State==VisitState.Approaching))Depart();}
     void Depart(){State=VisitState.Departing;phase=0;start=visitor.position;end=start+smith.right*1.8f+Vector3.up*1.1f+smith.forward*.8f;}
     public void Tick(float dt,bool working)
     {
         if(!initialized)return;
         clock+=dt;
         if(!working){
-            spine.localRotation=spineRest*Quaternion.Euler(Mathf.Sin(clock*1.7f)*1.3f,0,Mathf.Sin(clock*.65f)*.8f);
-            head.localRotation=headRest*Quaternion.Euler(Mathf.Sin(clock*1.1f)*1.4f,Mathf.Sin(clock*.43f)*3,0);
+            spine.localRotation=spineRest*Quaternion.Euler(Mathf.Sin(clock*1.5f)*3f,0,Mathf.Sin(clock*.65f)*.8f);
+            if(!IsReactingToError)head.localRotation=headRest*Quaternion.Euler(Mathf.Sin(clock*1.5f)*1.8f,Mathf.Sin(clock*.43f)*3,0);
         }
         if(!visitor)return;
         if(working)BeginWork();
@@ -66,5 +79,5 @@ public sealed class ForgeSmithIdle : MonoBehaviour
         float flap=(1+Mathf.Sin(clock*(State==VisitState.Perched?3:48)))*.5f;
         for(int i=0;i<wings.Length;i++)wings[i].localRotation=wingRest[i]*Quaternion.Euler(flap*(wings[i].name.EndsWith("ForeWing")?12:6),0,0);
     }
-    void OnDisable(){RestorePose();if(visitor)visitor.gameObject.SetActive(false);if(initialized)Schedule();}
+    void OnDisable(){CancelErrorReaction();RestorePose();if(visitor)visitor.gameObject.SetActive(false);if(initialized)Schedule();}
 }

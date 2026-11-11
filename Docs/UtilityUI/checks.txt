@@ -1,0 +1,28 @@
+Resolution (800, 600)
+PASS Sales (800, 600) minimum=False: text metrics and fold
+PASS Sales (800, 600) minimum=True: text metrics and fold
+PASS Debug (800, 600) minimum=False: text metrics and fold
+PASS Debug (800, 600) minimum=True: text metrics and fold
+PASS Developer (800, 600) minimum=False: text metrics and fold
+PASS Developer (800, 600) minimum=True: text metrics and fold
+Resolution (1280, 720)
+PASS Sales (1280, 720) minimum=False: text metrics and fold
+PASS Sales (1280, 720) minimum=True: text metrics and fold
+PASS Debug (1280, 720) minimum=False: text metrics and fold
+PASS Debug (1280, 720) minimum=True: text metrics and fold
+PASS Developer (1280, 720) minimum=False: text metrics and fold
+PASS Developer (1280, 720) minimum=True: text metrics and fold
+Resolution (1920, 1080)
+PASS Sales (1920, 1080) minimum=False: text metrics and fold
+PASS Sales (1920, 1080) minimum=True: text metrics and fold
+PASS Debug (1920, 1080) minimum=False: text metrics and fold
+PASS Debug (1920, 1080) minimum=True: text metrics and fold
+PASS Developer (1920, 1080) minimum=False: text metrics and fold
+PASS Developer (1920, 1080) minimum=True: text metrics and fold
+Resolution (3840, 2160)
+PASS Sales (3840, 2160) minimum=False: text metrics and fold
+PASS Sales (3840, 2160) minimum=True: text metrics and fold
+PASS Debug (3840, 2160) minimum=False: text metrics and fold
+PASS Debug (3840, 2160) minimum=True: text metrics and fold
+PASS Developer (3840, 2160) minimum=False: text metrics and fold
+PASS Developer (3840, 2160) minimum=True: text metrics and fold

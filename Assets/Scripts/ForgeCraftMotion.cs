@@ -9,6 +9,7 @@ public sealed class ForgeCraftMotion : MonoBehaviour
     uint motionGeneration;
     public bool UsesWorkshopAssets => workshop != null;
     public void CancelCurrentAction(){motionGeneration++;ActiveProcess=0;if(workshop)workshop.Cancel();}
+    public void ReactToCodeError(){CancelCurrentAction();if(workshop)workshop.ReactToCodeError();}
     void OnDisable(){CancelCurrentAction();}
     readonly Dictionary<int, GameObject> pieces = new Dictionary<int, GameObject>();
     Transform smith, arm;

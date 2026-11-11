@@ -33,6 +33,7 @@ public sealed class ForgeDayCycle : MonoBehaviour, ISerializationCallbackReceive
     Transform sunDisc, moonDisc;
     Material sunMaterial, moonMaterial;
     Camera sceneCamera;
+    ForgeMvp workshop;
     Color previousBackground, previousAmbient;
     AmbientMode previousAmbientMode;
     Light previousSun;
@@ -43,6 +44,7 @@ public sealed class ForgeDayCycle : MonoBehaviour, ISerializationCallbackReceive
     void Awake() { var ready=Clock; }
     void Start()
     {
+        workshop = GetComponent<ForgeMvp>();
         previousSun = RenderSettings.sun;
         previousAmbient = RenderSettings.ambientLight;
         previousAmbientMode = RenderSettings.ambientMode;
@@ -108,7 +110,8 @@ public sealed class ForgeDayCycle : MonoBehaviour, ISerializationCallbackReceive
         RenderSettings.sun = daylight > .5f ? sun : moon;
         RenderSettings.ambientLight = Color.Lerp(new Color(.13f, .17f, .27f), new Color(.48f, .49f, .52f), daylight);
         if (sceneCamera) sceneCamera.backgroundColor = Color.Lerp(new Color(.03f, .046f, .098f), new Color(.32f, .46f, .62f), daylight);
-        var center = new Vector3(2, 1, 5);
+        // Retain the sky offset while following the center of all occupied stations.
+        var center = (workshop ? workshop.SmithStationCenter : transform.position) + new Vector3(2, 1, 5);
         sunDisc.position = center + direction * 7;
         moonDisc.position = center - direction * 7;
         sunDisc.gameObject.SetActive(direction.y > -.08f);

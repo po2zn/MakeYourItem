@@ -119,7 +119,7 @@ public static class ForgePricing
             + "\n" + prefix + "제작비 " + quote.CashCost + "G · " + prefix + "공정비 차감 판매액 " + quote.Profit + "G"
             + "\n소비 재료: "+(materials.Length==0?"없음":materials)+" · 재구매 기준 "+materialValue+"G · 재료가 차감 예상 이익 "+(quote.Profit-materialValue)+"G"
             + "\n제작 시간 " + product.ProductionSeconds.ToString("0.0") + "초 · 시간당 판매액 " + (product.ProductionSeconds>0?(quote.SalePrice*3600/product.ProductionSeconds).ToString("0"):"—") + "G"
-            + "\n행운 부산물 · 다이아몬드 " + product.DiamondReward + "개"
+            + "\n행운 부산물 · 다이아몬드 " + product.DiamondReward + "D"
             + "\n" + (preview ? "소비 예정 재료" : "소비 재료") + " · 철 " + product.IronConsumed + "개";
     }
 }

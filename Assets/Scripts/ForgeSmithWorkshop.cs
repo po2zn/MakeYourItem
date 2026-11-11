@@ -14,6 +14,15 @@ public partial class ForgeMvp
     bool showSmithTree;
     string smithMessage="";
     double SmithHours=>(DayCycle.Day-1)*24d+DayCycle.CurrentHour;
+    // Average every occupied station, including partially filled rows.
+    public Vector3 SmithStationCenter {
+        get {
+            int count=blacksmiths?.smiths?.Count??0;
+            var center=Vector3.zero;
+            for(int i=0;i<count;i++)center+=new Vector3(ForgeBlacksmiths.X(i)*4.5f,0,ForgeBlacksmiths.Y(i)*4.5f);
+            return transform.TransformPoint(count>0?center/count:Vector3.zero);
+        }
+    }
     void UpdateSmiths()
     {
         if(DayCycle==null||craftMotion==null)return;
@@ -103,20 +112,20 @@ public partial class ForgeMvp
             while(smithJobs.TryGetValue(id,out var active)&&active==job&&!job.session.Cancelled){
                 var advance=job.session.Advance();while(!advance.IsCompleted)yield return null;
                 if(job.session.Cancelled)yield break;
-                if(advance.IsFaulted){AppendDebug("대장장이 "+id+": "+advance.Exception.GetBaseException().Message);yield break;}
+                if(advance.IsFaulted){AppendDebug("대장장이 "+id+": "+advance.Exception.GetBaseException().Message);smithMotions[id].ReactToCodeError();yield break;}
                 var evaluation=job.session.Evaluation;
                 while(job.cursor<evaluation.steps.Count){
                     var step=evaluation.steps[job.cursor++];
                     if(step.debugOutput){AppendDebug("대장장이 "+id+" · "+step.text);continue;}
                     if(step.process==-1){yield return new WaitForSeconds(step.duration);continue;}
                     if(step.process==-2){if(step.setting==1)craftSpeed=step.settingValue;else autoSell=step.settingValue==1;continue;}
-                    if(!SpendSmithStep(step,job.ledger)){AppendDebug("대장장이 "+id+": 공용 재료 부족으로 중단");yield break;}
+                    if(!SpendSmithStep(step,job.ledger)){AppendDebug("대장장이 "+id+": 공용 재료 부족으로 중단");smithMotions[id].ReactToCodeError();yield break;}
                     yield return smithMotions[id].Play(step);
                     if(job.session.Cancelled)yield break;
                     ProgressStep(step);if(step.refund>0)RefundMaterial(step.refund);
                     if(step.finished)FinishSmithProduct(id,job.ledger.Complete("대장장이 "+id,step.heat,step.shaped,step.traits,step.material,step.data,step.productionSeconds));
                 }
-                if(job.session.Completed){if(evaluation.error!=null)AppendDebug("대장장이 "+id+" · "+evaluation.error);yield break;}
+                if(job.session.Completed){if(evaluation.error!=null){AppendDebug("대장장이 "+id+" · "+evaluation.error);smithMotions[id].ReactToCodeError();}yield break;}
                 yield return null;
             }
         }finally{job.session.Dispose();if(smithJobs.TryGetValue(id,out var active)&&active==job)smithJobs.Remove(id);SaveProgress();}

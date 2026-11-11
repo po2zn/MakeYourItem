@@ -28,7 +28,7 @@ public partial class ForgeMvp
     }
     bool LoadProgress()
     {
-        progressLoaded=false;
+        progressLoaded=false;codeSavePending=false;
         if(activeSaveSlot<1||!PlayerPrefs.HasKey(SaveKey)){saveMessage="저장 데이터가 없습니다.";return false;}
         try {
             var saved=JsonUtility.FromJson<SavedProgress>(PlayerPrefs.GetString(SaveKey));
@@ -53,6 +53,10 @@ public partial class ForgeMvp
             progressLoaded=true;saveMessage="슬롯 "+activeSaveSlot+"의 공방을 불러왔습니다.";return true;
         }catch(Exception error){saveMessage="저장 불러오기 실패: "+error.Message;progressLoaded=false;return false;}
     }
+    bool codeSavePending;
+    float codeSaveAt,codeSaveDeadline;
+    void QueueCodeSave(){if(!progressLoaded||activeSaveSlot<1)return;float now=Time.realtimeSinceStartup;if(!codeSavePending)codeSaveDeadline=now+3f;codeSavePending=true;codeSaveAt=Mathf.Min(now+1f,codeSaveDeadline);}
+    void SaveEditedCode(bool immediately=false){if(!codeSavePending||(!immediately&&Time.realtimeSinceStartup<codeSaveAt))return;codeSaveAt=codeSaveDeadline=Time.realtimeSinceStartup+5f;SaveProgress();}
     void SaveProgress()
     {
         if(!progressLoaded||activeSaveSlot<1||DayCycle==null)return;
@@ -63,12 +67,13 @@ public partial class ForgeMvp
             saved.blacksmiths=blacksmiths;
             for(int i=0;i<codeWindows.Count;i++){var w=codeWindows[i];saved.windows.Add(new SavedWindow{name=w.name,text=i==activeWindow?source:w.text,rect=w.rect,seed=w.seed});}
             foreach(var entry in shop.Items){var p=entry.Product;saved.items.Add(new SavedItem{order=entry.Order,owner=p.BlueprintName,material=p.Material,heat=p.FinalHeat,shaped=p.Shaped,traits=p.Traits,cost=p.CashCost,iron=p.IronConsumed,data=p.Data,seconds=p.ProductionSeconds});}
-            PlayerPrefs.SetString(SaveKey,JsonUtility.ToJson(saved));PlayerPrefs.Save();saveMessage="공방 저장 완료";
+            PlayerPrefs.SetString(SaveKey,JsonUtility.ToJson(saved));PlayerPrefs.Save();codeSavePending=false;saveMessage="공방 저장 완료";
         }catch(Exception error){saveMessage="저장 실패: "+error.Message;}
     }
     void ResetProgressForDebug(bool persist=true)
     {
         if(busy||executionSession!=null)return;
+        codeSavePending=false;
         StopSmithJobs();blacksmiths=new ForgeBlacksmiths();showSmithTree=false;
         EndWorkspaceDrag();CancelHierarchyTreeDrag();guideBook.CancelDrag();
         GUIUtility.hotControl=0;if(Event.current!=null)ClearUIFocus();
@@ -140,7 +145,7 @@ public partial class ForgeMvp
         GUI.enabled=canReturn;
         progressScroll=GUILayout.BeginScrollView(progressScroll);
         ForgeTextLayout.LayoutLabel("공방 기록 · Day "+DayCycle.Day+" · "+((int)DayCycle.CurrentHour).ToString("00")+":"+((int)(DayCycle.CurrentHour*60)%60).ToString("00"));
-        ForgeTextLayout.LayoutLabel("골드 "+gold+"G · 다이아몬드 "+diamonds+" · 판매 "+totalSales+"개 · 누적 판매액 "+earnedGold+"G");
+        ForgeTextLayout.LayoutLabel("골드 "+gold+"G · 다이아몬드 "+diamonds+"D · 판매 "+totalSales+"개 · 누적 판매액 "+earnedGold+"G");
         ForgeTextLayout.LayoutLabel("가속 "+craftSpeed+"배 · 자동판매 "+(autoSell?"켜짐":"꺼짐"));
         ForgeTextLayout.LayoutLabel(lesson.Complete?"첫 검 만들기 튜토리얼 완료":"첫 검 만들기 · "+(lesson.Stage+1)+" / 8 단계");
         bool tutorialEnabled=GUI.enabled;GUI.enabled=tutorialEnabled&&!busy&&executionSession==null;
@@ -184,6 +189,7 @@ public partial class ForgeMvp
     {
         source=ForgeCodeTranslation.Translate(source,english);
         if(codeWindows.Count>0)codeWindows[activeWindow].text=source;
+        QueueCodeSave();
     }
 }
 public static class ForgeCodeTranslation
@@ -222,7 +228,7 @@ public partial class ForgeMvp
         try {
             var saved=JsonUtility.FromJson<SavedProgress>(PlayerPrefs.GetString(SlotKey(slot)));
             if(saved==null||saved.version!=1||saved.day<1)throw new Exception();
-            return "Day "+saved.day+" · "+saved.gold+"G · 다이아 "+saved.diamonds+"\n"+(string.IsNullOrEmpty(saved.savedAt)?"기존 저장 데이터":saved.savedAt);
+            return "Day "+saved.day+" · "+saved.gold+"G · "+saved.diamonds+"D\n"+(string.IsNullOrEmpty(saved.savedAt)?"기존 저장 데이터":saved.savedAt);
         }catch{return "읽을 수 없는 저장 데이터";}
     }
     void EnterSavedSlot(int slot)

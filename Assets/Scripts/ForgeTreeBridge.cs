@@ -32,7 +32,7 @@ public partial class ForgeMvp
     public bool HierarchySmithOwned(int id)=>SmithNodeOwned(id);
     public int HierarchySmithPrice(int id)=>SmithNodePrice(id);
     public static string HierarchySmithTitle(int id)=>id==0?"기본 대장장이 · 1명":id<=5?"대장장이 "+ForgeBlacksmiths.Counts[id]+"명 고용":id==6?"호감도 조회 · 90902()":id==7?"위치 조회 · 90903()":"요구 수량 조회 · 90909()";
-    public string HierarchySmithTooltip(int id)=>SmithNodeDescription(id)+(id==0?"":"\n\n선행 구매 필요: "+SmithNodeTitle(id<=5?id-1:0)+"\n"+(SmithNodeOwned(id)?"구매 완료":SmithNodePrice(id)+" 다이아 · 클릭하여 구매"));
+    public string HierarchySmithTooltip(int id)=>SmithNodeDescription(id)+(id==0?"":"\n\n선행 구매 필요: "+SmithNodeTitle(id<=5?id-1:0)+"\n"+(SmithNodeOwned(id)?"구매 완료":ForgeMaterialHud.FormatCount(SmithNodePrice(id))+"D · 클릭하여 구매"));
     public string HierarchyTooltip(ForgeTechnology.Offer offer,int quantity)
     {
         if(offer==null)return "기본 제공";

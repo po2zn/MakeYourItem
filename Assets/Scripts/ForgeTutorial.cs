@@ -31,7 +31,7 @@ public partial class ForgeMvp
     {
         if(busy||executionSession!=null||showTutorial)return;
         CommitName();EndWorkspaceDrag();CancelHierarchyTreeDrag();guideBook.CancelDrag();
-        showProgress=false;showTechTree=false;showGuideBook=false;
+        showProgress=false;showTechTree=false;
         tutorialWasPaused=DayCycle.Paused;DayCycle.Paused=true;
         tutorialPreviousOffset=workspaceOffset;tutorialPreviousZoom=workspaceZoom;
         tutorialInput=lesson.Code;tutorialEditorScroll=Vector2.zero;tutorialPendingCaret=-1;tutorialSuccessAt=-100;

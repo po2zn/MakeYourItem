@@ -18,7 +18,11 @@ public static class BlueprintGuide
         public BlueprintAlias Alias => BlueprintAliases.Find(Feature);
         public string Heading => FormatHeading(true);
         public string Description => Describe(Body);
-        string Describe(string body)=>Alias==null?body:Alias.Description+"\n"+Alias.Signature+(body==Alias.Description?"":"\n\n"+body);
+        string Describe(string body){
+            var alias=Alias;if(alias==null)return body;
+            string summary=alias.Description+"\n"+alias.Signature;
+            return body==alias.Description||body==summary?summary:summary+"\n\n"+body;
+        }
         public Entry(string id,string section,string title,string body,string example,string expected,string note,BlueprintFeature feature,string numericTitle=null,string numericBody=null,string numericExample=null,string numericNote=null)
         {this.numericTitle=numericTitle??title;this.numericBody=numericBody??body;this.numericExample=numericExample??example;this.numericNote=numericNote??note;Id=id;Section=BlueprintResearchGuide.SectionFor(feature,section);Title=title;Body=body;Example=example;Expected=expected;Note=note;Feature=feature;}
         public string HeadingFor(bool englishUnlocked) => FormatHeading(englishUnlocked);
@@ -89,5 +93,5 @@ public static class BlueprintGuide
         new Entry("night-time","시간 조회","24() · 밤인지 확인","자정의 24에서 연상합니다. 18:00 이상 또는 06:00 미만이면 정수 1, 낮이면 0입니다. 24(60) 시각 조회도 함께 해금됩니다.","Night = 24()\nprint(Night)\n1? Night == 1:\n    print(\"밤입니다\")","오전 8시 예: 0 출력","시간 조회 묶음(12 + 24)을 "+ForgeTechnology.Find("function-IsDay").Price+"G로 함께 해금합니다. 조건에는 24() == 1처럼 비교하세요. 호출 비용은 0G입니다.",BlueprintFeature.NightTime),
         new Entry("clock-minutes","시간 조회","24(60) · 현재 시각 조회","하루 24시간과 한 시간 60분을 연결합니다. 자정부터 지난 분을 0~1439의 정수로 반환하며 초는 버립니다. 24:00에는 0으로 돌아갑니다. 한 줄 실행에서도 각 호출 시점의 시각을 읽습니다.","Minutes = 24(60)\nHour = Minutes // 60\nMinute = Minutes % 60\nprint(Hour, Minute)","오전 8시 예: 8 0 출력","24() 해금에 포함됩니다. 인자는 정수 60만 허용합니다. 현실 시간이 아닌 게임 속 시각이며 기본 하루는 현실 10분입니다. 호출 비용과 재료 소비는 없습니다.",BlueprintFeature.None),
         new Entry("masterwork-example","완성 예제","명장의 마지막 의뢰 · 완성 도면","별무늬 별철 검날에 정제 용뼈 손잡이를 장착하고 약한 충전을 세 번 진행한 뒤 서로 다른 계열 룬을 각인합니다. 필요한 연구와 최종 의뢰를 먼저 구매하세요.","p = 1(7)\n2(p, 7)\n3(p)\n4(p, 3)\n6(p)\n7(p)\nb = 1(9)\n10(b, p, 100, 13)\n5(p, b)\n9(p, 1)\n9(p, 1)\n9(p, 1)\n123(r in [7, 8, 9]):\n    211(p, r)\n!p","별무늬·정제 용뼈 손잡이·충전 3회·서로 다른 룬 계열 3개를 갖춘 무균열 검 제출","재료: 별철 1개, 은 1개, 용뼈 1개, 물 2개, 수정 4개. 최종 의뢰 수락 전에는 같은 검을 만들어도 엔딩이 완료되지 않습니다.",BlueprintFeature.None),
-    }).Concat(ForgeSmithLanguage.Aliases.Select(a=>new Entry("extension-smith-"+a.Symbol,"대장장이와 다이아몬드",a.Symbol+"()",a.Description+"\n"+a.Signature,ForgeSmithLanguage.Example(a.Id),a.Id==BlueprintFeature.SmithRun?"고용한 대장장이 1번이 독립 실행하고 반환한 검을 제출합니다.":"공방의 해당 대장장이 상태를 조회하거나 변경합니다.","대장장이 번호는 0부터 시작합니다. 첫 위치는 (0,0)입니다. 대장장이 함수는 코드창에서 연파랑으로 표시합니다. 조회 연구와 고용은 대장장이 테크 트리에서 다이아로 구매합니다. 예제 실행 전 필요한 고용·연구·재료를 준비하세요.",a.Id))).ToArray());
+    }).Concat(ForgeSmithLanguage.Aliases.Select(a=>new Entry("extension-smith-"+a.Symbol,"대장장이와 다이아몬드",a.Symbol+"() · "+ForgeSmithLanguage.GuideTitle(a.Id),a.Description,ForgeSmithLanguage.Example(a.Id),a.Id==BlueprintFeature.SmithRun?"고용한 대장장이 1번이 독립 실행하고 반환한 검을 제출합니다.":"공방의 해당 대장장이 상태를 조회하거나 변경합니다.","대장장이 번호는 0부터 시작합니다. 첫 위치는 (0,0)입니다. 대장장이 함수는 코드창에서 연파랑으로 표시합니다. 조회 연구와 고용은 대장장이 테크 트리에서 다이아로 구매합니다. 예제 실행 전 필요한 고용·연구·재료를 준비하세요.",a.Id))).ToArray());
 }

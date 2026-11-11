@@ -1,7 +1,7 @@
 PASS HUD 0 민트빛 나선 바람 정령-1
 PASS HUD 1 저폴리 검은 강철 잉곳-3
 PASS HUD 2 저폴리 각진 참나무 통나무-2
-PASS HUD 3 3
+PASS HUD 3 로우폴리 물방울 제작 재료
 PASS HUD 4 저폴리 검은 석탄 덩어리-5
 PASS HUD 5 은빛 저폴리 금속 주괴-4
 PASS HUD 6 보랏빛 마법 수정 클러스터-8

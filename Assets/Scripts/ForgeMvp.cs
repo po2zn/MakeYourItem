@@ -143,9 +143,9 @@ public partial class ForgeMvp : MonoBehaviour
             - workspaceCamera.transform.right * workspaceOffset.x * WorkspaceUnitsPerPixel
             + workspaceCamera.transform.up * workspaceOffset.y * WorkspaceUnitsPerPixel;
     }
-    void LateUpdate() { SyncHierarchyTree(); SyncHierarchyGame(); UpdateSmiths(); UpdateWorkspaceCamera(); UpdateRenderVisibility(); }
-    void OnApplicationFocus(bool focused) { ForgeMouseTrace.Mark("APPLICATION_FOCUS","focused="+focused,true); if (!focused) pointerResetPending=true; }
-    void OnApplicationPause(bool paused) { ForgeMouseTrace.Mark("APPLICATION_PAUSE","paused="+paused,true); if (paused) pointerResetPending=true; }
+    void LateUpdate() { SyncHierarchyTree(); SyncHierarchyGame(); UpdateSmiths(); UpdateWorkspaceCamera(); UpdateRenderVisibility(); SaveEditedCode(); }
+    void OnApplicationFocus(bool focused) { ForgeMouseTrace.Mark("APPLICATION_FOCUS","focused="+focused,true); if (!focused) {pointerResetPending=true;SaveEditedCode(true);} }
+    void OnApplicationPause(bool paused) { ForgeMouseTrace.Mark("APPLICATION_PAUSE","paused="+paused,true); if (paused) {pointerResetPending=true;SaveEditedCode(true);} }
     Vector2 scroll, logs, lastMouse;
     float hoverSince;
     int edge = -1, gold = 100, iron = 10;
@@ -693,7 +693,7 @@ public partial class ForgeMvp : MonoBehaviour
             codeWindowPointerControl=0;
         }
         if (maskEditor) ev.type = underlyingEvent;
-        current.rect = workspaceWindow; current.text = source; current.scroll = scroll;
+        current.rect = workspaceWindow; if(current.text!=source)QueueCodeSave();current.text = source; current.scroll = scroll;
         }
         TracePointer("BEFORE_SALES");
         DrawSalesWindow();

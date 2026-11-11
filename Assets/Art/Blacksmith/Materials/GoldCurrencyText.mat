@@ -23,6 +23,10 @@ Material:
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
+    - _DiamondTex:
+        m_Texture: {fileID: 2800000, guid: 6500adcba28d20e42ad2ae6c13ad7233, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _GoldTex:
         m_Texture: {fileID: 2800000, guid: c3b3f502a853abd44ab52e5c6730ff51, type: 3}
         m_Scale: {x: 1, y: 1}

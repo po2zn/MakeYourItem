@@ -1,0 +1,5 @@
+PASS button adds exactly 1000; repeated clicks, busy guard, integer limit
+PASS actual screen (800, 600) full button label
+PASS actual screen (1280, 720) full button label
+PASS actual screen (1920, 1080) full button label
+PASS actual screen (3840, 2160) full button label

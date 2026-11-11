@@ -1,0 +1,8 @@
+Resolution (800, 600)
+PASS compact icons and full counts at (800, 600)
+Resolution (1280, 720)
+PASS compact icons and full counts at (1280, 720)
+Resolution (1920, 1080)
+PASS compact icons and full counts at (1920, 1080)
+Resolution (3840, 2160)
+PASS compact icons and full counts at (3840, 2160)

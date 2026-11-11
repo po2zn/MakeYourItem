@@ -1,5 +1,5 @@
 HUD text=자금
-100G glyphs=1 vertices=24
+1.5KG glyphs=1 vertices=28
 PASS price coin stock-1
 PASS price coin stock-2
 PASS price coin stock-3

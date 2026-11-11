@@ -36,11 +36,30 @@ public static class CopperbeardSetup
  else if(v.y<.79f)weights[i]=Blend("Hips","Spine",Mathf.InverseLerp(.66f,.79f,v.y));
  else weights[i]=Blend("Spine1","Spine2",Mathf.InverseLerp(.82f,1.08f,v.y));
  }
- mesh.boneWeights=weights;mesh.bindposes=bones.Select(b=>b.worldToLocalMatrix*root.transform.localToWorldMatrix).ToArray();AssetDatabase.CreateAsset(mesh,AssetDatabase.GenerateUniqueAssetPath(folder+"/CopperbeardMesh.asset"));
+ SmoothShoulders(vertices,weights,names);mesh.boneWeights=weights;mesh.bindposes=bones.Select(b=>b.worldToLocalMatrix*root.transform.localToWorldMatrix).ToArray();AssetDatabase.CreateAsset(mesh,AssetDatabase.GenerateUniqueAssetPath(folder+"/CopperbeardMesh.asset"));
  var mat=new Material(Shader.Find("Universal Render Pipeline/Lit"));mat.name="Copperbeard_Texture";mat.SetTexture("_BaseMap",AssetDatabase.LoadAssetAtPath<Texture2D>(Model.Replace(".fbx",".png")));mat.SetColor("_BaseColor",Color.white);mat.SetFloat("_Smoothness",.22f);AssetDatabase.CreateAsset(mat,AssetDatabase.GenerateUniqueAssetPath(folder+"/Copperbeard.mat"));
  var go=new GameObject("CopperbeardMesh");go.transform.SetParent(root.transform,false);var skin=go.AddComponent<SkinnedMeshRenderer>();skin.sharedMesh=mesh;skin.sharedMaterial=mat;skin.bones=bones;skin.rootBone=Bone("Hips");skin.localBounds=new Bounds(new Vector3(0,.9f,0),new Vector3(2.5f,2.4f,2));
  string path=AssetDatabase.GenerateUniqueAssetPath("Assets/Art/Blacksmith/Prefabs/Blacksmith_Copperbeard.prefab");catalog.blacksmith=PrefabUtility.SaveAsPrefabAsset(root,path);EditorUtility.SetDirty(catalog);AssetDatabase.SaveAssets();return path+"; vertices="+mesh.vertexCount+" triangles="+mesh.triangles.Length/3+"; bones="+bones.Length;
  }finally{Object.DestroyImmediate(root);}
+ }
+ public static void SmoothShoulders(Vector3[] vertices,BoneWeight[] weights,string[] names){
+ // Blend across the chest/upper-arm seam instead of switching bones at x=.32.
+ for(int i=0;i<vertices.Length;i++){
+ var v=vertices[i];float x=Mathf.Abs(v.x);
+ if(x<.20f||x>.48f||v.y<.80f||v.y>1.30f)continue;
+ if(v.y>1.08f&&v.z>.23f&&x<.32f)continue; // Keep the beard attached to the head.
+ string side=v.x<0?"Left":"Right";
+ float arm=Mathf.SmoothStep(0,1,Mathf.InverseLerp(.20f,.46f,x))*Mathf.SmoothStep(0,1,Mathf.InverseLerp(.80f,.98f,v.y));
+ float chest=Mathf.Clamp01(Mathf.InverseLerp(.82f,1.08f,v.y));
+ weights[i]=new BoneWeight{boneIndex0=System.Array.IndexOf(names,side+"Arm"),weight0=arm,boneIndex1=System.Array.IndexOf(names,"Spine2"),weight1=(1-arm)*chest,boneIndex2=System.Array.IndexOf(names,"Spine1"),weight2=(1-arm)*(1-chest)};
+ }
+ }
+ public static string RepairShoulders(){
+ var prefab=Resources.Load<ForgeWorkshopAssets>("BlacksmithWorkshopAssets").blacksmith;
+ var skin=prefab.GetComponentInChildren<SkinnedMeshRenderer>();
+ var mesh=skin.sharedMesh;var weights=mesh.boneWeights;
+ SmoothShoulders(mesh.vertices,weights,skin.bones.Select(b=>b.name).ToArray());mesh.boneWeights=weights;
+ EditorUtility.SetDirty(mesh);AssetDatabase.SaveAssets();return "Smoothed shoulder weights: "+AssetDatabase.GetAssetPath(mesh);
  }
  public static string Inspect(){AssetDatabase.Refresh();var g=AssetDatabase.LoadAssetAtPath<GameObject>(Model);string s="playing="+EditorApplication.isPlaying+"\n";
  foreach(var t in g.GetComponentsInChildren<Transform>(true))s+=t.name+" pos="+t.position+" rot="+t.localEulerAngles+" scale="+t.localScale+"\n";

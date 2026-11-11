@@ -45,7 +45,7 @@ public partial class ForgeMvp
             if(session.Evaluation.compileError){
                 owner.diagnosticCaption="컴파일 오류";
                 owner.diagnostic=new ForgeCompileDiagnostic(source,session.Evaluation.errorLine,session.Evaluation.errorMessage);
-                owner.showDiagnostic=true;owner.revealDiagnostic=true;owner.diagnosticScroll=Vector2.zero;hover="";session.Dispose();return;
+                owner.showDiagnostic=true;owner.revealDiagnostic=true;owner.diagnosticScroll=Vector2.zero;hover="";session.Dispose();if(craftMotion)craftMotion.ReactToCodeError();return;
             }
             owner.diagnostic=null;owner.showDiagnostic=false;owner.revealDiagnostic=false;
             executionSession=session;executionOwner=owner;executionLedger=new ForgeProductionLedger();
@@ -63,7 +63,7 @@ public partial class ForgeMvp
             var advance=session.Advance();
             while(!advance.IsCompleted)yield return null;
             if(executionSession!=session||session.Cancelled){busy=false;yield break;}
-            if(advance.IsFaulted){reportError=true;report+="실행 오류: "+advance.Exception.GetBaseException().Message;StopExecution(false);busy=false;yield break;}
+            if(advance.IsFaulted){reportError=true;report+="실행 오류: "+advance.Exception.GetBaseException().Message;StopExecution(false);if(craftMotion)craftMotion.ReactToCodeError();busy=false;yield break;}
             var evaluation=session.Evaluation;
             while(receiptCursor<evaluation.steps.Count){
                 var step=evaluation.steps[receiptCursor++];
@@ -74,7 +74,7 @@ public partial class ForgeMvp
                 if(step.process==-1){yield return new WaitForSeconds(step.duration);continue;}
                 if(step.process==-2){if(step.setting==1)craftSpeed=step.settingValue;else autoSell=step.settingValue==1;continue;}
                 if(!SpendSmithStep(step,executionLedger)){
-                    reportError=true;report+="자금 또는 해당 재료 부족";StopExecution(false);busy=false;yield break;
+                    reportError=true;report+="자금 또는 해당 재료 부족";StopExecution(false);if(craftMotion)craftMotion.ReactToCodeError();busy=false;yield break;
                 }
                 if(!executionSeedConsumed&&step.process>0){executionOwner.seed=unchecked(executionOwner.seed*1664525u+1013904223u);executionSeedConsumed=true;}
                 if(step.warning)AppendDebug(step.line+"줄 · "+step.text);
@@ -98,6 +98,7 @@ public partial class ForgeMvp
             else report+=executionProduct!=null?"\n제작 완료\n"+ForgePricing.Describe(executionProduct,false):"실행 완료 · 결과물 미제출";
             report+="\n실제 제작비 "+executionLedger.CashCost+"G · 소비 재료 · 철 "+executionLedger.IronConsumed+"개";
             StopExecution(false);
+            if(reportError&&craftMotion)craftMotion.ReactToCodeError();
         }
         busy=false;
         SaveProgress();

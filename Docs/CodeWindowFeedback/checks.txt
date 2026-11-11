@@ -1,0 +1,6 @@
+PASS actual resolution (800, 600): red header, no error footer, visible resize arrow
+PASS actual resolution (1280, 720): red header, no error footer, visible resize arrow
+PASS actual resolution (1920, 1080): red header, no error footer, visible resize arrow
+PASS actual resolution (3840, 2160): red header, no error footer, visible resize arrow
+PASS minimum window and resize drag
+PASS code edit clears error tint; numeric/English diagnostic text available in header tooltip

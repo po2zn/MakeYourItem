@@ -77,6 +77,21 @@ public static class ForgeSmithLanguage
         }
     }
     public static bool IsSmith(BlueprintFeature f)=>f>=BlueprintFeature.SmithDemand&&f<=BlueprintFeature.SmithBusy;
+    public static string GuideTitle(BlueprintFeature feature)
+    {
+        switch(feature){
+            case BlueprintFeature.SmithDemand:return "원하는 선물 수량 조회";
+            case BlueprintFeature.SmithGift:return "다이아몬드 선물하기";
+            case BlueprintFeature.SmithFavor:return "호감도 조회";
+            case BlueprintFeature.SmithPosition:return "공방 위치 조회";
+            case BlueprintFeature.SmithRun:return "다른 대장장이에게 작업 맡기기";
+            case BlueprintFeature.SmithCount:return "고용 인원 조회";
+            case BlueprintFeature.SmithSelf:return "현재 대장장이 번호 조회";
+            case BlueprintFeature.SmithBusy:return "작업 중인지 확인";
+            case BlueprintFeature.GiantRune:return "거대한 룬 설치";
+            default:throw new ArgumentOutOfRangeException(nameof(feature));
+        }
+    }
     public static readonly BlueprintAlias[] Aliases={
         new BlueprintAlias(BlueprintFeature.SmithDemand,"smith_demand","90909",BlueprintSyntaxKind.Builtin,"요구 다이아 수량 1~9. 생략 시 현재 대장장이. 선물을 줄 때마다 재추첨합니다.","90909([대장장이 번호]) → 정수 · 다이아 연구",-1),
         new BlueprintAlias(BlueprintFeature.SmithGift,"smith_gift","90901",BlueprintSyntaxKind.Builtin,"다이아 선물. 정확하면 호감도 +5, 틀리면 -10. 수량은 1~9.","90901(수량) 또는 90901(번호, 수량) · 기본 제공",-1),

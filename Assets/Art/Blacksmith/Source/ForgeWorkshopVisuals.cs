@@ -23,6 +23,7 @@ public sealed class ForgeWorkshopVisuals : MonoBehaviour
     Material runeMaterial,sealMaterial,crystalMaterial;
     Color apronColor;
     bool acting;
+    PieceView heldPiece;
     ForgeSmithIdle idle;
     int epoch;
     public Vector3 SmithPosition=>smith?smith.position:transform.position;
@@ -99,14 +100,22 @@ public sealed class ForgeWorkshopVisuals : MonoBehaviour
         if(rightArm)rightArm.localRotation=rest[rightArm]*Quaternion.Euler(0,0,-65);
         if(hammer)hammer.localRotation=Quaternion.identity;
     }
-    void Update(){if(!acting&&smith){ResetPose();float breath=Mathf.Sin(Time.time*2)*1.5f;leftArm.localRotation*=Quaternion.Euler(breath,0,0);rightArm.localRotation*=Quaternion.Euler(-breath,0,0);}if(idle)idle.Tick(Time.deltaTime,acting);if(fireLight)fireLight.intensity=(acting&&LastProcess==2?2f:.7f)+Mathf.Sin(Time.time*9)*.08f;}
+    void Update(){if(!acting&&smith&&heldPiece==null&&(!idle||!idle.IsReactingToError)){ResetPose();float breath=Mathf.Sin(Time.time*1.5f)*2.5f;leftArm.localRotation*=Quaternion.Euler(breath,0,0);rightArm.localRotation*=Quaternion.Euler(-breath,0,0);}if(idle)idle.Tick(Time.deltaTime,acting||heldPiece!=null);if(!acting&&heldPiece!=null){heldPiece.root.transform.position=leftSocket.position;}if(fireLight)fireLight.intensity=(acting&&LastProcess==2?2f:.7f)+Mathf.Sin(Time.time*9)*.08f;}
     public void Clear()
     {
-        epoch++;acting=false;LastProcess=0;ResetPose();if(coolingVapor)coolingVapor.Clear();
+        if(idle)idle.CancelErrorReaction();
+        epoch++;acting=false;LastProcess=0;ReleaseHeldPiece();ResetPose();if(coolingVapor)coolingVapor.Clear();
         foreach(var p in pieces.Values){if(p.root)Destroy(p.root);foreach(var m in new[]{p.material,p.handleMaterial})if(m){owned.Remove(m);Destroy(m);}}
         pieces.Clear();
     }
-    public void Cancel(){epoch++;acting=false;LastProcess=0;ResetPose();if(coolingVapor)coolingVapor.Clear();if(hammer)hammer.gameObject.SetActive(true);if(tongs)tongs.gameObject.SetActive(false);}
+    void ReleaseHeldPiece(){
+        if(heldPiece==null)return;
+        // Cancellation must leave a supported workpiece rather than a floating one.
+        heldPiece.root.transform.SetPositionAndRotation(strikeTarget.position+new Vector3(.34f,.025f,0),Quaternion.Euler(0,0,90));
+        heldPiece=null;
+    }
+    public void ReactToCodeError(){if(idle)idle.ReactToCodeError();}
+    public void Cancel(){if(idle)idle.CancelErrorReaction();epoch++;acting=false;LastProcess=0;ReleaseHeldPiece();ResetPose();if(coolingVapor)coolingVapor.Clear();if(hammer)hammer.gameObject.SetActive(true);if(tongs)tongs.gameObject.SetActive(false);}
     void OnDisable(){Cancel();}
     void OnDestroy(){foreach(var m in owned)if(m)Destroy(m);}
     static Color Metal(int material)=>material==5?new Color(.72f,.81f,.9f):material==7?new Color(.3f,.35f,.65f):material==9?Color.white:new Color(.48f,.52f,.56f);
@@ -120,7 +129,7 @@ public sealed class ForgeWorkshopVisuals : MonoBehaviour
     }
     void Reach(Transform upper,Transform fore,Transform hand,Transform socket,Vector3 target,Quaternion rotation,bool left)
     {
-        Vector3 pole=upper.position+smith.right*(left?-.45f:.45f)+Vector3.up*(left?-.55f:.3f);
+        Vector3 pole=upper.position+smith.right*(left?-.45f:.45f)+Vector3.up*(left?-.55f:-.35f);
         Vector3 shaft=rotation*Vector3.up;
         for(int i=0;i<2;i++){
             Vector3 fingers=Vector3.ProjectOnPlane((target-fore.position)*(left?-1:1),shaft).normalized;
@@ -142,7 +151,9 @@ public sealed class ForgeWorkshopVisuals : MonoBehaviour
     public IEnumerator Play(ForgeMvp.Step step)
     {
         if(step.debugOutput||step.process<0)yield break;
-        int run=epoch;acting=true;LastProcess=step.process;
+        int run=epoch;acting=true;
+        if(heldPiece!=null&&(!pieces.TryGetValue(step.pieceId,out var nextPiece)||nextPiece!=heldPiece))ReleaseHeldPiece();
+        heldPiece=null;LastProcess=step.process;
         if(idle)idle.BeginWork();
         if(step.absorbedPiece>0&&pieces.TryGetValue(step.absorbedPiece,out var absorbed))absorbed.root.SetActive(false);
         if(!pieces.TryGetValue(step.pieceId,out var p)){
@@ -155,7 +166,8 @@ public sealed class ForgeWorkshopVisuals : MonoBehaviour
         // A billet is the saved blade mesh compressed along its length; no runtime mesh generation.
         bool shaped=step.shaped;
         var blade=Find(p.root.transform,"Blade");blade.localScale=shaped?Vector3.one:new Vector3(2.2f,.35f,2.2f);
-        foreach(string part in new[]{"Guard","Grip","Pommel"})Find(p.root.transform,part).gameObject.SetActive(shaped);
+        bool hasHandle=shaped&&step.data!=null&&step.data.handle>0;
+        foreach(string part in new[]{"Guard","Grip","Pommel"})Find(p.root.transform,part).gameObject.SetActive(hasHandle);
         Vector3 target=step.process==2?heatTarget.position:step.process==4?waterTarget.position:strikeTarget.position;
         bool wet=step.process==4&&step.consumed!=null&&(step.consumed.ContainsKey(3)||step.consumed.ContainsKey(8));
         // Air cooling remains over the anvil; only a water/ice receipt enters the bucket.
@@ -239,7 +251,11 @@ public sealed class ForgeWorkshopVisuals : MonoBehaviour
                 Appearance(p,step,Mathf.Lerp(initialHeat,step.heat,cooling?coolingProgress:t));
                 elapsed+=Time.deltaTime;yield return null;
             }
-            if(run==epoch){p.root.transform.position=grip;p.root.transform.rotation=pose;Appearance(p,step,step.heat);Details(p,step);}
-        }finally{if(run==epoch){acting=false;ResetPose();if(hammer)hammer.gameObject.SetActive(true);if(tongs)tongs.gameObject.SetActive(false);}}
+            if(run==epoch){
+                if(cooling){heldPiece=p;p.root.transform.position=leftSocket.position;}
+                else{p.root.transform.position=grip;p.root.transform.rotation=pose;}
+                Appearance(p,step,step.heat);Details(p,step);
+            }
+        }finally{if(run==epoch){acting=false;if(heldPiece==null)ResetPose();if(hammer)hammer.gameObject.SetActive(heldPiece==null);if(tongs)tongs.gameObject.SetActive(false);}}
     }
 }

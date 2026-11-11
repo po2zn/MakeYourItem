@@ -1,0 +1,18 @@
+HUD text=자금
+1.5KG glyphs=1 vertices=28
+PASS price coin stock-1
+PASS price coin stock-2
+PASS price coin stock-3
+PASS price coin stock-4
+PASS price coin stock-5
+PASS price coin stock-6
+PASS price coin stock-7
+PASS price coin stock-8
+PASS price coin stock-9
+PASS multiline K/M/B and non-currency G/GHz exclusion
+PASS (800.00, 600.00) local HUD metrics: coin height=21.85 gap=4.75 width=78.71458
+PASS (1280.00, 720.00) local HUD metrics: coin height=21.85 gap=4.75 width=78.71458
+PASS (1920.00, 1080.00) local HUD metrics: coin height=21.85 gap=4.75 width=78.71458
+PASS (3840.00, 2160.00) local HUD metrics: coin height=21.85 gap=4.75 width=78.71458
+PASS (380.00, 240.00) local HUD metrics: coin height=21.85 gap=4.75 width=78.71458
+Resolution checks use fixed local HUD bounds; actual visual captures are current Game view only. Numeric/English currency format is shared.

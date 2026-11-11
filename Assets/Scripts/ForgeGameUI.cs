@@ -8,8 +8,16 @@ public sealed class ForgeGameUI:MonoBehaviour
  public RectTransform codeHelp;public Text codeHelpText;public Canvas canvas; public RectTransform workspace; public ForgeCodeView codePrefab; public Button salePrefab;public Transform salesList;
  readonly Dictionary<string,Transform> nodes=new Dictionary<string,Transform>();readonly Dictionary<string,Text> texts=new Dictionary<string,Text>();readonly Dictionary<string,Button> buttons=new Dictionary<string,Button>();readonly Dictionary<string,InputField> inputs=new Dictionary<string,InputField>();
  public readonly Dictionary<int,ForgeCodeView> codes=new Dictionary<int,ForgeCodeView>();readonly Dictionary<int,Button> sales=new Dictionary<int,Button>();
- ForgeMvp game; float nextRefresh;int screenWidth,screenHeight,layoutPasses;public bool Bound=>game!=null;
+ ForgeMvp game; float nextRefresh;int screenWidth,screenHeight,layoutPasses;int enabledFrame=-1;public bool Bound=>game!=null;
  public void Bind(ForgeMvp owner){if(game==owner)return;game=owner;EnsureAirMaterial();ConfigureMaterialInput();Font.textureRebuilt+=FontRebuilt;foreach(var t in GetComponentsInChildren<Transform>(true)){nodes[t.name]=t;if(t.TryGetComponent<Text>(out var text))texts[t.name]=text;if(t.TryGetComponent<Button>(out var button))buttons[t.name]=button;if(t.TryGetComponent<InputField>(out var input))inputs[t.name]=input;}foreach(var a in GetComponentsInChildren<ForgeUIAction>(true)){string key=a.action;a.button.onClick.AddListener(()=>{ForgeMouseTrace.Mark("UI_CLICK",key);game.GameUIAction(key);Refresh();});}foreach(var hover in GetComponentsInChildren<ForgeUIHover>(true))hover.Bind(this);inputs["GuideSearch"].onValueChanged.AddListener(_=>game.GameGuideSearch());ForgeCodeColors.Apply(inputs["TutorialInput"].textComponent);inputs["TutorialInput"].onValueChanged.AddListener(value=>game.GameTutorialInput(value));}
+ void EnsureDiamondButton(){
+ var actions=GetComponentsInChildren<ForgeUIAction>(true);
+ foreach(var a in actions)if(a.action=="diamonds")return;
+ foreach(var a in actions)if(a.action=="resource:0"){
+ var clone=Instantiate(a.gameObject,a.transform.parent);clone.name="AddDiamonds";clone.transform.SetSiblingIndex(a.transform.GetSiblingIndex()+1);
+ var action=clone.GetComponent<ForgeUIAction>();action.action="diamonds";action.button.onClick=new Button.ButtonClickedEvent();
+ var label=clone.GetComponentInChildren<Text>(true);label.name="AddDiamondsLabel";label.text="다이아몬드 +1,000";return;}
+ }
  void EnsureDaylightButton(){
  var actions=GetComponentsInChildren<ForgeUIAction>(true);
  foreach(var a in actions)if(a.action=="daylight")return;
@@ -19,7 +27,7 @@ public sealed class ForgeGameUI:MonoBehaviour
  var label=clone.GetComponentInChildren<Text>(true);label.name="SetDaylightLabel";label.text="낮으로 변경";return;}
  }
  void EnsureAirMaterial(){
- EnsureDaylightButton();
+ EnsureDaylightButton();EnsureDiamondButton();
  var source=GetComponentsInChildren<ForgeUIHover>(true);foreach(var h in source)if(h.name=="MaterialTile0")return;
  foreach(var h in source)if(h.name=="MaterialTile1"){
  var tile=Instantiate(h.gameObject,h.transform.parent);tile.name="MaterialTile0";tile.transform.SetSiblingIndex(h.transform.GetSiblingIndex());
@@ -72,7 +80,7 @@ public sealed class ForgeGameUI:MonoBehaviour
  public void Refresh(){nextRefresh=Time.unscaledTime+.15f;if(game)game.RefreshGameUI();}
  void FontRebuilt(Font font){layoutPasses=2;}
  void OnDestroy(){airIcons?.Dispose();Font.textureRebuilt-=FontRebuilt;}
- void OnEnable(){layoutPasses=2;ConfigureMaterialInput();}
+ void OnEnable(){enabledFrame=Time.frameCount;layoutPasses=2;ConfigureMaterialInput();}
  // The material strip is informational. Neither its transparent graphics nor
  // the toolbar background may win raycasts over windows/the workspace below.
  void ConfigureMaterialInput(){
@@ -102,7 +110,7 @@ public sealed class ForgeGameUI:MonoBehaviour
  void OnDisable(){HideCodeHelp();}
  void Update(){if(!game)return;TracePointerHit();if(screenWidth!=Screen.width||screenHeight!=Screen.height){screenWidth=Screen.width;screenHeight=Screen.height;layoutPasses=3;game.ClampGameCodeWindows();}
 #if ENABLE_INPUT_SYSTEM
- if(UnityEngine.InputSystem.Keyboard.current?.escapeKey.wasPressedThisFrame==true){game.GameUIAction("menu");Refresh();}
+ if(Time.frameCount!=enabledFrame&&UnityEngine.InputSystem.Keyboard.current?.escapeKey.wasPressedThisFrame==true){game.GameUIAction("menu");Refresh();}
 #endif
  if(Time.unscaledTime>=nextRefresh)Refresh();}
  ForgeGuideExample guideExample;

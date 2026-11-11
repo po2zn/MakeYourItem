@@ -23,10 +23,10 @@ public static class MaterialIconSetup
  public static string Build(){
  if(EditorApplication.isPlaying)throw new System.Exception("Exit Play first");AssetDatabase.Refresh();
  var catalog=ScriptableObject.CreateInstance<ForgeMaterialIcons>();string report="";
- string[] words={"바람","강철","통나무",null,"석탄","은빛","수정","운철","얼음","용뼈"};
+ string[] words={"바람","강철","통나무","물방울","석탄","은빛","수정","운철","얼음","용뼈"};
  for(int id=0;id<10;id++){
- string path=id==3?"Assets/UI/MaterialIcons/3.png":Directory.GetFiles(Folder,"*.png").Single(p=>Path.GetFileName(p).Contains(words[id])).Replace('\\','/');
- if(id!=3){var importer=(TextureImporter)AssetImporter.GetAtPath(path);importer.textureType=TextureImporterType.Default;importer.alphaIsTransparency=true;importer.mipmapEnabled=false;importer.textureCompression=TextureImporterCompression.Uncompressed;importer.maxTextureSize=1024;importer.npotScale=TextureImporterNPOTScale.None;importer.filterMode=FilterMode.Bilinear;importer.wrapMode=TextureWrapMode.Clamp;importer.SaveAndReimport();}
+ string path=Directory.GetFiles(Folder,"*.png").Single(p=>Path.GetFileName(p).Contains(words[id])).Replace('\\','/');
+ {var importer=(TextureImporter)AssetImporter.GetAtPath(path);importer.textureType=TextureImporterType.Default;importer.alphaIsTransparency=true;importer.mipmapEnabled=false;importer.textureCompression=TextureImporterCompression.Uncompressed;importer.maxTextureSize=1024;importer.npotScale=TextureImporterNPOTScale.None;importer.filterMode=FilterMode.Bilinear;importer.wrapMode=TextureWrapMode.Clamp;importer.SaveAndReimport();}
  catalog.textures[id]=AssetDatabase.LoadAssetAtPath<Texture2D>(path);
  var source=new Texture2D(2,2);source.LoadImage(File.ReadAllBytes(path));var pixels=source.GetPixels32();int minX=source.width,minY=source.height,maxX=0,maxY=0;
  for(int y=0;y<source.height;y++)for(int x=0;x<source.width;x++)if(pixels[y*source.width+x].a>128){minX=Mathf.Min(minX,x);minY=Mathf.Min(minY,y);maxX=Mathf.Max(maxX,x);maxY=Mathf.Max(maxY,y);}
@@ -34,7 +34,7 @@ public static class MaterialIconSetup
  catalog.regions[id]=Rect.MinMaxRect((float)minX/source.width,(float)minY/source.height,(float)maxX/source.width,(float)maxY/source.height);Object.DestroyImmediate(source);
  report+=id+" "+ForgeMaterialGuide.Find(id).Name+" <- "+path+"\n";
  }
- string asset="Assets/Art/Blacksmith/Prefabs/Resources/BlacksmithMaterialIcons.asset";if(AssetDatabase.LoadAssetAtPath<ForgeMaterialIcons>(asset))throw new System.Exception("Catalog already exists; edit it instead of overwriting");AssetDatabase.CreateAsset(catalog,asset);AssetDatabase.SaveAssets();File.WriteAllText("Assets/Art/Blacksmith/Documentation/MaterialIconMapping.txt",report+"Air: vertical UV flip. Original PNG pixels preserved. Water: original icon retained pending new artwork.\n");return report;
+ string asset="Assets/Art/Blacksmith/Prefabs/Resources/BlacksmithMaterialIcons.asset";if(AssetDatabase.LoadAssetAtPath<ForgeMaterialIcons>(asset))throw new System.Exception("Catalog already exists; edit it instead of overwriting");AssetDatabase.CreateAsset(catalog,asset);AssetDatabase.SaveAssets();File.WriteAllText("Assets/Art/Blacksmith/Documentation/MaterialIconMapping.txt",report+"Air: vertical UV flip. Original PNG pixels preserved. Water: supplied 3D droplet artwork.\n");return report;
  }
  public static string Inspect(){string report="";foreach(var path in Directory.GetFiles(Folder,"*.png")){var t=new Texture2D(2,2);t.LoadImage(File.ReadAllBytes(path));var pixels=t.GetPixels32();report+=Path.GetFileName(path)+" "+t.width+"x"+t.height+" transparent="+pixels.Count(c=>c.a<128)+"/"+pixels.Length+"\n";Object.DestroyImmediate(t);}return report;}
 }

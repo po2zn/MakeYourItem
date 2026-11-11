@@ -58,7 +58,7 @@ public partial class ForgeMvp
     {
         if(busy||executionSession!=null||tutorialAnimating)return;
         lesson=new ForgeTutorialLesson();tutorialScroll=Vector2.zero;tutorialSuccessAt=-100;
-        showDebugWindow=false;debugInteracting=false;
+        debugInteracting=false;
         OpenTutorial();SaveProgress();
     }
 }

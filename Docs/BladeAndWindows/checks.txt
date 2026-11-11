@@ -1,0 +1,13 @@
+PASS process 1 handle parts=False
+PASS process 2 handle parts=False
+PASS process 3 handle parts=False
+PASS process 4 handle parts=False
+PASS process 5 handle parts=True
+PASS tree roundtrip 0: code/sales/debug/guide position, size, visibility and fold state preserved
+PASS tree roundtrip 1: code/sales/debug/guide position, size, visibility and fold state preserved
+PASS tree roundtrip 2: code/sales/debug/guide position, size, visibility and fold state preserved
+PASS menu roundtrip: code/sales/debug/guide position, size, visibility and fold state preserved
+PASS progress roundtrip: code/sales/debug/guide position, size, visibility and fold state preserved
+PASS products roundtrip: code/sales/debug/guide position, size, visibility and fold state preserved
+PASS same-frame drag and screen switch: code/sales/debug/guide position, size, visibility and fold state preserved
+PASS material strip update: code/sales/debug/guide position, size, visibility and fold state preserved
