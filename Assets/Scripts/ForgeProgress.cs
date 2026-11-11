@@ -2,8 +2,23 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-public partial class ForgeMvp
+public partial class ForgeMvp : ISerializationCallbackReceiver
 {
+    [SerializeField,HideInInspector] List<SavedWindow> reloadCodeWindows=new List<SavedWindow>();
+    [SerializeField,HideInInspector] bool hasReloadCodeWindows;
+    public void OnBeforeSerialize(){
+        if(!windowsInitialized)return;
+        var snapshot=new List<SavedWindow>();
+        foreach(var w in codeWindows)snapshot.Add(new SavedWindow{id=w.id,name=w.name,text=w.text,rect=w.rect,seed=w.seed,collapsed=w.collapsed,expandedHeight=w.expandedHeight});
+        reloadCodeWindows=snapshot;hasReloadCodeWindows=true;
+    }
+    public void OnAfterDeserialize(){
+        if(!hasReloadCodeWindows||reloadCodeWindows==null)return;
+        codeWindows.Clear();foreach(var w in reloadCodeWindows)codeWindows.Add(new CodeWindow{id=w.id,name=w.name,text=w.text,rect=w.rect,seed=w.seed,collapsed=w.collapsed,expandedHeight=w.expandedHeight});
+        windowsInitialized=true;activeWindow=Math.Max(0,Math.Min(activeWindow,codeWindows.Count-1));source=codeWindows.Count>0?codeWindows[activeWindow].text:"";
+        foreach(var w in codeWindows)nextWindowId=Math.Max(nextWindowId,w.id+1);
+    }
+
     const string LegacySaveKey="MakeYourItem.Progress.v1";
     const int SlotCount=3;
     int activeSaveSlot;
@@ -16,9 +31,10 @@ public partial class ForgeMvp
     string saveMessage="";
     readonly HashSet<string> discoveries=new HashSet<string>();
     Vector2 progressScroll;
-    [Serializable] public class SavedWindow { public string name,text; public Rect rect; public uint seed; }
+    [Serializable] public class SavedWindow { public int id;public string name,text; public Rect rect; public uint seed; public bool collapsed;public float expandedHeight; }
     [Serializable] public class SavedItem { public long order;public string owner; public int material,heat,iron,cost;public bool shaped;public ForgeTraits traits;public ForgeItemData data;public double seconds; }
     [Serializable] public class SavedProgress {
+        public int windowDataVersion,activeCodeWindow,nextCodeWindowId;public Vector2 viewOffset;public float viewZoom;
         public ForgeBlacksmiths blacksmiths;
         public int introStage;public string introCode;public string[] technologyNodes;public bool campaignComplete,endingSeen;
         public string savedAt;public long nextProductOrder;
@@ -49,9 +65,20 @@ public partial class ForgeMvp
             blacksmiths=saved.blacksmiths??new ForgeBlacksmiths();blacksmiths.Normalize(SmithHours);
             foreach(var entry in saved.discoveries??Array.Empty<string>())discoveries.Add(entry);
             foreach(var item in restoredShop.Items)shop.Add(item.Product,item.Order);shop.RestoreNextOrder(restoredShop.NextOrder);
-            if(saved.windows!=null&&saved.windows.Count>0){codeWindows.Clear();nextWindowId=0;foreach(var window in saved.windows)codeWindows.Add(new CodeWindow{id=nextWindowId++,name=window.name,text=window.text,rect=window.rect,seed=window.seed});windowsInitialized=true;activeWindow=0;source=codeWindows[0].text;}
+            if(saved.windows!=null&&(saved.windows.Count>0||saved.windowDataVersion>=1)){codeWindows.Clear();nextWindowId=0;foreach(var window in saved.windows)codeWindows.Add(new CodeWindow{id=saved.windowDataVersion>=1?window.id:nextWindowId++,name=window.name,text=window.text,rect=RestoredCodeRect(window),seed=window.seed,collapsed=window.collapsed,expandedHeight=Mathf.Max(180,window.expandedHeight>0?window.expandedHeight:240)});windowsInitialized=true;activeWindow=Mathf.Clamp(saved.activeCodeWindow,0,Mathf.Max(0,codeWindows.Count-1));source=codeWindows.Count>0?codeWindows[activeWindow].text:"";foreach(var restored in codeWindows)nextWindowId=Mathf.Max(nextWindowId,restored.id+1);nextWindowId=Mathf.Max(nextWindowId,saved.nextCodeWindowId);}
+            if(saved.windowDataVersion>=1){workspaceOffset=saved.viewOffset;workspaceZoom=Mathf.Clamp(saved.viewZoom,.25f,2.5f);}else ClampGameCodeWindows();
             progressLoaded=true;saveMessage="슬롯 "+activeSaveSlot+"의 공방을 불러왔습니다.";return true;
         }catch(Exception error){saveMessage="저장 불러오기 실패: "+error.Message;progressLoaded=false;return false;}
+    }
+    static Rect RestoredCodeRect(SavedWindow window){
+        var rect=window.rect;
+        if(float.IsNaN(rect.x)||float.IsInfinity(rect.x))rect.x=24;
+        if(float.IsNaN(rect.y)||float.IsInfinity(rect.y))rect.y=200;
+        if(float.IsNaN(rect.width)||float.IsInfinity(rect.width)||rect.width<340)rect.width=360;
+        // Older saves stored a folded height without storing the folded state.
+        if(window.collapsed)rect.height=36;
+        else if(float.IsNaN(rect.height)||float.IsInfinity(rect.height)||rect.height<180)rect.height=Mathf.Max(240,window.expandedHeight);
+        return rect;
     }
     bool codeSavePending;
     float codeSaveAt,codeSaveDeadline;
@@ -61,11 +88,12 @@ public partial class ForgeMvp
     {
         if(!progressLoaded||activeSaveSlot<1||DayCycle==null)return;
         try {
-            var saved=new SavedProgress{savedAt=DateTime.Now.ToString("yyyy-MM-dd HH:mm"),gold=gold,iron=iron,seed=worldSeed,diamonds=diamonds,sales=totalSales,tutorial=tutorialStage,earned=earnedGold,day=DayCycle.Day,hour=DayCycle.CurrentHour,speed=craftSpeed,autoSell=autoSell,stocks=materialStocks,features=technology.Export(),technologyNodes=technology.ExportNodes(),campaignComplete=campaignComplete,endingSeen=endingSeen,discoveries=new List<string>(discoveries).ToArray()};
+            if(hierarchyGame)hierarchyGame.CommitCodeWindowBounds();
+            var saved=new SavedProgress{windowDataVersion=1,activeCodeWindow=activeWindow,nextCodeWindowId=nextWindowId,viewOffset=workspaceOffset,viewZoom=workspaceZoom,savedAt=DateTime.Now.ToString("yyyy-MM-dd HH:mm"),gold=gold,iron=iron,seed=worldSeed,diamonds=diamonds,sales=totalSales,tutorial=tutorialStage,earned=earnedGold,day=DayCycle.Day,hour=DayCycle.CurrentHour,speed=craftSpeed,autoSell=autoSell,stocks=materialStocks,features=technology.Export(),technologyNodes=technology.ExportNodes(),campaignComplete=campaignComplete,endingSeen=endingSeen,discoveries=new List<string>(discoveries).ToArray()};
             saved.nextProductOrder=shop.NextOrder;
             saved.introStage=lesson.Stage;saved.introCode=lesson.Code;
             saved.blacksmiths=blacksmiths;
-            for(int i=0;i<codeWindows.Count;i++){var w=codeWindows[i];saved.windows.Add(new SavedWindow{name=w.name,text=i==activeWindow?source:w.text,rect=w.rect,seed=w.seed});}
+            for(int i=0;i<codeWindows.Count;i++){var w=codeWindows[i];saved.windows.Add(new SavedWindow{id=w.id,name=w.name,text=w.text,rect=w.rect,seed=w.seed,collapsed=w.collapsed,expandedHeight=w.expandedHeight});}
             foreach(var entry in shop.Items){var p=entry.Product;saved.items.Add(new SavedItem{order=entry.Order,owner=p.BlueprintName,material=p.Material,heat=p.FinalHeat,shaped=p.Shaped,traits=p.Traits,cost=p.CashCost,iron=p.IronConsumed,data=p.Data,seconds=p.ProductionSeconds});}
             PlayerPrefs.SetString(SaveKey,JsonUtility.ToJson(saved));PlayerPrefs.Save();codeSavePending=false;saveMessage="공방 저장 완료";
         }catch(Exception error){saveMessage="저장 실패: "+error.Message;}
@@ -73,6 +101,7 @@ public partial class ForgeMvp
     void ResetProgressForDebug(bool persist=true)
     {
         if(busy||executionSession!=null)return;
+        if(hierarchyGame)hierarchyGame.DiscardCodeViews();
         codeSavePending=false;
         StopSmithJobs();blacksmiths=new ForgeBlacksmiths();showSmithTree=false;
         EndWorkspaceDrag();CancelHierarchyTreeDrag();guideBook.CancelDrag();

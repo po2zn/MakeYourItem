@@ -9,6 +9,8 @@ public sealed class ForgeTreePanel : MonoBehaviour
 {
     [System.Serializable] public sealed class Edge {public Image[] lines;public string parentOffer;public int parentSmith=-1;}
     public GameObject[] pages;
+    public GameObject materialStockBar;public RawImage[] materialStockIcons;public Text[] materialStockCounts;
+    ForgeMaterialHud stockArtwork;readonly float[] stockPulseUntil=new float[9];
     public ForgeTreePan[] maps;
     public ForgeTreeCard[] cards;
     public Edge[] edges;
@@ -30,6 +32,7 @@ public sealed class ForgeTreePanel : MonoBehaviour
     {
         owner=game;if(bound)return;bound=true;
         foreach(var text in GetComponentsInChildren<Text>(true))ForgeGoldGlyph.Attach(text);
+        if(materialStockIcons!=null){stockArtwork=new ForgeMaterialHud();for(int i=0;i<materialStockIcons.Length;i++){var icon=materialStockIcons[i];int id=i+1;icon.texture=stockArtwork.GetIcon(id);icon.uvRect=stockArtwork.GetIconUV(id);float aspect=stockArtwork.GetIconAspect(id);icon.rectTransform.sizeDelta=aspect>=1?new Vector2(27,27/aspect):new Vector2(27*aspect,27);}}
         foreach(var card in cards)card.Bind(this);
         growthButton.onClick.AddListener(()=>ShowPage(0));materialsButton.onClick.AddListener(()=>ShowPage(1));smithButton.onClick.AddListener(()=>ShowPage(2));
         fitButton.onClick.AddListener(()=>{if(page==3)ShowPage(2);maps[page].Fit();});resetButton.onClick.AddListener(()=>{if(page==3)ShowPage(2);maps[page].ResetView();});
@@ -39,13 +42,14 @@ public sealed class ForgeTreePanel : MonoBehaviour
     public void Open(){gameObject.SetActive(true);ShowPage(0);}
     public void ShowPage(int index)
     {
-        page=index;HideTooltip();for(int i=0;i<pages.Length;i++)pages[i].SetActive(i==index);
+        page=index;if(materialStockBar)materialStockBar.SetActive(index==1);HideTooltip();for(int i=0;i<pages.Length;i++)pages[i].SetActive(i==index);
         // Header controls stay identical on every page. Smith details has a button inside its own page.
         owner.HierarchySmithPage=index>=2;Refresh();
     }
     void Update()
     {
         if(owner==null)return;
+        AnimateStockPurchase();
         if(Time.unscaledTime<noticeUntil&&Time.unscaledTime>=nextNoticeTick){nextNoticeTick=Time.unscaledTime+.1f;message.color=Color.Lerp(Color.white,new Color(1,.8f,.3f),.5f+.5f*Mathf.Sin(Time.unscaledTime*6));}
         else if(Time.unscaledTime>=noticeUntil&&message.color!=Color.white)message.color=Color.white;
 #if ENABLE_INPUT_SYSTEM
@@ -63,6 +67,7 @@ public sealed class ForgeTreePanel : MonoBehaviour
     {
         using(RefreshMarker.Auto()){RefreshCount++;
         lastStamp=owner.HierarchyTreeStamp;
+        if(page==1&&materialStockCounts!=null)for(int i=0;i<materialStockCounts.Length;i++)materialStockCounts[i].text=ForgeMaterialHud.FormatCount(owner.HierarchyMaterialCount(i+1));
         heading.text=page>=2?"대장장이 테크 트리 · "+ForgeMaterialHud.FormatCount(owner.HierarchyDiamonds)+"D":"테크 트리 · "+ForgeMaterialHud.FormatCount(owner.HierarchyGold)+"G";
         message.text=owner.HierarchyMessage(page>=2)+(owner.HierarchyGuideHasNew?" · 도면 안내서에 새 내용 추가":"");
         foreach(var card in cards){
@@ -80,7 +85,8 @@ public sealed class ForgeTreePanel : MonoBehaviour
         if(hovered!=null)RefreshHover(hovered);
         }
     }
-    public void Purchase(ForgeTreeCard card){if(card.smithId>=0)owner.HierarchyBuySmith(card.smithId);else if(card.offer!=null)owner.HierarchyBuy(card.offer,card.Quantity);if(owner.HierarchyGuideHasNew)noticeUntil=Time.unscaledTime+3;Refresh();}
+    void AnimateStockPurchase(){if(materialStockIcons==null)return;for(int i=0;i<materialStockIcons.Length;i++){float remaining=stockPulseUntil[i]-Time.unscaledTime;float scale=1;if(page==1&&remaining>0){float t=1-remaining/.55f;scale=1+.4f*Mathf.Sin(Mathf.PI*t)*Mathf.Exp(-1.4f*t);}materialStockIcons[i].rectTransform.localScale=Vector3.one*scale;}}
+    public void Purchase(ForgeTreeCard card){int material=card.offer!=null&&card.offer.Kind==ForgePurchaseKind.Material?card.offer.Material:0;long before=material>0?owner.HierarchyMaterialCount(material):0;if(card.smithId>=0)owner.HierarchyBuySmith(card.smithId);else if(card.offer!=null)owner.HierarchyBuy(card.offer,card.Quantity);if(material>0&&owner.HierarchyMaterialCount(material)>before)stockPulseUntil[material-1]=Time.unscaledTime+.55f;if(owner.HierarchyGuideHasNew)noticeUntil=Time.unscaledTime+3;Refresh();}
     public void Hover(ForgeTreeCard card,Vector2 position){if(page<3&&maps[page].Dragging)return;hovered=card;RefreshHover(card);PositionTooltip(position);}
     public void Leave(ForgeTreeCard card){if(hovered==card)HideTooltip();}
     public void HideTooltip(){hovered=null;if(tooltip!=null)tooltip.gameObject.SetActive(false);}
@@ -112,4 +118,5 @@ public sealed class ForgeTreePanel : MonoBehaviour
         tooltip.anchoredPosition=new Vector2(Mathf.Clamp(x,parent.rect.xMin+8,parent.rect.xMax-width-8),Mathf.Clamp(y,parent.rect.yMin+height+8,parent.rect.yMax-8));
     }
     void OnDisable(){HideTooltip();}
+    void OnDestroy(){stockArtwork?.Dispose();}
 }

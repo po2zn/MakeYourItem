@@ -73,7 +73,7 @@ public sealed class ForgeTechnology
         F(BlueprintFeature.Recover,40,3,7,"function-Fuel"),
         F(BlueprintFeature.Wrap,40,3,6,"function-Fuel"),
         Speed(1,100),Speed(2,150),Speed(3,200),Speed(4,300),Speed(5,450),
-        Bundle(BlueprintFeature.Lucky,BlueprintFeature.LuckyCode,100,1,2,"오늘의 행운 · 777() + 778()"),
+        Bundle(BlueprintFeature.Lucky,BlueprintFeature.LuckyCode,500,1,2,"오늘의 행운 · 777() + 778()"),
         new Offer(MasterCommission,ForgePurchaseKind.Commission,800,"명장의 마지막 의뢰","별무늬 별철 검 + 정제 용뼈 손잡이 + 충전 3회 + 서로 다른 계열 룬 3개. 균열 없이 완성해 제출하면 엔딩입니다.",8,1,0,BlueprintFeature.None,"function-Refine","function-Rune")
     });
     readonly HashSet<string> purchased=new HashSet<string>(StringComparer.Ordinal);

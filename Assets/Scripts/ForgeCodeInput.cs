@@ -16,8 +16,18 @@ public sealed class ForgeCodeInput:InputField,IScrollHandler
 #endif
  // Escape opens the game menu; it must not cancel the current code draft.
  bool FinishOnEscape(Event key){if(key.keyCode!=KeyCode.Escape)return false;DeactivateInputField();return true;}
+ // Navigate logical source lines, independent of visual word wrapping.
+ bool MoveLineBoundary(Event key){
+ if(key.keyCode!=KeyCode.Home&&key.keyCode!=KeyCode.End)return false;
+ int target=Mathf.Clamp(selectionFocusPosition,0,text.Length);
+ if(key.control||key.command)target=key.keyCode==KeyCode.Home?0:text.Length;
+ else if(key.keyCode==KeyCode.Home){while(target>0&&text[target-1]!='\n')target--;}
+ else {while(target<text.Length&&text[target]!='\n')target++;if(target>0&&text[target-1]=='\r')target--;}
+ if(!key.shift)selectionAnchorPosition=target;
+ selectionFocusPosition=target;ForceLabelUpdate();return true;
+ }
  public override void OnUpdateSelected(BaseEventData data){if(!isFocused)return;if(composing||compositionFrame==Time.frameCount){base.OnUpdateSelected(data);return;}while(Event.PopEvent(keyEvent)){
- if(keyEvent.rawType==EventType.KeyDown){if(FinishOnEscape(keyEvent))break;var before=new Snapshot{text=text,caret=selectionFocusPosition,anchor=selectionAnchorPosition};bool undoKey=keyEvent.control&&keyEvent.keyCode==KeyCode.Z;
+ if(keyEvent.rawType==EventType.KeyDown){if(FinishOnEscape(keyEvent))break;if(MoveLineBoundary(keyEvent))continue;var before=new Snapshot{text=text,caret=selectionFocusPosition,anchor=selectionAnchorPosition};bool undoKey=keyEvent.control&&keyEvent.keyCode==KeyCode.Z;
  if(undoKey){if(undo.Count>0){var s=undo[undo.Count-1];undo.RemoveAt(undo.Count-1);text=s.text;selectionFocusPosition=s.caret;selectionAnchorPosition=s.anchor;}}
  else if(keyEvent.keyCode==KeyCode.Tab&&!keyEvent.control)Apply(BlueprintIndentation.Tab(text,selectionFocusPosition,selectionAnchorPosition,keyEvent.shift));
  else if(keyEvent.keyCode==KeyCode.Backspace&&!keyEvent.control&&BlueprintIndentation.Backspace(text,selectionFocusPosition,selectionAnchorPosition,out var edit))Apply(edit);

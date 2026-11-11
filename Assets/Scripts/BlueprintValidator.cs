@@ -91,6 +91,7 @@ public sealed class BlueprintValidator
                     }else{
                         if(s.Target.Args[0].Kind!=BlueprintExprKind.Name)Error(s.Token,"이름으로 저장한 컬렉션의 인덱스만 변경할 수 있습니다.");
                         Expr(s.Target,names,false);var container=Expr(s.Target.Args[0],names,false);
+                        if(s.Target.Kind==BlueprintExprKind.Slice){if(!Known(container,BlueprintType.List)||!Known(assigned,BlueprintType.List,BlueprintType.Tuple))Error(s.Token,"슬라이스 대입에는 리스트와 정수 리스트/튜플이 필요합니다.");break;}
                         if(!Known(container,BlueprintType.List,BlueprintType.Dict))Error(s.Token,"리스트와 딕셔너리만 변경할 수 있습니다.");
                         if(!Known(assigned,BlueprintType.Int))Error(s.Token,"컬렉션 값은 정수여야 합니다.");
                     }break;
@@ -116,9 +117,9 @@ public sealed class BlueprintValidator
                 case BlueprintStatementKind.Return:
                     if(!function)Error(s.Token,"return은 함수 안에서만 사용할 수 있습니다.");if(s.Expr!=null)Expr(s.Expr,names,false);break;
                 case BlueprintStatementKind.Finish:
-                    if(function||loops>0)Error(s.Token,"!는 최상위 또는 그 조건문 안에서만 사용할 수 있습니다.");
+                    if(function)Error(s.Token,"!는 사용자 함수 안에서는 사용할 수 없습니다. 작업물을 반환한 뒤 제출하세요.");
                     if(!Known(Expr(s.Expr,names,false),BlueprintType.Piece,BlueprintType.Int))Error(s.Token,"제출에는 작업물 또는 재료 번호가 필요합니다.");
-                    hasFinish=true;ended=true;break;
+                    hasFinish=true;ended=loops==0;break;
             }
             }catch(BlueprintException error){if(!deferErrors)throw;s.Error=error;}
         }
@@ -171,6 +172,7 @@ public sealed class BlueprintValidator
             }
             return BlueprintType.Unknown;
         }
+        if(e.Kind==BlueprintExprKind.Slice){if(!Known(args[0],BlueprintType.List,BlueprintType.Tuple,BlueprintType.String))Error(e.Token,"슬라이싱에는 리스트, 튜플 또는 문자열이 필요합니다.");for(int i=1;i<4;i++)if(!Known(args[i],BlueprintType.Int,BlueprintType.None))Error(e.Token,"슬라이스 범위와 간격은 정수여야 합니다.");return args[0];}
         if(e.Kind==BlueprintExprKind.Index){if(!Known(args[0],BlueprintType.List,BlueprintType.Tuple,BlueprintType.Dict)||!Known(args[1],BlueprintType.Int))Error(e.Token,"정수 인덱스와 리스트/튜플/딕셔너리가 필요합니다.");return BlueprintType.Int;}
         if(e.Kind==BlueprintExprKind.List||e.Kind==BlueprintExprKind.Tuple||e.Kind==BlueprintExprKind.Set||e.Kind==BlueprintExprKind.Dict){foreach(var a in args)if(!Known(a,BlueprintType.Int))Error(e.Token,"컬렉션은 정수만 담을 수 있습니다.");return e.Kind==BlueprintExprKind.List?BlueprintType.List:e.Kind==BlueprintExprKind.Tuple?BlueprintType.Tuple:e.Kind==BlueprintExprKind.Set?BlueprintType.Set:BlueprintType.Dict;}
         if(e.Kind==BlueprintExprKind.Unary){if(!Known(args[0],e.Token.Raw=="not"?BlueprintType.Bool:BlueprintType.Int))Error(e.Token,"단항 연산의 타입이 잘못되었습니다.");return e.Token.Raw=="not"?BlueprintType.Bool:BlueprintType.Int;}

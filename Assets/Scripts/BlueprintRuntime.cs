@@ -16,6 +16,7 @@ public sealed partial class BlueprintRuntime
     readonly ForgeRunContext context;
     double productionSeconds;
     readonly double startedAt;
+    readonly HashSet<ForgeMvp.Piece> submittedPieces=new HashSet<ForgeMvp.Piece>();
     readonly int[] usedMaterials=new int[10];
     Dictionary<int,int> pendingMaterials=new Dictionary<int,int>();
     int gold, iron, commands, calls, allocated, printCount, printCharacters;
@@ -46,7 +47,7 @@ public sealed partial class BlueprintRuntime
     void Tick(BlueprintToken token){currentLine=token.Line;if(++commands>CommandLimit)Fail("도면 실행 명령 수 제한(10000)에 도달했습니다.");}
     int Int(object value){if(!(value is int))Fail("정수 인자가 필요합니다.");return (int)value;}
     bool Bool(object value){if(!(value is bool))Fail("조건은 bool이어야 합니다.");return (bool)value;}
-    ForgeMvp.Piece Piece(object value){if(!(value is ForgeMvp.Piece))Fail("작업물이 필요합니다.");return (ForgeMvp.Piece)value;}
+    ForgeMvp.Piece Piece(object value){if(!(value is ForgeMvp.Piece))Fail("작업물이 필요합니다.");var piece=(ForgeMvp.Piece)value;if(submittedPieces.Contains(piece))Fail("이미 제출한 작업물은 다시 사용할 수 없습니다.");return piece;}
     void Allocate(int count){if(count>CollectionLimit)Fail("컬렉션은 최대1024개입니다.");allocated+=count;if(allocated>16384)Fail("컬렉션 누적 복사 제한(16384)에 도달했습니다.");}
     object Copy(object value)
     {
@@ -56,7 +57,7 @@ public sealed partial class BlueprintRuntime
         if(value is Dictionary<int,int> d){Allocate(d.Count);return new Dictionary<int,int>(d);}
         return value;
     }
-    async Task<Signal> Block(List<BlueprintStatement> body,Dictionary<string,object> env)
+    async Task<Signal> Block(List<BlueprintStatement> body,Dictionary<string,object> env,bool inLoop=false)
     {
         foreach(var s in body){await BeforeStatement(s.Token);Tick(s.Token);
             if(s.Error!=null)throw new BlueprintException(s.Error.Line,s.Error.Message){ModuleName=currentModule.IsMain?null:currentModule.Name};
@@ -67,6 +68,7 @@ public sealed partial class BlueprintRuntime
             case BlueprintStatementKind.Assign:
                 var value=await Eval(s.Expr,env);
                 if(s.Target.Kind==BlueprintExprKind.Name)env[s.Target.Name]=Copy(value);
+                else if(s.Target.Kind==BlueprintExprKind.Slice)await AssignSlice(s.Target,value,env);
                 else {
                     var target=await Eval(s.Target.Args[0],env);int key=Int(await Eval(s.Target.Args[1],env));int n=Int(value);
                     if(target is List<int> list){CheckIndex(key,list.Count);list[key]=n;}
@@ -75,16 +77,16 @@ public sealed partial class BlueprintRuntime
                 }break;
             case BlueprintStatementKind.Call:await Eval(s.Expr,env);break;
             case BlueprintStatementKind.If:
-                var branch=await Block(Bool(await Eval(s.Expr,env))?s.Body:s.Other,env);if(branch.Flow!=Flow.Next)return branch;break;
+                var branch=await Block(Bool(await Eval(s.Expr,env))?s.Body:s.Other,env,inLoop);if(branch.Flow!=Flow.Next)return branch;break;
             case BlueprintStatementKind.For:
                 var items=Sequence(Copy(await Eval(s.Expr,env)));
                 for(int index=0;index<=items.Count;index++){
                     if(index>0){await BeforeStatement(s.Token);Tick(s.Token);}
                     if(index==items.Count)break;
-                    env[s.Name]=items[index];var flow=await Block(s.Body,env);if(flow.Flow==Flow.Break)break;if(flow.Flow==Flow.Return||flow.Flow==Flow.Finish)return flow;
+                    env[s.Name]=items[index];var flow=await Block(s.Body,env,true);if(flow.Flow==Flow.Break)break;if(flow.Flow==Flow.Return||flow.Flow==Flow.Finish)return flow;
                 }break;
             case BlueprintStatementKind.While:
-                while(Bool(await Eval(s.Expr,env))){Tick(s.Token);var flow=await Block(s.Body,env);if(flow.Flow==Flow.Break)break;if(flow.Flow==Flow.Return||flow.Flow==Flow.Finish)return flow;await BeforeStatement(s.Token);Tick(s.Token);}break;
+                while(Bool(await Eval(s.Expr,env))){Tick(s.Token);var flow=await Block(s.Body,env,true);if(flow.Flow==Flow.Break)break;if(flow.Flow==Flow.Return||flow.Flow==Flow.Finish)return flow;await BeforeStatement(s.Token);Tick(s.Token);}break;
             case BlueprintStatementKind.Break:return new Signal(Flow.Break);
             case BlueprintStatementKind.Continue:return new Signal(Flow.Continue);
             case BlueprintStatementKind.Return:return new Signal(Flow.Return,s.Expr==null?null:Copy(await Eval(s.Expr,env)));
@@ -94,8 +96,8 @@ public sealed partial class BlueprintRuntime
                 var piece=submitted is int material?LoadMaterial(material):Piece(submitted);
                 EnsureLive(piece);
                 piece.data.materials=(int[])usedMaterials.Clone();
-                result.product=ledger.Complete(owner,piece.heat,piece.shaped,piece.traits,piece.material,piece.data,productionSeconds);
-                AddStep(0,piece,0,0,result.product.DisplayName+" 제출 · 평가 "+ForgePricing.Quote(result.product).SalePrice+"G",true);return new Signal(Flow.Finish);
+                result.product=ledger.CompleteNext(owner,piece.heat,piece.shaped,piece.traits,piece.material,piece.data,productionSeconds);
+                AddStep(0,piece,0,0,result.product.DisplayName+" 제출 · 평가 "+ForgePricing.Quote(result.product).SalePrice+"G",true);submittedPieces.Add(piece);Array.Clear(usedMaterials,0,usedMaterials.Length);if(!inLoop)return new Signal(Flow.Finish);break;
         }}return new Signal(Flow.Next);
     }
     IList<int> Sequence(object value){if(value is List<int> l)return l;if(value is int[] t)return t;Fail("정수 리스트 또는 튜플이 필요합니다.");return null;}
@@ -113,6 +115,7 @@ public sealed partial class BlueprintRuntime
             case BlueprintExprKind.Call:
                 object callable=e.Callee!=null?await Eval(e.Callee,env):e.Process==0&&e.Feature==BlueprintFeature.None?Lookup(e.Name,env):null;
                 var args=new List<object>();foreach(var a in e.Args)args.Add(await Eval(a,env));currentLine=e.Token.Line;return e.Callee!=null||e.Process==0&&e.Feature==BlueprintFeature.None?await Invoke(callable,args):Call(e,args);
+            case BlueprintExprKind.Slice:return await Slice(e,env);
             case BlueprintExprKind.Index:
                 var container=await Eval(e.Args[0],env);int key=Int(await Eval(e.Args[1],env));currentLine=e.Token.Line;
                 if(container is Dictionary<int,int> dict){if(!dict.TryGetValue(key,out int n))Fail("딕셔너리에 키가 없습니다: "+key);return n;}

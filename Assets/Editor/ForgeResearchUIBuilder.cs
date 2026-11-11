@@ -109,6 +109,7 @@ public static class ForgeResearchUIBuilder
         panel.tooltipScroll=tipView.gameObject.AddComponent<ScrollRect>();panel.tooltipScroll.viewport=tipView;panel.tooltipScroll.content=tipContent;panel.tooltipScroll.horizontal=false;panel.tooltipScroll.movementType=ScrollRect.MovementType.Clamped;panel.tooltipScroll.scrollSensitivity=30;
         tip.gameObject.SetActive(false);panel.pages=pages.ToArray();panel.maps=maps.ToArray();panel.cards=cards.ToArray();panel.edges=edges.ToArray();
         for(int i=0;i<pages.Count;i++)pages[i].SetActive(i==0);
+        ForgeMaterialShopUI.ApplyTo(panel);
         root.gameObject.SetActive(false);
         PrefabUtility.SaveAsPrefabAssetAndConnect(root.gameObject,"Assets/UI/ForgeResearchUI.prefab",InteractionMode.AutomatedAction);
         game.SetHierarchyTree(panel);EditorUtility.SetDirty(game);

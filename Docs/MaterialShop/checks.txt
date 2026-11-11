@@ -1,0 +1,8 @@
+Resolution (800, 600)
+PASS (800, 600): stock purchase refresh, text metrics, tab visibility
+Resolution (1280, 720)
+PASS (1280, 720): stock purchase refresh, text metrics, tab visibility
+Resolution (1920, 1080)
+PASS (1920, 1080): stock purchase refresh, text metrics, tab visibility
+Resolution (3840, 2160)
+PASS (3840, 2160): stock purchase refresh, text metrics, tab visibility

@@ -21,6 +21,7 @@ public partial class ForgeMvp
     public bool HierarchySmithPage {set=>showSmithTree=value;}
     public ForgeTechnology HierarchyTechnology=>technology;
     public int HierarchyGold=>gold;
+    public long HierarchyMaterialCount(int id){if(id==1)return iron;foreach(var stock in materialStocks)if(stock!=null&&stock.material==id)return stock.count;return 0;}
     public bool HierarchyGuideHasNew=>guideBook.HasNew;
     public int HierarchyDiamonds=>diamonds;
     public bool HierarchyBusy=>busy||executionSession!=null;

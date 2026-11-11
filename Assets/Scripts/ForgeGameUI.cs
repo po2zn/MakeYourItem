@@ -9,7 +9,7 @@ public sealed class ForgeGameUI:MonoBehaviour
  readonly Dictionary<string,Transform> nodes=new Dictionary<string,Transform>();readonly Dictionary<string,Text> texts=new Dictionary<string,Text>();readonly Dictionary<string,Button> buttons=new Dictionary<string,Button>();readonly Dictionary<string,InputField> inputs=new Dictionary<string,InputField>();
  public readonly Dictionary<int,ForgeCodeView> codes=new Dictionary<int,ForgeCodeView>();readonly Dictionary<int,Button> sales=new Dictionary<int,Button>();
  ForgeMvp game; float nextRefresh;int screenWidth,screenHeight,layoutPasses;int enabledFrame=-1;public bool Bound=>game!=null;
- public void Bind(ForgeMvp owner){if(game==owner)return;game=owner;EnsureAirMaterial();ConfigureMaterialInput();Font.textureRebuilt+=FontRebuilt;foreach(var t in GetComponentsInChildren<Transform>(true)){nodes[t.name]=t;if(t.TryGetComponent<Text>(out var text))texts[t.name]=text;if(t.TryGetComponent<Button>(out var button))buttons[t.name]=button;if(t.TryGetComponent<InputField>(out var input))inputs[t.name]=input;}foreach(var a in GetComponentsInChildren<ForgeUIAction>(true)){string key=a.action;a.button.onClick.AddListener(()=>{ForgeMouseTrace.Mark("UI_CLICK",key);game.GameUIAction(key);Refresh();});}foreach(var hover in GetComponentsInChildren<ForgeUIHover>(true))hover.Bind(this);inputs["GuideSearch"].onValueChanged.AddListener(_=>game.GameGuideSearch());ForgeCodeColors.Apply(inputs["TutorialInput"].textComponent);inputs["TutorialInput"].onValueChanged.AddListener(value=>game.GameTutorialInput(value));}
+ public void Bind(ForgeMvp owner){if(game==owner&&nodes.Count>0)return;if(nodes.Count==0)DiscardCodeViews();game=owner;EnsureAirMaterial();ConfigureMaterialInput();Font.textureRebuilt+=FontRebuilt;foreach(var t in GetComponentsInChildren<Transform>(true)){nodes[t.name]=t;if(t.TryGetComponent<Text>(out var text))texts[t.name]=text;if(t.TryGetComponent<Button>(out var button))buttons[t.name]=button;if(t.TryGetComponent<InputField>(out var input))inputs[t.name]=input;}foreach(var a in GetComponentsInChildren<ForgeUIAction>(true)){string key=a.action;a.button.onClick.AddListener(()=>{ForgeMouseTrace.Mark("UI_CLICK",key);game.GameUIAction(key);Refresh();});}foreach(var hover in GetComponentsInChildren<ForgeUIHover>(true))hover.Bind(this);inputs["GuideSearch"].onValueChanged.AddListener(_=>game.GameGuideSearch());ForgeCodeColors.Apply(inputs["TutorialInput"].textComponent);inputs["TutorialInput"].onValueChanged.AddListener(value=>game.GameTutorialInput(value));}
  void EnsureDiamondButton(){
  var actions=GetComponentsInChildren<ForgeUIAction>(true);
  foreach(var a in actions)if(a.action=="diamonds")return;
@@ -108,17 +108,39 @@ public sealed class ForgeGameUI:MonoBehaviour
  }
  void LateUpdate(){if(game)UpdateSmithHover();if(layoutPasses<=0)return;layoutPasses--;foreach(var group in GetComponentsInChildren<VerticalLayoutGroup>(false))LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)group.transform);}
  void OnDisable(){HideCodeHelp();}
- void Update(){if(!game)return;TracePointerHit();if(screenWidth!=Screen.width||screenHeight!=Screen.height){screenWidth=Screen.width;screenHeight=Screen.height;layoutPasses=3;game.ClampGameCodeWindows();}
+ void Update(){if(!game)return;UpdateGuideNewGlow();TracePointerHit();if(screenWidth!=Screen.width||screenHeight!=Screen.height){screenWidth=Screen.width;screenHeight=Screen.height;layoutPasses=3;}
 #if ENABLE_INPUT_SYSTEM
  if(Time.frameCount!=enabledFrame&&UnityEngine.InputSystem.Keyboard.current?.escapeKey.wasPressedThisFrame==true){game.GameUIAction("menu");Refresh();}
 #endif
  if(Time.unscaledTime>=nextRefresh)Refresh();}
+ Color guideNewSurface,guideNewInk;bool guideNewColorsCached;
+ void UpdateGuideNewGlow(){
+ if(!buttons.TryGetValue("GuideNew",out var button))return;
+ var surface=button.GetComponent<Image>();var label=button.GetComponentInChildren<Text>(true);
+ if(!guideNewColorsCached){guideNewSurface=surface.color;guideNewInk=label.color;guideNewColorsCached=true;}
+ if(!button.gameObject.activeInHierarchy){surface.color=guideNewSurface;label.color=guideNewInk;return;}
+ float glow=.5f+.5f*Mathf.Sin(Time.unscaledTime*4f);
+ surface.color=Color.Lerp(new Color(.78f,.48f,.12f),new Color(1f,.86f,.36f),glow);
+ label.color=new Color(.16f,.10f,.04f);
+ }
  ForgeGuideExample guideExample;
  public void GuideExample(string source,string notes){if(!guideExample)guideExample=ForgeGuideExample.Create(texts["GuideBody"]);guideExample.Show(source,notes);}
  Button inventoryShortcut;
  public void InventoryShortcut(){if(inventoryShortcut)return;inventoryShortcut=Instantiate(salePrefab,salesList);inventoryShortcut.name="OpenProductInventory";ForgeLegacyUIFont.Apply(inventoryShortcut.transform);inventoryShortcut.GetComponentInChildren<Text>().text="완성품 목록 열기";inventoryShortcut.onClick.AddListener(()=>{game.GameUIAction("products");Refresh();});}
  ForgeProductInventory inventory;
  public void Inventory(bool visible,ForgeShop shop){if(!inventory)inventory=GetComponentInChildren<ForgeProductInventory>(true);if(!inventory)return;inventory.Bind(game,shop,texts["Products"].font);if(inventory.gameObject.activeSelf!=visible)inventory.gameObject.SetActive(visible);if(visible)inventory.Refresh();}
+ public void CenterGuide(){StartCoroutine(CenterGuideAfterLayout());}
+ System.Collections.IEnumerator CenterGuideAfterLayout(){
+ yield return null;
+ var rect=(RectTransform)Node("Guide");if(!rect.gameObject.activeInHierarchy)yield break;
+ Canvas.ForceUpdateCanvases();
+ var parent=(RectTransform)rect.parent;
+ var camera=canvas.renderMode==RenderMode.ScreenSpaceOverlay?null:canvas.worldCamera;
+ if(RectTransformUtility.ScreenPointToLocalPointInRectangle(parent,new Vector2(Screen.width*.5f,Screen.height*.5f),camera,out var center)){
+ var current=(Vector2)parent.InverseTransformPoint(rect.TransformPoint(rect.rect.center));rect.anchoredPosition+=center-current;
+ }
+ rect.SetAsLastSibling();
+ }
  public Transform Node(string id)=>nodes[id];public void Active(string id,bool active){var go=nodes[id].gameObject;if(go.activeSelf!=active){go.SetActive(active);if(active&&go.GetComponent<ForgeUIWindow>())go.transform.SetAsLastSibling();}}
  public void Text(string id,string value){if(texts[id].text!=value)texts[id].text=value;}
  public void Enabled(string id,bool value){buttons[id].interactable=value;}
@@ -127,6 +149,8 @@ public sealed class ForgeGameUI:MonoBehaviour
  public void Tooltip(string id,string value){nodes[id].GetComponent<ForgeUIHover>().description=value;}
  public void Tint(string id,Color color){texts[id].color=color;}
  public void Code(int id,string name,string source,Rect rect,bool collapsed,bool running,bool canRun,int line,string diagnostic){if(!codes.TryGetValue(id,out var view)){view=Instantiate(codePrefab,workspace);ForgeLegacyUIFont.Apply(view.transform);view.gameObject.name="CodeWindow_"+id;view.Bind(game,id);codes.Add(id,view);}view.Sync(name,source,rect,collapsed,running,canRun,line,diagnostic);}
+ public void CommitCodeWindowBounds(){foreach(var view in codes.Values)if(view)view.CommitBounds();}
+ public void DiscardCodeViews(){foreach(var view in GetComponentsInChildren<ForgeCodeView>(true)){view.Detach();view.gameObject.SetActive(false);Destroy(view.gameObject);}codes.Clear();}
  public void PruneCodes(HashSet<int> ids){var remove=new List<int>();foreach(var pair in codes)if(!ids.Contains(pair.Key)){pair.Value.gameObject.SetActive(false);Destroy(pair.Value.gameObject);remove.Add(pair.Key);}foreach(int id in remove)codes.Remove(id);}
  public void Sale(int id,string value,bool selected){if(!sales.TryGetValue(id,out var b)){b=Instantiate(salePrefab,salesList);ForgeLegacyUIFont.Apply(b.transform);b.gameObject.name="Product_"+id;b.onClick.AddListener(()=>{game.GameUIAction("product:"+id);Refresh();});sales.Add(id,b);}b.GetComponentInChildren<Text>().text=(selected?"● ":"○ ")+value;}
  public void PruneSales(HashSet<int> ids){var remove=new List<int>();foreach(var p in sales)if(!ids.Contains(p.Key)){p.Value.gameObject.SetActive(false);Destroy(p.Value.gameObject);remove.Add(p.Key);}foreach(int id in remove)sales.Remove(id);}

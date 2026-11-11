@@ -54,6 +54,8 @@ public sealed class ForgeProductionLedger
         return true;
     }
 
+    int submittedCost,submittedIron;double submittedSeconds;
+    public ForgeProduct CompleteNext(string owner,int heat,bool shaped,ForgeTraits traits,int material=1,ForgeItemData data=null,double seconds=0){var product=new ForgeProduct(owner,heat,shaped,traits,CashCost-submittedCost,IronConsumed-submittedIron,material,data,Math.Max(0,seconds-submittedSeconds));submittedCost=CashCost;submittedIron=IronConsumed;submittedSeconds=seconds;return product;}
     public ForgeProduct Complete(string owner, int heat, bool shaped, ForgeTraits traits, int material = 1, ForgeItemData data = null, double seconds = 0)
         => new ForgeProduct(owner, heat, shaped, traits, CashCost, IronConsumed, material, data, seconds);
 }

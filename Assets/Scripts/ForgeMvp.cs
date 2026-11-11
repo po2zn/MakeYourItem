@@ -354,7 +354,6 @@ public partial class ForgeMvp : MonoBehaviour
     { return BlueprintRuntime.Evaluate(source, availableGold, availableIron, owner, seed, materialStocks, technology, modules, clockHour, context); }
     bool SellProduct(int id)
     {
-        if(busy||executionSession!=null)return false;
         bool sold=SellProductInternal(id);if(sold)SaveProgress();return sold;
     }
     readonly ForgeDebugOutput debugOutput=new ForgeDebugOutput();
@@ -365,7 +364,7 @@ public partial class ForgeMvp : MonoBehaviour
     int debugResizeEdge=-1;
     const float DebugHeaderHeight=34f;
     GUIStyle debugTextStyle,debugTitleStyle;
-    void AppendDebug(string message){debugOutput.Append(message);showDebugWindow=true;debugFollow=true;}
+    void AppendDebug(string message){if(!showDebugWindow)return;debugOutput.Append(message);debugFollow=true;}
     int DebugResizeEdge(Vector2 mouse)
     {
         if(!debugWindow.Contains(mouse))return -1;
@@ -1190,10 +1189,6 @@ public partial class ForgeMvp : MonoBehaviour
         if (ForgeTextLayout.Button(new Rect(panel.xMax - 34, panel.y + 6, 24, 24), "×")) showSalesPanel = false;
         GUILayout.BeginArea(new Rect(panel.x + 10, panel.y + 38, panel.width - 20, panel.height - 48));
         logs = GUILayout.BeginScrollView(logs);
-        ForgeTextLayout.LayoutLabel("실행 도면: " + resultOwner + (busy ? " · 제작 중" : ""));
-        if(executionSession!=null)ForgeTextLayout.LayoutLabel("다음 실행: "+(executionSession.NextModule??executionOwner.name)+" · "+executionSession.NextLine+"줄 · ▷ 한 줄 / ▶ 계속 / ■ 중단");
-        ForgeTextLayout.LayoutLabel(report, reportError ? errorLabel : GUI.skin.label);
-        GUILayout.Space(12);
         ForgeTextLayout.LayoutLabel("판매 가능한 완성품 · " + shop.Count + "개");
         foreach (var item in shop.Items)
         {
@@ -1210,7 +1205,7 @@ public partial class ForgeMvp : MonoBehaviour
         }
         else ForgeTextLayout.LayoutLabel("완성품을 선택하면 판매 견적이 표시됩니다.");
         GUILayout.EndScrollView();
-        GUI.enabled = selected != null && !busy && executionSession==null;
+        GUI.enabled = selected != null;
         if (ForgeGoldGUI.LayoutButton(selected == null ? "판매할 완성품을 선택하세요" : "선택 완성품 판매 · +" + ForgePricing.Quote(selected.Product).SalePrice + "G",GUI.skin.button,GUILayout.MinHeight(36)))
             SellProduct(selected.Id);
         GUI.enabled = true;

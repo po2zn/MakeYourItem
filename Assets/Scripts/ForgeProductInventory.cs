@@ -42,7 +42,7 @@ public sealed class ForgeProductInventory : MonoBehaviour
             gridScroll.content.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical,ContentHeight(shop.Count));
             var p=gridScroll.content.anchoredPosition;p.y=Mathf.Clamp(p.y,0,Mathf.Max(0,ContentHeight(shop.Count)-gridScroll.viewport.rect.height));gridScroll.content.anchoredPosition=p;
             if(shop.Find(selected)!=selectedEntry){selected=-1;selectedEntry=null;}foreach(var cell in cells)cell.id=-1;Populate();}
-        var item=shop.Find(selected);sellButton.interactable=item!=null&&!game.HierarchyBusy;
+        var item=shop.Find(selected);sellButton.interactable=item!=null;
         if(detailSelection!=selected||detailRevision!=revision){detailSelection=selected;detailRevision=revision;
             detailText.text=item==null?"완성품을 선택하면 검의 상태와 판매 정보를 확인할 수 있습니다.":"제작 순서 #"+item.Order+"\n도면: "+item.Product.BlueprintName+"\n\n"+ForgePricing.Describe(item.Product,false);
             detailScroll.verticalNormalizedPosition=1;MeasureDetails();}

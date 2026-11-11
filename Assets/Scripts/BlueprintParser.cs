@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-public enum BlueprintExprKind { Literal, Name, Unary, Binary, Call, List, Tuple, Set, Dict, Index, Attribute }
+public enum BlueprintExprKind { Literal, Name, Unary, Binary, Call, List, Tuple, Set, Dict, Index, Slice, Attribute }
 public sealed class BlueprintExpr
 {
     public BlueprintExprKind Kind;
@@ -161,7 +161,7 @@ public sealed class BlueprintParser
         if(Match("!")) { statement.Kind=BlueprintStatementKind.Finish; statement.Expr=Expression(); EndLine(); return statement; }
         var value=Expression();
         if(Match("=")) {
-            if(value.Kind!=BlueprintExprKind.Name && value.Kind!=BlueprintExprKind.Index) throw new BlueprintException(token.Line,"대입 대상은 이름 또는 인덱스여야 합니다.");
+            if(value.Kind!=BlueprintExprKind.Name && value.Kind!=BlueprintExprKind.Index && value.Kind!=BlueprintExprKind.Slice) throw new BlueprintException(token.Line,"대입 대상은 이름 또는 인덱스여야 합니다.");
             statement.Kind=BlueprintStatementKind.Assign; statement.Target=value; statement.Expr=Expression();
         } else {
             if(value.Kind!=BlueprintExprKind.Call) throw new BlueprintException(token.Line,"대입 또는 함수 호출이 필요합니다.");
@@ -263,7 +263,7 @@ public sealed class BlueprintParser
         }
         else throw new BlueprintException(token.Line,"표현식이 필요합니다: "+token.Raw);
         while(true) {
-            if(Match("[")){var index=Expression();Need("]");value=Node(BlueprintExprKind.Index,token,value,index);}
+            if(Match("[")){var start=Current.Raw==":"?Node(BlueprintExprKind.Literal,token):Expression();if(Match(":")){var stop=Current.Raw==":"||Current.Raw=="]"?Node(BlueprintExprKind.Literal,token):Expression();var step=Node(BlueprintExprKind.Literal,token);if(Match(":"))if(Current.Raw!="]")step=Expression();Need("]");value=Node(BlueprintExprKind.Slice,token,value,start,stop,step);}else{Need("]");value=Node(BlueprintExprKind.Index,token,value,start);}}
             else if(Match(".")){
                 var member=Take();
                 if(member.Kind!=BlueprintTokenKind.Name)throw new BlueprintException(member.Line,"점 뒤에는 가져올 함수나 변수 이름이 필요합니다.");

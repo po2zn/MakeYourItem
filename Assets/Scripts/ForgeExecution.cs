@@ -50,7 +50,7 @@ public partial class ForgeMvp
             owner.diagnostic=null;owner.showDiagnostic=false;owner.revealDiagnostic=false;
             executionSession=session;executionOwner=owner;executionLedger=new ForgeProductionLedger();
             receiptCursor=0;executionSeedConsumed=false;executionDebugStarted=false;executionProduct=null;
-            resultOwner=owner.name;report="";reportError=false;showSalesPanel=true;
+            resultOwner=owner.name;report="";reportError=false;
             craftMotion.BeginRun();
         }
         StartCoroutine(RunExecution(singleStep));
@@ -60,13 +60,15 @@ public partial class ForgeMvp
         busy=true;var session=executionSession;
         do {
             if(ExecutionSourceChanged()){StopExecution(false);report+="\n코드창이 변경되어 실행을 중단했습니다. 다음 실행은 처음부터 시작합니다.";busy=false;yield break;}
+            UpdateExecutionLocation();
             var advance=session.Advance();
             while(!advance.IsCompleted)yield return null;
             if(executionSession!=session||session.Cancelled){busy=false;yield break;}
-            if(advance.IsFaulted){reportError=true;report+="실행 오류: "+advance.Exception.GetBaseException().Message;StopExecution(false);if(craftMotion)craftMotion.ReactToCodeError();busy=false;yield break;}
+            if(advance.IsFaulted){reportError=true;report+="실행 오류: "+advance.Exception.GetBaseException().Message;AppendDebug(report);StopExecution(false);if(craftMotion)craftMotion.ReactToCodeError();busy=false;yield break;}
             var evaluation=session.Evaluation;
             while(receiptCursor<evaluation.steps.Count){
                 var step=evaluation.steps[receiptCursor++];
+                UpdateExecutionLocation(step.line,step.module);
                 if(step.debugOutput){
                     if(!executionDebugStarted){AppendDebug("── "+executionOwner.name+" · 실제 실행 ──");executionDebugStarted=true;}
                     AppendDebug(step.text);continue;
@@ -74,21 +76,20 @@ public partial class ForgeMvp
                 if(step.process==-1){yield return new WaitForSeconds(step.duration);continue;}
                 if(step.process==-2){if(step.setting==1)craftSpeed=step.settingValue;else autoSell=step.settingValue==1;continue;}
                 if(!SpendSmithStep(step,executionLedger)){
-                    reportError=true;report+="자금 또는 해당 재료 부족";StopExecution(false);if(craftMotion)craftMotion.ReactToCodeError();busy=false;yield break;
+                    reportError=true;report+="자금 또는 해당 재료 부족";AppendDebug(report);StopExecution(false);if(craftMotion)craftMotion.ReactToCodeError();busy=false;yield break;
                 }
                 if(!executionSeedConsumed&&step.process>0){executionOwner.seed=unchecked(executionOwner.seed*1664525u+1013904223u);executionSeedConsumed=true;}
                 if(step.warning)AppendDebug(step.line+"줄 · "+step.text);
-                report+="Day "+step.day+" "+(step.minute/60).ToString("00")+":"+(step.minute%60).ToString("00")+" · "+(step.module==null?"":step.module+" · ")+step.line+"줄: "+step.text+"\n";
+                if(showDebugWindow)AppendDebug("Day "+step.day+" "+(step.minute/60).ToString("00")+":"+(step.minute%60).ToString("00")+" · "+(step.module==null?"":step.module+" · ")+step.line+"줄: "+step.text);
                 yield return craftMotion.Play(step);
                 if(executionSession!=session){busy=false;yield break;}
                 ProgressStep(step);
                 if(step.refund>0)RefundMaterial(step.refund);
                 if(step.finished){
-                    executionProduct=executionLedger.Complete(executionOwner.name,step.heat,step.shaped,step.traits,step.material,step.data,step.productionSeconds);
+                    executionProduct=executionLedger.CompleteNext(executionOwner.name,step.heat,step.shaped,step.traits,step.material,step.data,step.productionSeconds);
                     executionProduct=FinishSmithProduct(0,executionProduct);
                 }
             }
-            UpdateExecutionLocation();
             if(returnToTitleRequested){busy=false;FinishTitleReturn();yield break;}
             if(!singleStep&&!session.Completed)yield return null;
         }while(!singleStep&&!session.Completed);
@@ -122,27 +123,29 @@ public partial class ForgeMvp
         foreach(var window in codeWindows){window.executionLine=0;window.revealExecution=false;}
         if(announce&&session!=null)report+="\n실행 중단 · 이미 소비한 재료는 돌아오지 않습니다.";
     }
-    void UpdateExecutionLocation()
+    void UpdateExecutionLocation(int line=0,string module=null)
     {
         foreach(var window in codeWindows){window.executionLine=0;window.revealExecution=false;}
-        if(executionSession==null||executionSession.Completed)return;
+        if(executionSession==null||line==0&&executionSession.Completed)return;
         CodeWindow target=executionOwner;
-        if(executionSession.NextModule!=null){
+        if(line==0){line=executionSession.NextLine;module=executionSession.NextModule;}
+        if(module!=null){
             target=null;
-            foreach(var window in codeWindows){try{if(PythonIdentifier.Parse(window.name)==executionSession.NextModule){target=window;break;}}catch{}}
+            foreach(var window in codeWindows){try{if(PythonIdentifier.Parse(window.name)==module){target=window;break;}}catch{}}
         }
         if(target==null)return;
-        target.executionLine=executionSession.NextLine;target.executionSource=executionSources[target.id].Text;target.revealExecution=true;
+        target.executionLine=line;target.executionSource=executionSources[target.id].Text;target.revealExecution=true;
         // Also reveal the marker in a visible, non-focused module window.
         target.scroll.y=Mathf.Max(0,(target.executionLine-3)*(codeStyle==null?22:codeStyle.lineHeight));
+        if(hierarchyGame&&hierarchyGame.Bound)hierarchyGame.Refresh();
     }
     void DrawExecutionHighlight(Rect content,string text,CodeWindow owner)
     {
         if(owner.executionLine<=0||owner.executionSource!=text)return;
         new ForgeCompileDiagnostic(text,owner.executionLine,"").GetLineSpan(out int start,out int length);
         var position=codeStyle.GetCursorPixelPosition(content,new GUIContent(text),start);
-        Color previous=GUI.color;GUI.color=new Color(.3f,.65f,1f,.22f);
+        Color previous=GUI.color;GUI.color=new Color(1f,.58f,.22f,.22f);
         GUI.DrawTexture(new Rect(0,position.y,content.width,codeStyle.lineHeight),Texture2D.whiteTexture);
-        GUI.color=new Color(.35f,.75f,1f,1f);GUI.DrawTexture(new Rect(0,position.y,3,codeStyle.lineHeight),Texture2D.whiteTexture);GUI.color=previous;
+        GUI.color=new Color(1f,.58f,.22f,.6f);GUI.DrawTexture(new Rect(0,position.y,3,codeStyle.lineHeight),Texture2D.whiteTexture);GUI.color=previous;
     }
 }

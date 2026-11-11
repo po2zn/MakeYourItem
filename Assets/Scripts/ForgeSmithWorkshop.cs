@@ -123,7 +123,7 @@ public partial class ForgeMvp
                     yield return smithMotions[id].Play(step);
                     if(job.session.Cancelled)yield break;
                     ProgressStep(step);if(step.refund>0)RefundMaterial(step.refund);
-                    if(step.finished)FinishSmithProduct(id,job.ledger.Complete("대장장이 "+id,step.heat,step.shaped,step.traits,step.material,step.data,step.productionSeconds));
+                    if(step.finished)FinishSmithProduct(id,job.ledger.CompleteNext("대장장이 "+id,step.heat,step.shaped,step.traits,step.material,step.data,step.productionSeconds));
                 }
                 if(job.session.Completed){if(evaluation.error!=null){AppendDebug("대장장이 "+id+" · "+evaluation.error);smithMotions[id].ReactToCodeError();}yield break;}
                 yield return null;
