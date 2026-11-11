@@ -125,14 +125,14 @@ public static class ForgeTextLayout
         return style;
     }
     public static void Label(Rect rect,string text,GUIStyle style=null)=>Label(rect,new GUIContent(text),style);
-    public static void Label(Rect rect,GUIContent text,GUIStyle style=null)=>GUI.Label(rect,text,Fit(rect,text,style??GUI.skin.label));
+    public static void Label(Rect rect,GUIContent text,GUIStyle style=null)=>ForgeGoldGUI.Label(rect,text,Fit(rect,text,style??GUI.skin.label));
     public static bool Button(Rect rect,string text,GUIStyle style=null)=>Button(rect,new GUIContent(text),style);
-    public static bool Button(Rect rect,GUIContent text,GUIStyle style=null)=>GUI.Button(rect,text,Fit(rect,text,style??GUI.skin.button));
+    public static bool Button(Rect rect,GUIContent text,GUIStyle style=null)=>ForgeGoldGUI.Button(rect,text,Fit(rect,text,style??GUI.skin.button));
     public static void LayoutLabel(string text,GUIStyle source=null,params GUILayoutOption[] options)
     {
         var style=new GUIStyle(source??GUI.skin.label){wordWrap=true,fixedHeight=0};
         style.padding.bottom+=Mathf.CeilToInt(FontSize(style)*.3f)+2;
-        GUILayout.Label(text,style,options);
+        ForgeGoldGUI.LayoutLabel(text,style,options);
     }
 
 }

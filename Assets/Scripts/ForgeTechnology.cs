@@ -147,7 +147,7 @@ public sealed class ForgeTechnology
             if(offer.Kind==ForgePurchaseKind.Material)stock.count+=quantity;
         }
         gold-=(int)TotalPrice(offer,quantity);
-        message=offer.Kind==ForgePurchaseKind.Material?ForgeMaterialGuide.Find(offer.Material).Name+" "+quantity+"개 구매 완료 · "+TotalPrice(offer,quantity)+"G 사용":offer.Title+" 구매 완료 · "+offer.Price+"G";
+        message=offer.Kind==ForgePurchaseKind.Material?ForgeMaterialGuide.Find(offer.Material).Name+" "+quantity+"개 구매 완료 · "+ForgeMaterialHud.FormatCount(TotalPrice(offer,quantity))+"G 사용":offer.Title+" 구매 완료 · "+ForgeMaterialHud.FormatCount(offer.Price)+"G";
         return true;
     }
 }

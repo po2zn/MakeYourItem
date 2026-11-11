@@ -1,0 +1,12 @@
+HUD text=자금
+100G glyphs=1 vertices=24
+PASS price coin stock-1
+PASS price coin stock-2
+PASS price coin stock-3
+PASS price coin stock-4
+PASS price coin stock-5
+PASS price coin stock-6
+PASS price coin stock-7
+PASS price coin stock-8
+PASS price coin stock-9
+PASS multiline K/M/B and non-currency G/GHz exclusion

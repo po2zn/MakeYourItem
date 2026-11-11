@@ -29,6 +29,7 @@ public sealed class ForgeTreePanel : MonoBehaviour
     public void Bind(ForgeMvp game)
     {
         owner=game;if(bound)return;bound=true;
+        foreach(var text in GetComponentsInChildren<Text>(true))ForgeGoldGlyph.Attach(text);
         foreach(var card in cards)card.Bind(this);
         growthButton.onClick.AddListener(()=>ShowPage(0));materialsButton.onClick.AddListener(()=>ShowPage(1));smithButton.onClick.AddListener(()=>ShowPage(2));
         fitButton.onClick.AddListener(()=>{if(page==3)ShowPage(2);maps[page].Fit();});resetButton.onClick.AddListener(()=>{if(page==3)ShowPage(2);maps[page].ResetView();});
@@ -62,7 +63,7 @@ public sealed class ForgeTreePanel : MonoBehaviour
     {
         using(RefreshMarker.Auto()){RefreshCount++;
         lastStamp=owner.HierarchyTreeStamp;
-        heading.text=page>=2?"대장장이 테크 트리 · "+owner.HierarchyDiamonds+" 다이아":"테크 트리 · "+owner.HierarchyGold+"G";
+        heading.text=page>=2?"대장장이 테크 트리 · "+owner.HierarchyDiamonds+" 다이아":"테크 트리 · "+ForgeMaterialHud.FormatCount(owner.HierarchyGold)+"G";
         message.text=owner.HierarchyMessage(page>=2)+(owner.HierarchyGuideHasNew?" · 도면 안내서에 새 내용 추가":"");
         foreach(var card in cards){
             bool owned,locked;string state,price;
@@ -70,7 +71,7 @@ public sealed class ForgeTreePanel : MonoBehaviour
                 state=owned?"구매 완료":locked?"선행 구매 필요":owner.HierarchyDiamonds<cost?"다이아 부족":"구매 가능";price=owned?"완료":cost+" 다이아";}
             else if(card.offer!=null){var offer=card.offer;owned=owner.HierarchyTechnology.Owns(offer);locked=owner.HierarchyTechnology.MissingPrerequisites(offer)!=null;
                 state=offer.Kind==ForgePurchaseKind.Material?"재고 "+owner.HierarchyStock(offer):owned?"구매 완료":locked?"선행 구매 필요":owner.HierarchyBusy?"제작 중":owner.HierarchyGold<offer.Price?"골드 부족":"구매 가능";
-                price=owned?"완료":offer.Price+(offer.Kind==ForgePurchaseKind.Material?"G/개":"G");}
+                price=owned?"완료":ForgeMaterialHud.FormatCount(offer.Price)+(offer.Kind==ForgePurchaseKind.Material?"G/개":"G");}
             else continue;
             card.surface.color=owned?Owned:locked?Locked:Available;card.state.text=state;card.price.text=price;
         }

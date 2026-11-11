@@ -37,8 +37,8 @@ public partial class ForgeMvp
     {
         if(offer==null)return "기본 제공";
         string reason=technology.BlockReason(offer,gold,iron,materialStocks,HierarchyBusy,quantity);
-        string text=offer.Price+"G\n\n"+offer.Description+"\n\n"+technology.PrerequisiteText(offer);
-        if(offer.Kind==ForgePurchaseKind.Material)text+="\n재고 "+HierarchyStock(offer)+" · 수량 "+quantity+" · 합계 "+ForgeTechnology.TotalPrice(offer,quantity)+"G";
+        string text=ForgeMaterialHud.FormatCount(offer.Price)+"G\n\n"+offer.Description+"\n\n"+technology.PrerequisiteText(offer);
+        if(offer.Kind==ForgePurchaseKind.Material)text+="\n재고 "+HierarchyStock(offer)+" · 수량 "+quantity+" · 합계 "+ForgeMaterialHud.FormatCount(ForgeTechnology.TotalPrice(offer,quantity))+"G";
         if(reason!=technology.MissingPrerequisites(offer))text+="\n\n"+(reason??"클릭하여 구매");
         return text;
     }

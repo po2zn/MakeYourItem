@@ -282,7 +282,7 @@ public partial class ForgeMvp
             ForgeTextLayout.LayoutLabel(fresh?"새 게임을 저장할 슬롯을 선택하세요.":"이어할 슬롯을 선택하세요.",menuText);
             for(int slot=1;slot<=SlotCount;slot++){
                 bool enabled=GUI.enabled;GUI.enabled=enabled&&(fresh||PlayerPrefs.HasKey(SlotKey(slot)));
-                if(GUILayout.Button("슬롯 "+slot+" · "+SlotSummary(slot),menuButton,GUILayout.MinHeight(86))){
+                if(ForgeGoldGUI.LayoutButton("슬롯 "+slot+" · "+SlotSummary(slot),menuButton,GUILayout.MinHeight(86))){
                     if(fresh){confirmSlot=slot;titlePage=3;}else EnterSavedSlot(slot);
                 }
                 GUI.enabled=enabled;

@@ -1199,7 +1199,7 @@ public partial class ForgeMvp : MonoBehaviour
         {
             string label = (selectedProductId == item.Id ? "● " : "○ ") + "#" + item.Id + " " + item.Product.DisplayName
                 + " · 제작비 " + item.Product.CashCost + "G";
-            if (GUILayout.Button(label)) selectedProductId = item.Id;
+            if (ForgeGoldGUI.LayoutButton(label,GUI.skin.button)) selectedProductId = item.Id;
         }
         var selected = shop.Find(selectedProductId);
         if (selected != null)
@@ -1211,7 +1211,7 @@ public partial class ForgeMvp : MonoBehaviour
         else ForgeTextLayout.LayoutLabel("완성품을 선택하면 판매 견적이 표시됩니다.");
         GUILayout.EndScrollView();
         GUI.enabled = selected != null && !busy && executionSession==null;
-        if (GUILayout.Button(selected == null ? "판매할 완성품을 선택하세요" : "선택 완성품 판매 · +" + ForgePricing.Quote(selected.Product).SalePrice + "G", GUILayout.MinHeight(36)))
+        if (ForgeGoldGUI.LayoutButton(selected == null ? "판매할 완성품을 선택하세요" : "선택 완성품 판매 · +" + ForgePricing.Quote(selected.Product).SalePrice + "G",GUI.skin.button,GUILayout.MinHeight(36)))
             SellProduct(selected.Id);
         GUI.enabled = true;
         GUILayout.EndArea();

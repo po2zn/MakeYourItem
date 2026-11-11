@@ -1,0 +1,19 @@
+Gold currency artwork integration
+
+Source: user-provided Materials/재료/입체 숫자 7의 저폴리 금화.png.
+Original image pixels preserved. Import uses bilinear filtering, alpha transparency,
+no mipmaps, uncompressed texture, maximum dimension 1024.
+Resources/BlacksmithGoldArtwork stores the texture, alpha crop and UI material.
+
+ForgeGoldGlyph replaces currency G glyphs in retained UI with the coin texture.
+ForgeGoldGUI handles legacy IMGUI labels/buttons, including save-slot summaries.
+Numeric K/M/B formatting and underlying monetary values remain unchanged.
+Code input and developer debug text retain literal characters.
+
+Validation: Unity compilation passed. Live HUD and all nine material price cards
+passed glyph checks. Multiline 100G/10KG/1.5MG/2BG passed; ordinary G/GHz excluded.
+Actual screenshots reviewed: HUD, new-game confirmation, material tree at
+800x600, 1280x720, 1920x1080, and 3840x2160. No new coin overlap or clipping seen.
+English/numeric mixed strings checked by glyph counts, not a localized visual pass.
+Minimum dimensions of individual resizable panels were not visually tested.
+Scenes, ProjectSettings and Packages were not changed.
