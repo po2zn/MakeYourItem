@@ -165,7 +165,7 @@ public partial class ForgeMvp
         ForgeTextLayout.Label(new Rect(12,12,width,28),"연습용 재료 · 실제 재고와 별도",tutorialBodyStyle);
         for(int id=0;id<4;id++){
             Rect cell=new Rect(12+(id%columns)*(cellWidth+8),44+(id/columns)*72,cellWidth,64);
-            GUI.DrawTexture(new Rect(cell.x,cell.y+8,48,48),materialHud.GetIcon(id));
+            materialHud.DrawIcon(new Rect(cell.x,cell.y+8,48,48),id);
             string amount=id==0?"무제한":(id==1?lesson.RemainingIron:0)+"개";
             ForgeTextLayout.Label(new Rect(cell.x+50,cell.y,cell.width-50,64),ForgeMaterialGuide.Find(id).Heading+"\n"+amount,tutorialStockStyle);
         }

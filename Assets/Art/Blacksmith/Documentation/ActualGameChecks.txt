@@ -1,0 +1,5 @@
+PASS actual ForgeMvp.Execute -> RunExecution -> ForgeCraftMotion -> saved prefabs
+PASS real stock: iron 10 -> 9; water 2 -> 1
+PASS 4 completed physical actions, heat/strike/quench observed
+PASS 1 completed product in real shop
+No save slot loaded or written. Test state reset to title.

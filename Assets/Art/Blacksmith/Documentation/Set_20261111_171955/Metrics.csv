@@ -1,0 +1,7 @@
+Model,Triangles,Materials,SkinnedRenderers,Source
+Blacksmith,3651,15,15,Polyfork adapted
+Forge,592,6,0,Original procedural
+QuenchBucket,336,3,0,Original procedural
+Anvil,686,4,0,Polyfork adapted
+Sword,50,3,0,Original procedural
+Hammer,24,2,0,Original procedural

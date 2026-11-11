@@ -1,0 +1,7 @@
+Saved prefab checks:
+Anvil: 686 triangles; references and URP materials OK
+Blacksmith: 3651 triangles; references and URP materials OK
+Forge: 592 triangles; references and URP materials OK
+Hammer: 24 triangles; references and URP materials OK
+QuenchBucket: 336 triangles; references and URP materials OK
+Sword: 50 triangles; references and URP materials OK

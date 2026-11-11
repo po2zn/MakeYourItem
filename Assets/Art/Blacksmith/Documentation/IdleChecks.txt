@@ -1,0 +1,5 @@
+PASS live game frames and idle head motion
+PASS butterfly approach, nose landing and natural departure
+PASS work interrupts perch immediately; departure completes
+PASS cancellation
+FBX: 3611 triangles, 8 materials, skinned wings; original Idle/Fly/Fly fast clips preserved, runtime procedural hinge animation

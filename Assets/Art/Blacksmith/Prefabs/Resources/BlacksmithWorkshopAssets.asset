@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f45ebe05587be9e4f987e244bc0f021f, type: 3}
+  m_Name: BlacksmithWorkshopAssets
+  m_EditorClassIdentifier: Assembly-CSharp::ForgeWorkshopAssets
+  blacksmith: {fileID: 467176978550481890, guid: a43db17e434d5e541ac117a70a278eff, type: 3}
+  forge: {fileID: 7482946351457737767, guid: 5bddaadbd80d60e42885967e29251818, type: 3}
+  bucket: {fileID: 336186540520711936, guid: defec5e130989fa40add55eefdff2786, type: 3}
+  anvil: {fileID: 6222048968263377449, guid: 777f5d42d2478a440b8717bea87914f3, type: 3}
+  sword: {fileID: 4911496047636787300, guid: 7c23b3d8dfb2cd147b043a0a5666d05f, type: 3}
+  hammer: {fileID: 8077195919214287688, guid: cbdf64b124ee7714fa9ead532c29161f, type: 3}
+  butterfly: {fileID: 2428670593305356072, guid: c5e61fe580252bb42941b6f3f65bc5bd, type: 3}
+  tongs: {fileID: 4225459351544343493, guid: 995028c0650adb241ad0ec0cb0c535df, type: 3}
+  floor: {fileID: 2630825452187511835, guid: 8271ff1b2b14f3a429782d352111edef, type: 3}

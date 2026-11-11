@@ -1,0 +1,22 @@
+PASS raw iron submission consumes one iron and pays zero
+PASS raw submission cannot create inventory
+PASS standalone load and complete process sequence need no submission
+PASS calculation only and empty programs succeed
+PASS cold strike acts without changing shape; later hot strike succeeds
+PASS nested calls execute inner first and preserve snapshots
+PASS effectful return and condition allowed; short circuit skips actions
+PASS void calls return None without suppressing actions
+PASS multiple workpieces retain animation identity
+PASS failed calls leave only successful animation receipts
+PASS arity types cooling and invalid submissions remain errors
+PASS preview receipts reproduce final material and pricing
+TOTAL free forge 12 passed
+
+PASS real SampleScene game boot uses workshop assets
+PASS receipt 1; finite bones, heat and completion count
+PASS receipt 2; finite bones, heat and completion count
+PASS receipt 3; finite bones, heat and completion count
+PASS receipt 4; finite bones, heat and completion count
+PASS receipt 0; finite bones, heat and completion count
+PASS independent offset station, two workpieces and air cooling
+PASS cancellation

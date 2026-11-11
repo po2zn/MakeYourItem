@@ -1,0 +1,7 @@
+PASS bound UI button: night -> noon, same day, no DayChanged event, immediate daylight while paused
+PASS label metrics (800.00, 600.00) numeric/English modes (same debug label), minimum font=12
+PASS label metrics (1280.00, 720.00) numeric/English modes (same debug label), minimum font=12
+PASS label metrics (1920.00, 1080.00) numeric/English modes (same debug label), minimum font=12
+PASS label metrics (3840.00, 2160.00) numeric/English modes (same debug label), minimum font=12
+PASS label metrics (380.00, 240.00) numeric/English modes (same debug label), minimum font=12
+Resolution checks are text metrics; screenshot is the current Editor Game view only.

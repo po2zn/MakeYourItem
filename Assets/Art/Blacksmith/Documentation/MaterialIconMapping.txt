@@ -1,0 +1,11 @@
+0 공기 <- Assets/Art/Blacksmith/Materials/재료/민트빛 나선 바람 정령-1.png
+1 철 <- Assets/Art/Blacksmith/Materials/재료/저폴리 검은 강철 잉곳-3.png
+2 나무 <- Assets/Art/Blacksmith/Materials/재료/저폴리 각진 참나무 통나무-2.png
+3 물 <- Assets/UI/MaterialIcons/3.png
+4 석탄 <- Assets/Art/Blacksmith/Materials/재료/저폴리 검은 석탄 덩어리-5.png
+5 은 <- Assets/Art/Blacksmith/Materials/재료/은빛 저폴리 금속 주괴-4.png
+6 마력 수정 <- Assets/Art/Blacksmith/Materials/재료/보랏빛 마법 수정 클러스터-8.png
+7 별철 <- Assets/Art/Blacksmith/Materials/재료/저폴리 청색 운철 광석 덩어리-9.png
+8 서리수 <- Assets/Art/Blacksmith/Materials/재료/저폴리 얼음빛 공기구슬-6.png
+9 용뼈 <- Assets/Art/Blacksmith/Materials/재료/로우폴리 고대 용뼈 재료-7.png
+Air: vertical UV flip. Original PNG pixels preserved. Water: original icon retained pending new artwork.

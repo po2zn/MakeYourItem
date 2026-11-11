@@ -16,8 +16,9 @@ public partial class ForgeMvp
  public void GameCodeBounds(int id,Rect rect){var w=codeWindows.Find(v=>v.id==id);if(w!=null)w.rect=rect;}
  public void GameCodeAction(int id,string action){int index=codeWindows.FindIndex(w=>w.id==id);if(index<0)return;activeWindow=index;source=codeWindows[index].text;workspaceWindow=codeWindows[index].rect;var w=codeWindows[index];switch(action){case "run":Execute(false);break;case "step":Execute(true);break;case "stop":StopExecution(true);break;case "close":deleteWindowId=id;break;case "reveal":if(w.diagnostic!=null){if(w.collapsed){w.collapsed=false;w.rect.height=w.expandedHeight;}w.diagnostic.GetLineSpan(out int start,out int length);hierarchyGame.Refresh();hierarchyGame.codes[id].Reveal(start);}break;case "collapse":if(!w.collapsed){w.expandedHeight=w.rect.height;w.rect.height=36;}else w.rect.height=w.expandedHeight;w.collapsed=!w.collapsed;break;}hierarchyGame.Refresh();}
  public void GameWorkspaceMove(Vector2 delta){workspaceOffset+=new Vector2(delta.x,-delta.y)/workspaceZoom;}
- public void GameWorkspaceZoom(float delta,Vector2 position){if(EventSystem.current?.currentInputModule is UnityEngine.InputSystem.UI.InputSystemUIInputModule module)delta/=Mathf.Max(.001f,module.scrollDeltaPerTick);float next=Mathf.Clamp(workspaceZoom*Mathf.Pow(1.08f,Mathf.Clamp(delta,-4,4)),.25f,2);var p=new Vector2(position.x,Screen.height-position.y);workspaceOffset+=p/next-p/workspaceZoom;workspaceZoom=next;}
+ public void GameWorkspaceZoom(float delta,Vector2 position){if(EventSystem.current?.currentInputModule is UnityEngine.InputSystem.UI.InputSystemUIInputModule module)delta/=Mathf.Max(.001f,module.scrollDeltaPerTick);float next=Mathf.Clamp(workspaceZoom*Mathf.Pow(1.08f,Mathf.Clamp(delta,-4,4)),.25f,2.5f);var p=new Vector2(position.x,Screen.height-position.y);workspaceOffset+=p/next-p/workspaceZoom;workspaceZoom=next;}
  public void GameTutorialInput(string value){tutorialInput=value;}
+ void SetDaylightForDebug(){if(HierarchyBusy||tutorialAnimating)return;DayCycle.SetDaylightForDebug();SaveProgress();}
  public void GameUIAction(string key){
  if(key.StartsWith("guide-")||key=="guide-copy"){GameGuideAction(key);return;}
  if(key.StartsWith("product:")){int.TryParse(key.Substring(8),out selectedProductId);return;}
@@ -34,6 +35,7 @@ public partial class ForgeMvp
  case "sell":SellProduct(selectedProductId);break;case "delete-no":deleteWindowId=-1;break;case "delete-yes":int index=codeWindows.FindIndex(w=>w.id==deleteWindowId);if(index>=0)codeWindows.RemoveAt(index);activeWindow=Mathf.Clamp(activeWindow,0,Mathf.Max(0,codeWindows.Count-1));source=codeWindows.Count>0?codeWindows[activeWindow].text:"";deleteWindowId=-1;break;
  case "tutorial":OpenTutorial();break;case "tutorial-close":CloseTutorial();break;case "tutorial-start":if(!tutorialAnimating)StartCoroutine(RevealTutorialLesson());break;
  case "tutorial-submit":if(!tutorialAnimating)SubmitTutorial();break;case "tutorial-prev":PreviousTutorial();break;case "tutorial-hint":tutorialHint=!tutorialHint;break;case "tutorial-copy":GUIUtility.systemCopyBuffer=lesson.Code;break;case "tutorial-restart":RestartTutorialFromDebug();break;
+ case "daylight":SetDaylightForDebug();break;
  case "day":if(!HierarchyBusy){DayCycle.Clock.Restore(DayCycle.Day+1,DayCycle.CurrentHour);SaveProgress();}break;case "reset":ResetProgressForDebug();break;
  case "ending":endingSeen=false;showProgress=false;break;case "ending-continue":endingSeen=true;SaveProgress();break;
  }

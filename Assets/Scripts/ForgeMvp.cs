@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -166,8 +166,9 @@ public partial class ForgeMvp : MonoBehaviour
     {
         for(int i=0;i<3;i++)if(StatusTileRect(i).Contains(point))return true;
         for(int i=0;i<4;i++)if(ToolbarButtonRect(i).Contains(point))return true;
-        return DebugToggleRect.Contains(point)||ProgressButtonRect.Contains(point)
-            ||materialHud.Contains(point,Mathf.Max(144,Screen.width),materialStocks,MaterialTop);
+        // Material stocks are a display-only overlay: clicks, drags and wheel
+        // events belong to the code/book window or workspace underneath them.
+        return DebugToggleRect.Contains(point)||ProgressButtonRect.Contains(point);
     }
     int products => shop.Count;
     int selectedProductId = -1;
@@ -342,10 +343,12 @@ public partial class ForgeMvp : MonoBehaviour
         DayCycle = GetComponent<ForgeDayCycle>();
         if (!DayCycle) DayCycle = gameObject.AddComponent<ForgeDayCycle>();
         InitializeTitle();
-        var bench = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        bench.name = "Temporary Workbench";
-        bench.transform.position = new Vector3(2, .5f, 0);
-        bench.transform.localScale = new Vector3(3, .3f, 2);
+        if (!craftMotion.UsesWorkshopAssets) {
+            var bench = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            bench.name = "Temporary Workbench";
+            bench.transform.position = new Vector3(2, .5f, 0);
+            bench.transform.localScale = new Vector3(3, .3f, 2);
+        }
     }
     public static Evaluation Evaluate(string source, int availableGold = int.MaxValue, int availableIron = int.MaxValue, string owner = "", uint seed = 1, IReadOnlyDictionary<int,long> materialStocks = null, ForgeTechnology technology = null, IReadOnlyDictionary<string,string> modules = null, Func<double> clockHour = null, ForgeRunContext context = null)
     { return BlueprintRuntime.Evaluate(source, availableGold, availableIron, owner, seed, materialStocks, technology, modules, clockHour, context); }
@@ -573,7 +576,7 @@ public partial class ForgeMvp : MonoBehaviour
         if (ev.type == EventType.ScrollWheel && !overWindow && !ToolbarContains(ev.mousePosition) && dragButton < 0)
         {
             Vector2 anchor = mouse - workspaceOffset;
-            workspaceZoom = Mathf.Clamp(workspaceZoom * Mathf.Pow(1.05f, -ev.delta.y), .4f, 2f);
+            workspaceZoom = Mathf.Clamp(workspaceZoom * Mathf.Pow(1.05f, -ev.delta.y), .4f, 2.5f);
             workspaceOffset = ev.mousePosition / workspaceZoom - anchor;
             hover = ""; hoverSince = Time.realtimeSinceStartup;
             UpdateWorkspaceCamera(); ev.Use();
@@ -733,7 +736,7 @@ public partial class ForgeMvp : MonoBehaviour
         GUI.Box(panel,"디버그 · 자원 추가 / 하루 넘기기");
         var debugButtonStyle=new GUIStyle(GUI.skin.button){font=codeStyle.font,fontSize=36};
         Rect viewport=new Rect(panel.x+8,panel.y+28,panel.width-16,panel.height-36);
-        debugResourceScroll=GUI.BeginScrollView(viewport,debugResourceScroll,new Rect(0,0,780,693));
+        debugResourceScroll=GUI.BeginScrollView(viewport,debugResourceScroll,new Rect(0,0,780,792));
         bool enabled=GUI.enabled;
         GUI.enabled=enabled&&!busy&&executionSession==null;
         for(int i=0;i<12;i++){
@@ -763,6 +766,7 @@ public partial class ForgeMvp : MonoBehaviour
         }
         GUI.enabled=enabled&&!busy&&executionSession==null&&!tutorialAnimating;
         if(ForgeTextLayout.Button(new Rect(0,594,768,87),new GUIContent("튜토리얼 처음부터 다시 시작","기존 도면과 재고는 유지하고 연습 진행만 초기화합니다."),debugButtonStyle))RestartTutorialFromDebug();
+        if(ForgeTextLayout.Button(new Rect(0,693,378,87),"낮으로 변경",debugButtonStyle))SetDaylightForDebug();
         GUI.enabled=enabled;
         GUI.EndScrollView();
     }

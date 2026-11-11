@@ -15,6 +15,9 @@ public sealed class ForgeMaterialHud
 {
     const float IconSize=63, CellWidth=216, RowHeight=75;
     readonly Texture2D[] icons=new Texture2D[10];
+    readonly bool[] ownedIcons=new bool[10];
+    ForgeMaterialIcons artwork;
+    bool artworkLoaded;
     GUIStyle numberStyle,tooltipStyle;
     static readonly string[] descriptions={"", "검날의 바탕이 되는 금속입니다.", "손잡이와 화로 연료에 쓰이는 재료입니다.", "달군 작업물을 냉각하는 재료입니다.", "화로의 열을 높이는 연료입니다.", "검날을 도금하는 귀금속입니다.", "마력을 담는 수정입니다.", "별무늬를 품은 특수 금속입니다.", "서리 문양을 만드는 냉각 재료입니다.", "특수 손잡이에 쓰이는 뼈입니다."};
     static readonly string[] suffixes={"","K","M","B","T","Q"};
@@ -31,9 +34,16 @@ public sealed class ForgeMaterialHud
     public Texture2D GetIcon(int id)
     {
         if(id<0||id>=icons.Length)throw new ArgumentOutOfRangeException(nameof(id));
-        if(!icons[id])icons[id]=MakeIcon(id);
+        if(!artworkLoaded){artwork=Resources.Load<ForgeMaterialIcons>("BlacksmithMaterialIcons");artworkLoaded=true;}
+        if(!icons[id]){
+            if(artwork&&id<artwork.textures.Length&&artwork.textures[id])icons[id]=artwork.textures[id];
+            else{icons[id]=MakeIcon(id);ownedIcons[id]=true;}
+        }
         return icons[id];
     }
+    public Rect GetIconUV(int id){GetIcon(id);return artwork&&artwork.textures[id]?artwork.Region(id):new Rect(0,0,1,1);}
+    public float GetIconAspect(int id){var t=GetIcon(id);var uv=GetIconUV(id);return Mathf.Abs(t.width*uv.width/(t.height*uv.height));}
+    public void DrawIcon(Rect area,int id){float ratio=GetIconAspect(id);var size=ratio>area.width/area.height?new Vector2(area.width,area.width/ratio):new Vector2(area.height*ratio,area.height);var rect=new Rect(area.center-size*.5f,size);GUI.DrawTextureWithTexCoords(rect,GetIcon(id),GetIconUV(id),true);}
     public float Height(float width,ForgeMaterialStock[] stocks,float top=42)
     {
         int count=2;for(int id=2;id<=9;id++)if(Find(stocks,id)!=null)count++;
@@ -65,7 +75,7 @@ public sealed class ForgeMaterialHud
             var stock=Find(stocks,id);if(id>1&&stock==null)continue;
             long count=id==0?0:id==1?iron:stock.count;
             Rect icon=CellRect(index++,availableWidth,top);icon.width=IconSize;
-            GUI.DrawTexture(icon,GetIcon(id));
+            DrawIcon(icon,id);
             ForgeTextLayout.Label(new Rect(icon.xMax+6,icon.y,CellWidth-IconSize-10,IconSize),id==0?"무제한":FormatCount(count),numberStyle);
             if(CellRect(index-1,availableWidth,top).Contains(Event.current.mousePosition))tooltip=ForgeMaterialGuide.Entries[id].Name+" · 재료 번호 "+id+"\n"+(id==0?"무제한 · 재고 소비 없음":count.ToString("N0",CultureInfo.InvariantCulture)+"개")+"\n"+(id==0?"작업대와 냉각에 사용할 수 있습니다.":descriptions[id]);
         }
@@ -100,5 +110,5 @@ public sealed class ForgeMaterialHud
         }
         texture.SetPixels(pixels);texture.Apply(false,Application.isPlaying);return texture;
     }
-    public void Dispose(){foreach(var icon in icons)if(icon){if(Application.isPlaying)UnityEngine.Object.Destroy(icon);else UnityEngine.Object.DestroyImmediate(icon);}}
+    public void Dispose(){for(int i=0;i<icons.Length;i++)if(icons[i]&&ownedIcons[i]){if(Application.isPlaying)UnityEngine.Object.Destroy(icons[i]);else UnityEngine.Object.DestroyImmediate(icons[i]);}}
 }

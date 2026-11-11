@@ -9,13 +9,24 @@ public sealed class ForgeGameUI:MonoBehaviour
  readonly Dictionary<string,Transform> nodes=new Dictionary<string,Transform>();readonly Dictionary<string,Text> texts=new Dictionary<string,Text>();readonly Dictionary<string,Button> buttons=new Dictionary<string,Button>();readonly Dictionary<string,InputField> inputs=new Dictionary<string,InputField>();
  public readonly Dictionary<int,ForgeCodeView> codes=new Dictionary<int,ForgeCodeView>();readonly Dictionary<int,Button> sales=new Dictionary<int,Button>();
  ForgeMvp game; float nextRefresh;int screenWidth,screenHeight,layoutPasses;public bool Bound=>game!=null;
- public void Bind(ForgeMvp owner){if(game==owner)return;game=owner;EnsureAirMaterial();Font.textureRebuilt+=FontRebuilt;foreach(var t in GetComponentsInChildren<Transform>(true)){nodes[t.name]=t;if(t.TryGetComponent<Text>(out var text))texts[t.name]=text;if(t.TryGetComponent<Button>(out var button))buttons[t.name]=button;if(t.TryGetComponent<InputField>(out var input))inputs[t.name]=input;}foreach(var a in GetComponentsInChildren<ForgeUIAction>(true)){string key=a.action;a.button.onClick.AddListener(()=>{ForgeMouseTrace.Mark("UI_CLICK",key);game.GameUIAction(key);Refresh();});}foreach(var hover in GetComponentsInChildren<ForgeUIHover>(true))hover.Bind(this);inputs["GuideSearch"].onValueChanged.AddListener(_=>game.GameGuideSearch());ForgeCodeColors.Apply(inputs["TutorialInput"].textComponent);inputs["TutorialInput"].onValueChanged.AddListener(value=>game.GameTutorialInput(value));}
+ public void Bind(ForgeMvp owner){if(game==owner)return;game=owner;EnsureAirMaterial();ConfigureMaterialInput();Font.textureRebuilt+=FontRebuilt;foreach(var t in GetComponentsInChildren<Transform>(true)){nodes[t.name]=t;if(t.TryGetComponent<Text>(out var text))texts[t.name]=text;if(t.TryGetComponent<Button>(out var button))buttons[t.name]=button;if(t.TryGetComponent<InputField>(out var input))inputs[t.name]=input;}foreach(var a in GetComponentsInChildren<ForgeUIAction>(true)){string key=a.action;a.button.onClick.AddListener(()=>{ForgeMouseTrace.Mark("UI_CLICK",key);game.GameUIAction(key);Refresh();});}foreach(var hover in GetComponentsInChildren<ForgeUIHover>(true))hover.Bind(this);inputs["GuideSearch"].onValueChanged.AddListener(_=>game.GameGuideSearch());ForgeCodeColors.Apply(inputs["TutorialInput"].textComponent);inputs["TutorialInput"].onValueChanged.AddListener(value=>game.GameTutorialInput(value));}
+ void EnsureDaylightButton(){
+ var actions=GetComponentsInChildren<ForgeUIAction>(true);
+ foreach(var a in actions)if(a.action=="daylight")return;
+ foreach(var a in actions)if(a.action=="day"){
+ var clone=Instantiate(a.gameObject,a.transform.parent);clone.name="SetDaylight";clone.transform.SetSiblingIndex(a.transform.GetSiblingIndex()+1);
+ var action=clone.GetComponent<ForgeUIAction>();action.action="daylight";action.button.onClick=new Button.ButtonClickedEvent();
+ var label=clone.GetComponentInChildren<Text>(true);label.name="SetDaylightLabel";label.text="낮으로 변경";return;}
+ }
  void EnsureAirMaterial(){
+ EnsureDaylightButton();
  var source=GetComponentsInChildren<ForgeUIHover>(true);foreach(var h in source)if(h.name=="MaterialTile0")return;
  foreach(var h in source)if(h.name=="MaterialTile1"){
  var tile=Instantiate(h.gameObject,h.transform.parent);tile.name="MaterialTile0";tile.transform.SetSiblingIndex(h.transform.GetSiblingIndex());
- foreach(var t in tile.GetComponentsInChildren<Transform>(true)){if(t.name=="MaterialIcon1"){t.name="MaterialIcon0";airIcons=new ForgeMaterialHud();t.GetComponent<RawImage>().texture=airIcons.GetIcon(0);}else if(t.name=="MaterialCount1")t.name="MaterialCount0";}return;}}
- ForgeMaterialHud airIcons;bool smithHelp;
+ foreach(var t in tile.GetComponentsInChildren<Transform>(true)){if(t.name=="MaterialIcon1"){var original=h.GetComponentInChildren<RawImage>(true);var rect=(RectTransform)t;if(original&&iconSlots.TryGetValue(original,out var slot)){rect.sizeDelta=new Vector2(slot.x,slot.y);rect.anchoredPosition=new Vector2(slot.z,slot.w);}t.name="MaterialIcon0";if(airIcons==null)airIcons=new ForgeMaterialHud();t.GetComponent<RawImage>().texture=airIcons.GetIcon(0);}else if(t.name=="MaterialCount1")t.name="MaterialCount0";}return;}}
+ ForgeMaterialHud airIcons;bool smithHelp,materialHelp;
+ readonly List<ForgeUIHover> materialHovers=new List<ForgeUIHover>();
+ RectTransform materialViewport;
  readonly List<RaycastResult> hoverHits=new List<RaycastResult>();
  void UpdateSmithHover(){
 #if ENABLE_INPUT_SYSTEM
@@ -23,10 +34,21 @@ public sealed class ForgeGameUI:MonoBehaviour
  if(mouse==null)return;
  Vector2 point=mouse.position.ReadValue();
  hoverHits.Clear();if(EventSystem.current)EventSystem.current.RaycastAll(new PointerEventData(EventSystem.current){position=point},hoverHits);
- bool blocked=false;foreach(var hit in hoverHits){if(hit.gameObject.GetComponent<ForgeWorkspacePan>()!=null)continue;if(smithHelp&&hit.gameObject.transform.IsChildOf(codeHelp))return;blocked=true;break;}
+ bool blocked=false;foreach(var hit in hoverHits){if(hit.gameObject.transform.IsChildOf(codeHelp))continue;blocked=hit.gameObject.GetComponent<ForgeWorkspacePan>()==null;break;}
+ // Observe screen rectangles without making materials raycast targets. A
+ // foreground window/button always gets both input and tooltip priority.
+ var material=FindMaterialHover(point,blocked||mouse.leftButton.isPressed||mouse.rightButton.isPressed||mouse.middleButton.isPressed);
+ if(material!=null){ShowCodeHelp(material.description,point);materialHelp=true;return;}
  string info=blocked?null:game.SmithHoverInfo(point);
- if(info!=null){ShowCodeHelp(info,point);smithHelp=true;}else if(smithHelp){HideCodeHelp();smithHelp=false;}
+ if(info!=null){ShowCodeHelp(info,point);smithHelp=true;}else if(smithHelp||materialHelp)HideCodeHelp();
 #endif
+ }
+ ForgeUIHover FindMaterialHover(Vector2 point,bool blocked){
+ if(blocked||!materialViewport||!materialViewport.gameObject.activeInHierarchy)return null;
+ Camera camera=canvas&&canvas.renderMode!=RenderMode.ScreenSpaceOverlay?canvas.worldCamera:null;
+ if(!RectTransformUtility.RectangleContainsScreenPoint(materialViewport,point,camera))return null;
+ foreach(var hover in materialHovers)if(hover&&hover.gameObject.activeInHierarchy&&!string.IsNullOrEmpty(hover.description)&&RectTransformUtility.RectangleContainsScreenPoint((RectTransform)hover.transform,point,camera))return hover;
+ return null;
  }
  readonly List<RaycastResult> traceHits=new List<RaycastResult>();
  static string TracePath(Transform target){if(!target)return "none";string path=target.name;for(var p=target.parent;p!=null;p=p.parent)path=p.name+"/"+path;return path;}
@@ -45,12 +67,37 @@ public sealed class ForgeGameUI:MonoBehaviour
  if(mouse.leftButton.wasReleasedThisFrame)ForgeMouseTrace.Mark("UI_POINTER_UP",state);
 #endif
  }
- public void ShowCodeHelp(string value,Vector2 pointer){codeHelp.gameObject.SetActive(true);codeHelp.SetAsLastSibling();codeHelp.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal,Mathf.Min(420,((RectTransform)transform).rect.width-24));codeHelpText.text=value;Canvas.ForceUpdateCanvases();float height=Mathf.Min(((RectTransform)transform).rect.height-24,codeHelpText.preferredHeight+24);codeHelp.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical,height);RectTransformUtility.ScreenPointToLocalPointInRectangle((RectTransform)transform,pointer,null,out var p);var root=(RectTransform)transform;codeHelp.anchoredPosition=new Vector2(Mathf.Clamp(p.x+16,root.rect.xMin,root.rect.xMax-codeHelp.rect.width),Mathf.Clamp(p.y-16,root.rect.yMin+height,root.rect.yMax));}
- public void HideCodeHelp(){if(codeHelp)codeHelp.gameObject.SetActive(false);}
+ public void ShowCodeHelp(string value,Vector2 pointer){smithHelp=false;materialHelp=false;codeHelp.gameObject.SetActive(true);codeHelp.SetAsLastSibling();codeHelp.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal,Mathf.Min(420,((RectTransform)transform).rect.width-24));codeHelpText.text=value;Canvas.ForceUpdateCanvases();float height=Mathf.Min(((RectTransform)transform).rect.height-24,codeHelpText.preferredHeight+24);codeHelp.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical,height);RectTransformUtility.ScreenPointToLocalPointInRectangle((RectTransform)transform,pointer,null,out var p);var root=(RectTransform)transform;codeHelp.anchoredPosition=new Vector2(Mathf.Clamp(p.x+16,root.rect.xMin,root.rect.xMax-codeHelp.rect.width),Mathf.Clamp(p.y-16,root.rect.yMin+height,root.rect.yMax));}
+ public void HideCodeHelp(){smithHelp=false;materialHelp=false;if(codeHelp)codeHelp.gameObject.SetActive(false);}
  public void Refresh(){nextRefresh=Time.unscaledTime+.15f;if(game)game.RefreshGameUI();}
  void FontRebuilt(Font font){layoutPasses=2;}
  void OnDestroy(){airIcons?.Dispose();Font.textureRebuilt-=FontRebuilt;}
- void OnEnable(){layoutPasses=2;}
+ void OnEnable(){layoutPasses=2;ConfigureMaterialInput();}
+ // The material strip is informational. Neither its transparent graphics nor
+ // the toolbar background may win raycasts over windows/the workspace below.
+ void ConfigureMaterialInput(){
+ ApplyMaterialArtwork();
+ materialHovers.Clear();materialViewport=null;
+ if(codeHelp)foreach(var graphic in codeHelp.GetComponentsInChildren<UnityEngine.UI.Graphic>(true))graphic.raycastTarget=false;
+ foreach(var t in GetComponentsInChildren<Transform>(true)){
+ if(t.name=="Toolbar"&&t.TryGetComponent<UnityEngine.UI.Graphic>(out var background))background.raycastTarget=false;
+ if(t.name!="MaterialsScroll")continue;
+ foreach(var graphic in t.GetComponentsInChildren<UnityEngine.UI.Graphic>(true))graphic.raycastTarget=false;
+ foreach(var scroll in t.GetComponentsInChildren<UnityEngine.UI.ScrollRect>(true)){materialViewport=scroll.viewport;scroll.StopMovement();scroll.enabled=false;}
+ foreach(var hover in t.GetComponentsInChildren<ForgeUIHover>(true)){hover.enabled=false;materialHovers.Add(hover);}
+ }
+ }
+ readonly Dictionary<RawImage,Vector4> iconSlots=new Dictionary<RawImage,Vector4>();
+ void ApplyMaterialArtwork(){
+ if(airIcons==null)airIcons=new ForgeMaterialHud();
+ foreach(var icon in GetComponentsInChildren<RawImage>(true)){
+ if(!icon.name.StartsWith("MaterialIcon")||!int.TryParse(icon.name.Substring(12),out int id)||id<0||id>9)continue;
+ var rect=icon.rectTransform;if(!iconSlots.TryGetValue(icon,out var slot)){slot=new Vector4(rect.sizeDelta.x,rect.sizeDelta.y,rect.anchoredPosition.x,rect.anchoredPosition.y);iconSlots[icon]=slot;}
+ icon.texture=airIcons.GetIcon(id);icon.uvRect=airIcons.GetIconUV(id);icon.color=Color.white;
+ float aspect=airIcons.GetIconAspect(id);var box=new Vector2(slot.x,slot.y);var size=aspect>box.x/box.y?new Vector2(box.x,box.x/aspect):new Vector2(box.y*aspect,box.y);
+ rect.sizeDelta=size;rect.anchoredPosition=new Vector2(slot.z,slot.w)+Vector2.Scale(box-size,new Vector2(.5f,.5f)-rect.pivot);
+ }
+ }
  void LateUpdate(){if(game)UpdateSmithHover();if(layoutPasses<=0)return;layoutPasses--;foreach(var group in GetComponentsInChildren<VerticalLayoutGroup>(false))LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)group.transform);}
  void OnDisable(){HideCodeHelp();}
  void Update(){if(!game)return;TracePointerHit();if(screenWidth!=Screen.width||screenHeight!=Screen.height){screenWidth=Screen.width;screenHeight=Screen.height;layoutPasses=3;game.ClampGameCodeWindows();}

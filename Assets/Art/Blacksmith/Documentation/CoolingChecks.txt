@@ -1,0 +1,3 @@
+PASS coolant 0: visible motion, vapor=10, cold blade, withdrawal/restoration, 4 receipts
+PASS coolant 3: visible motion, vapor=24, cold blade, withdrawal/restoration, 4 receipts
+PASS coolant 8: visible motion, vapor=24, cold blade, withdrawal/restoration, 4 receipts

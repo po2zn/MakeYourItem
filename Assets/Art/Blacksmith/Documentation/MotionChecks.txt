@@ -1,0 +1,7 @@
+step=1 gripError=0.0000 front=0.5800 foot=0.1180 forgeClearance=0.9618 hammerError=0.0000 position=(32.110, 0.000, 0.580)
+step=2 gripError=0.0000 front=0.3000 foot=0.1180 forgeClearance=0.5485 hammerError=0.0000 position=(32.358, 0.000, 0.995)
+step=3 gripError=0.0000 front=0.5800 foot=0.1180 forgeClearance=0.5444 hammerError=0.0000 position=(32.110, 0.000, 0.580)
+step=4 gripError=0.0000 front=0.1355 foot=0.1180 forgeClearance=0.3254 hammerError=0.0000 position=(33.250, 0.000, 2.800)
+step=2 gripError=0.0000 front=0.3000 foot=0.1180 forgeClearance=0.7834 hammerError=0.0000 position=(32.358, 0.000, 0.545)
+step=3 gripError=0.0000 front=0.5800 foot=0.1180 forgeClearance=1.0218 hammerError=0.0000 position=(32.110, 0.000, 0.580)
+step=4 gripError=0.0000 front=0.1800 foot=0.1180 forgeClearance=1.0218 hammerError=0.0000 position=(32.110, 0.000, 0.580)

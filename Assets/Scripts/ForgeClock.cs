@@ -17,6 +17,11 @@ public sealed class ForgeClock
         if(day<1||double.IsNaN(hour)||double.IsInfinity(hour)||hour<0||hour>=24)throw new ArgumentOutOfRangeException();
         Day=day;Hour=hour;DayChanged?.Invoke(Day);
     }
+    public void SetHour(double hour)
+    {
+        if(double.IsNaN(hour)||double.IsInfinity(hour)||hour<0||hour>=24)throw new ArgumentOutOfRangeException(nameof(hour));
+        Hour=hour;
+    }
     public void Advance(double realSeconds, double secondsPerDay)
     {
         if (double.IsNaN(realSeconds) || double.IsInfinity(realSeconds) || realSeconds < 0)

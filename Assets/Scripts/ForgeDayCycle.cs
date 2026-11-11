@@ -84,6 +84,11 @@ public sealed class ForgeDayCycle : MonoBehaviour, ISerializationCallbackReceive
         if (initialized) ApplyLighting();
     }
     void AnnounceDay(int day) { announcementAge = 0; }
+    public void SetDaylightForDebug()
+    {
+        Clock.SetHour(12);
+        if(initialized)ApplyLighting();
+    }
     public static float Fade(float age)
     {
         if (age < 0 || age >= 4) return 0;
@@ -102,7 +107,7 @@ public sealed class ForgeDayCycle : MonoBehaviour, ISerializationCallbackReceive
         moon.intensity = .45f * Mathf.Clamp01(-direction.y * 4);
         RenderSettings.sun = daylight > .5f ? sun : moon;
         RenderSettings.ambientLight = Color.Lerp(new Color(.13f, .17f, .27f), new Color(.48f, .49f, .52f), daylight);
-        if (sceneCamera) sceneCamera.backgroundColor = Color.Lerp(new Color(.025f, .04f, .09f), new Color(.32f, .46f, .62f), daylight);
+        if (sceneCamera) sceneCamera.backgroundColor = Color.Lerp(new Color(.03f, .046f, .098f), new Color(.32f, .46f, .62f), daylight);
         var center = new Vector3(2, 1, 5);
         sunDisc.position = center + direction * 7;
         moonDisc.position = center - direction * 7;

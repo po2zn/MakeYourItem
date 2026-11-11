@@ -1,0 +1,576 @@
+Assets\Art\Blacksmith\Characters.meta
+Assets\Art\Blacksmith\Documentation.meta
+Assets\Art\Blacksmith\Materials.meta
+Assets\Art\Blacksmith\Prefabs.meta
+Assets\Art\Blacksmith\Props.meta
+Assets\Art\Blacksmith\Source.meta
+Assets\Art\Blacksmith\Characters\CopperbeardRigged.meta
+Assets\Art\Blacksmith\Characters\MeshCharacter.meta
+Assets\Art\Blacksmith\Characters\Set_20261111_171823.meta
+Assets\Art\Blacksmith\Characters\Set_20261111_171955.meta
+Assets\Art\Blacksmith\Characters\CopperbeardRigged\Copperbeard.mat
+Assets\Art\Blacksmith\Characters\CopperbeardRigged\Copperbeard.mat.meta
+Assets\Art\Blacksmith\Characters\CopperbeardRigged\CopperbeardMesh.asset
+Assets\Art\Blacksmith\Characters\CopperbeardRigged\CopperbeardMesh.asset.meta
+Assets\Art\Blacksmith\Characters\MeshCharacter\Meshy_AI_Copperbeard_the_Craftsman_20261111_texture.fbx
+Assets\Art\Blacksmith\Characters\MeshCharacter\Meshy_AI_Copperbeard_the_Craftsman_20261111_texture.fbx.meta
+Assets\Art\Blacksmith\Characters\MeshCharacter\Meshy_AI_Copperbeard_the_Craftsman_20261111_texture.png
+Assets\Art\Blacksmith\Characters\MeshCharacter\Meshy_AI_Copperbeard_the_Craftsman_20261111_texture.png.meta
+Assets\Art\Blacksmith\Characters\Set_20261111_171823\Idle.anim
+Assets\Art\Blacksmith\Characters\Set_20261111_171823\Idle.anim.meta
+Assets\Art\Blacksmith\Characters\Set_20261111_171823\Run.anim
+Assets\Art\Blacksmith\Characters\Set_20261111_171823\Run.anim.meta
+Assets\Art\Blacksmith\Characters\Set_20261111_171823\Walk.anim
+Assets\Art\Blacksmith\Characters\Set_20261111_171823\Walk.anim.meta
+Assets\Art\Blacksmith\Characters\Set_20261111_171955\Idle.anim
+Assets\Art\Blacksmith\Characters\Set_20261111_171955\Idle.anim.meta
+Assets\Art\Blacksmith\Characters\Set_20261111_171955\Run.anim
+Assets\Art\Blacksmith\Characters\Set_20261111_171955\Run.anim.meta
+Assets\Art\Blacksmith\Characters\Set_20261111_171955\Walk.anim
+Assets\Art\Blacksmith\Characters\Set_20261111_171955\Walk.anim.meta
+Assets\Art\Blacksmith\Documentation\ActualGameChecks.txt
+Assets\Art\Blacksmith\Documentation\ActualGameChecks.txt.meta
+Assets\Art\Blacksmith\Documentation\anvil-1286cb-metadata.txt
+Assets\Art\Blacksmith\Documentation\anvil-1286cb-metadata.txt.meta
+Assets\Art\Blacksmith\Documentation\CoolingChecks.txt
+Assets\Art\Blacksmith\Documentation\CoolingChecks.txt.meta
+Assets\Art\Blacksmith\Documentation\CopperbeardOriginal.png
+Assets\Art\Blacksmith\Documentation\CopperbeardOriginal.png.meta
+Assets\Art\Blacksmith\Documentation\CopperbeardReplacement.md
+Assets\Art\Blacksmith\Documentation\FileManifest.txt
+Assets\Art\Blacksmith\Documentation\FileManifest.txt.meta
+Assets\Art\Blacksmith\Documentation\Integration.md
+Assets\Art\Blacksmith\Documentation\Integration.md.meta
+Assets\Art\Blacksmith\Documentation\IntegrationChecks.txt
+Assets\Art\Blacksmith\Documentation\IntegrationChecks.txt.meta
+Assets\Art\Blacksmith\Documentation\Integration_ActualGameCompleted.png
+Assets\Art\Blacksmith\Documentation\Integration_ActualGameCompleted.png.meta
+Assets\Art\Blacksmith\Documentation\Integration_Cooling0_Active.png
+Assets\Art\Blacksmith\Documentation\Integration_Cooling0_Active.png.meta
+Assets\Art\Blacksmith\Documentation\Integration_Cooling0_Approach.png
+Assets\Art\Blacksmith\Documentation\Integration_Cooling0_Approach.png.meta
+Assets\Art\Blacksmith\Documentation\Integration_Cooling0_Withdraw.png
+Assets\Art\Blacksmith\Documentation\Integration_Cooling0_Withdraw.png.meta
+Assets\Art\Blacksmith\Documentation\Integration_Cooling3_Active.png
+Assets\Art\Blacksmith\Documentation\Integration_Cooling3_Active.png.meta
+Assets\Art\Blacksmith\Documentation\Integration_Cooling3_Approach.png
+Assets\Art\Blacksmith\Documentation\Integration_Cooling3_Approach.png.meta
+Assets\Art\Blacksmith\Documentation\Integration_Cooling3_Withdraw.png
+Assets\Art\Blacksmith\Documentation\Integration_Cooling3_Withdraw.png.meta
+Assets\Art\Blacksmith\Documentation\Integration_Cooling8_Active.png
+Assets\Art\Blacksmith\Documentation\Integration_Cooling8_Active.png.meta
+Assets\Art\Blacksmith\Documentation\Integration_Cooling8_Approach.png
+Assets\Art\Blacksmith\Documentation\Integration_Cooling8_Approach.png.meta
+Assets\Art\Blacksmith\Documentation\Integration_Cooling8_Withdraw.png
+Assets\Art\Blacksmith\Documentation\Integration_Cooling8_Withdraw.png.meta
+Assets\Art\Blacksmith\Documentation\Integration_Process0.png
+Assets\Art\Blacksmith\Documentation\Integration_Process0.png.meta
+Assets\Art\Blacksmith\Documentation\Integration_Process1.png
+Assets\Art\Blacksmith\Documentation\Integration_Process1.png.meta
+Assets\Art\Blacksmith\Documentation\Integration_Process2.png
+Assets\Art\Blacksmith\Documentation\Integration_Process2.png.meta
+Assets\Art\Blacksmith\Documentation\Integration_Process3.png
+Assets\Art\Blacksmith\Documentation\Integration_Process3.png.meta
+Assets\Art\Blacksmith\Documentation\Integration_Process4.png
+Assets\Art\Blacksmith\Documentation\Integration_Process4.png.meta
+Assets\Art\Blacksmith\Documentation\README.md
+Assets\Art\Blacksmith\Documentation\README.md.meta
+Assets\Art\Blacksmith\Documentation\Set_20261111_171823.meta
+Assets\Art\Blacksmith\Documentation\Set_20261111_171955.meta
+Assets\Art\Blacksmith\Documentation\tradesman-metadata.txt
+Assets\Art\Blacksmith\Documentation\tradesman-metadata.txt.meta
+Assets\Art\Blacksmith\Documentation\Set_20261111_171823\BlacksmithPreview.unity
+Assets\Art\Blacksmith\Documentation\Set_20261111_171823\BlacksmithPreview.unity.meta
+Assets\Art\Blacksmith\Documentation\Set_20261111_171823\Metrics.csv
+Assets\Art\Blacksmith\Documentation\Set_20261111_171823\Metrics.csv.meta
+Assets\Art\Blacksmith\Documentation\Set_20261111_171823\Preview.png
+Assets\Art\Blacksmith\Documentation\Set_20261111_171823\Preview.png.meta
+Assets\Art\Blacksmith\Documentation\Set_20261111_171955\BlacksmithPreview.unity
+Assets\Art\Blacksmith\Documentation\Set_20261111_171955\BlacksmithPreview.unity.meta
+Assets\Art\Blacksmith\Documentation\Set_20261111_171955\Metrics.csv
+Assets\Art\Blacksmith\Documentation\Set_20261111_171955\Metrics.csv.meta
+Assets\Art\Blacksmith\Documentation\Set_20261111_171955\Preview.png
+Assets\Art\Blacksmith\Documentation\Set_20261111_171955\Preview.png.meta
+Assets\Art\Blacksmith\Documentation\Set_20261111_171955\Preview_1280x720.png
+Assets\Art\Blacksmith\Documentation\Set_20261111_171955\Preview_1280x720.png.meta
+Assets\Art\Blacksmith\Documentation\Set_20261111_171955\Preview_1920x1080.png
+Assets\Art\Blacksmith\Documentation\Set_20261111_171955\Preview_1920x1080.png.meta
+Assets\Art\Blacksmith\Documentation\Set_20261111_171955\Preview_3840x2160.png
+Assets\Art\Blacksmith\Documentation\Set_20261111_171955\Preview_3840x2160.png.meta
+Assets\Art\Blacksmith\Documentation\Set_20261111_171955\Preview_800x600.png
+Assets\Art\Blacksmith\Documentation\Set_20261111_171955\Preview_800x600.png.meta
+Assets\Art\Blacksmith\Documentation\Set_20261111_171955\Validation.txt
+Assets\Art\Blacksmith\Documentation\Set_20261111_171955\Validation.txt.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171823.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171955.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Blade_HeatIndependent.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Blade_HeatIndependent.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Brick.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Brick.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Charcoal.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Charcoal.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Embers.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Embers.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Flame.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Flame.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Gloves.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Gloves.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Ground.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Ground.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Imported_apron.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Imported_apron.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Imported_apronTie.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Imported_apronTie.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Imported_boot.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Imported_boot.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Imported_buckleMetal.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Imported_buckleMetal.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Imported_cut.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Imported_cut.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Imported_denim.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Imported_denim.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Imported_eye.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Imported_eye.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Imported_hair.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Imported_hair.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Imported_hatBand.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Imported_hatBand.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Imported_iron.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Imported_iron.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Imported_mouth.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Imported_mouth.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Imported_pouch.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Imported_pouch.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Imported_shirt.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Imported_shirt.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Imported_skin.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Imported_skin.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Imported_sole.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Imported_sole.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Imported_strap.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Imported_strap.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Imported_straw.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Imported_straw.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Imported_waistband.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Imported_waistband.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Imported_wood.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Imported_wood.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Imported_woodDark.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Imported_woodDark.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Iron.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Iron.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Leather.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Leather.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Stone.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Stone.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Water.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Water.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Wood.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171823\Wood.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Blade_HeatIndependent.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Blade_HeatIndependent.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Brick.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Brick.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Charcoal.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Charcoal.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Embers.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Embers.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Flame.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Flame.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Gloves.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Gloves.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Ground.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Ground.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Imported_apron.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Imported_apron.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Imported_apronTie.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Imported_apronTie.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Imported_boot.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Imported_boot.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Imported_buckleMetal.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Imported_buckleMetal.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Imported_cut.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Imported_cut.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Imported_denim.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Imported_denim.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Imported_eye.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Imported_eye.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Imported_hair.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Imported_hair.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Imported_hatBand.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Imported_hatBand.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Imported_iron.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Imported_iron.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Imported_mouth.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Imported_mouth.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Imported_pouch.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Imported_pouch.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Imported_shirt.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Imported_shirt.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Imported_skin.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Imported_skin.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Imported_sole.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Imported_sole.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Imported_strap.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Imported_strap.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Imported_straw.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Imported_straw.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Imported_waistband.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Imported_waistband.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Imported_wood.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Imported_wood.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Imported_woodDark.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Imported_woodDark.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Iron.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Iron.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Leather.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Leather.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Stone.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Stone.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Water.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Water.mat.meta
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Wood.mat
+Assets\Art\Blacksmith\Materials\Set_20261111_171955\Wood.mat.meta
+Assets\Art\Blacksmith\Prefabs\Blacksmith_Copperbeard.prefab
+Assets\Art\Blacksmith\Prefabs\Blacksmith_Copperbeard.prefab.meta
+Assets\Art\Blacksmith\Prefabs\Resources.meta
+Assets\Art\Blacksmith\Prefabs\Set_20261111_171823.meta
+Assets\Art\Blacksmith\Prefabs\Set_20261111_171955.meta
+Assets\Art\Blacksmith\Prefabs\Resources\BlacksmithWorkshopAssets.asset
+Assets\Art\Blacksmith\Prefabs\Resources\BlacksmithWorkshopAssets.asset.meta
+Assets\Art\Blacksmith\Prefabs\Set_20261111_171823\Anvil.prefab
+Assets\Art\Blacksmith\Prefabs\Set_20261111_171823\Anvil.prefab.meta
+Assets\Art\Blacksmith\Prefabs\Set_20261111_171823\Blacksmith.prefab
+Assets\Art\Blacksmith\Prefabs\Set_20261111_171823\Blacksmith.prefab.meta
+Assets\Art\Blacksmith\Prefabs\Set_20261111_171823\Forge.prefab
+Assets\Art\Blacksmith\Prefabs\Set_20261111_171823\Forge.prefab.meta
+Assets\Art\Blacksmith\Prefabs\Set_20261111_171823\Hammer.prefab
+Assets\Art\Blacksmith\Prefabs\Set_20261111_171823\Hammer.prefab.meta
+Assets\Art\Blacksmith\Prefabs\Set_20261111_171823\QuenchBucket.prefab
+Assets\Art\Blacksmith\Prefabs\Set_20261111_171823\QuenchBucket.prefab.meta
+Assets\Art\Blacksmith\Prefabs\Set_20261111_171823\Sword.prefab
+Assets\Art\Blacksmith\Prefabs\Set_20261111_171823\Sword.prefab.meta
+Assets\Art\Blacksmith\Prefabs\Set_20261111_171955\Anvil.prefab
+Assets\Art\Blacksmith\Prefabs\Set_20261111_171955\Anvil.prefab.meta
+Assets\Art\Blacksmith\Prefabs\Set_20261111_171955\Blacksmith.prefab
+Assets\Art\Blacksmith\Prefabs\Set_20261111_171955\Blacksmith.prefab.meta
+Assets\Art\Blacksmith\Prefabs\Set_20261111_171955\Forge.prefab
+Assets\Art\Blacksmith\Prefabs\Set_20261111_171955\Forge.prefab.meta
+Assets\Art\Blacksmith\Prefabs\Set_20261111_171955\Hammer.prefab
+Assets\Art\Blacksmith\Prefabs\Set_20261111_171955\Hammer.prefab.meta
+Assets\Art\Blacksmith\Prefabs\Set_20261111_171955\QuenchBucket.prefab
+Assets\Art\Blacksmith\Prefabs\Set_20261111_171955\QuenchBucket.prefab.meta
+Assets\Art\Blacksmith\Prefabs\Set_20261111_171955\Sword.prefab
+Assets\Art\Blacksmith\Prefabs\Set_20261111_171955\Sword.prefab.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\BackWall.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\BackWall.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Blade.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Blade.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\BottomCollider.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\BottomCollider.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 1.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 1.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 10.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 10.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 11.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 11.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 12.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 12.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 13.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 13.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 14.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 14.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 15.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 15.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 16.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 16.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 17.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 17.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 18.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 18.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 19.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 19.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 2.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 2.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 20.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 20.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 21.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 21.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 22.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 22.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 23.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 23.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 24.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 24.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 25.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 25.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 26.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 26.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 27.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 27.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 3.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 3.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 4.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 4.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 5.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 5.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 6.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 6.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 7.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 7.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 8.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 8.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 9.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal 9.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Coal.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Embers.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Embers.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Flame 1.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Flame 1.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Flame 2.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Flame 2.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Flame 3.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Flame 3.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Flame 4.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Flame 4.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Flame 5.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Flame 5.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Flame 6.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Flame 6.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Flame.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Flame.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Foundation.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Foundation.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\FrontBrick 1.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\FrontBrick 1.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\FrontBrick 10.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\FrontBrick 10.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\FrontBrick 11.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\FrontBrick 11.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\FrontBrick 2.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\FrontBrick 2.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\FrontBrick 3.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\FrontBrick 3.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\FrontBrick 4.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\FrontBrick 4.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\FrontBrick 5.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\FrontBrick 5.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\FrontBrick 6.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\FrontBrick 6.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\FrontBrick 7.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\FrontBrick 7.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\FrontBrick 8.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\FrontBrick 8.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\FrontBrick 9.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\FrontBrick 9.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\FrontBrick.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\FrontBrick.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Grip.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Grip.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Guard.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Guard.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Handle.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Handle.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\HandleLug 1.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\HandleLug 1.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\HandleLug.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\HandleLug.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Head.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Head.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\HearthFloor.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\HearthFloor.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\HollowStaves.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\HollowStaves.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\InnerBottom.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\InnerBottom.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\IronHoop 1.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\IronHoop 1.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\IronHoop.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\IronHoop.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\LeftLeatherGlove.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\LeftLeatherGlove.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\LeftWall.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\LeftWall.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Pommel.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\Pommel.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\PreviewGround.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\PreviewGround.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\RightLeatherGlove.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\RightLeatherGlove.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\RightWall.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\RightWall.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\WaterSurface.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\WaterSurface.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171823\WorkLip.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171823\WorkLip.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\BackWall.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\BackWall.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Blade.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Blade.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\BottomCollider.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\BottomCollider.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 1.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 1.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 10.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 10.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 11.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 11.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 12.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 12.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 13.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 13.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 14.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 14.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 15.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 15.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 16.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 16.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 17.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 17.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 18.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 18.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 19.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 19.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 2.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 2.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 20.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 20.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 21.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 21.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 22.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 22.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 23.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 23.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 24.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 24.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 25.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 25.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 26.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 26.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 27.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 27.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 3.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 3.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 4.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 4.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 5.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 5.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 6.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 6.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 7.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 7.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 8.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 8.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 9.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal 9.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Coal.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Embers.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Embers.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Flame 1.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Flame 1.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Flame 2.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Flame 2.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Flame 3.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Flame 3.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Flame 4.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Flame 4.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Flame 5.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Flame 5.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Flame 6.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Flame 6.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Flame.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Flame.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Foundation.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Foundation.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\FrontBrick 1.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\FrontBrick 1.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\FrontBrick 10.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\FrontBrick 10.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\FrontBrick 11.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\FrontBrick 11.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\FrontBrick 2.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\FrontBrick 2.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\FrontBrick 3.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\FrontBrick 3.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\FrontBrick 4.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\FrontBrick 4.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\FrontBrick 5.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\FrontBrick 5.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\FrontBrick 6.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\FrontBrick 6.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\FrontBrick 7.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\FrontBrick 7.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\FrontBrick 8.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\FrontBrick 8.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\FrontBrick 9.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\FrontBrick 9.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\FrontBrick.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\FrontBrick.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Grip.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Grip.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Guard.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Guard.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Handle.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Handle.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\HandleLug 1.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\HandleLug 1.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\HandleLug.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\HandleLug.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Head.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Head.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\HearthFloor.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\HearthFloor.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\HollowStaves.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\HollowStaves.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\InnerBottom.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\InnerBottom.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\IronHoop 1.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\IronHoop 1.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\IronHoop.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\IronHoop.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\LeftLeatherGlove.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\LeftLeatherGlove.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\LeftWall.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\LeftWall.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Pommel.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\Pommel.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\PreviewGround.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\PreviewGround.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\RightLeatherGlove.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\RightLeatherGlove.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\RightWall.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\RightWall.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\WaterSurface.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\WaterSurface.asset.meta
+Assets\Art\Blacksmith\Props\Set_20261111_171955\WorkLip.asset
+Assets\Art\Blacksmith\Props\Set_20261111_171955\WorkLip.asset.meta
+Assets\Art\Blacksmith\Source\anvil-1286cb.fbx
+Assets\Art\Blacksmith\Source\anvil-1286cb.fbx.meta
+Assets\Art\Blacksmith\Source\anvil-params.json
+Assets\Art\Blacksmith\Source\anvil-params.json.meta
+Assets\Art\Blacksmith\Source\ForgeWorkshopAssets.cs
+Assets\Art\Blacksmith\Source\ForgeWorkshopAssets.cs.meta
+Assets\Art\Blacksmith\Source\ForgeWorkshopVisuals.cs
+Assets\Art\Blacksmith\Source\ForgeWorkshopVisuals.cs.meta
+Assets\Art\Blacksmith\Source\tradesman-1707b9.fbx
+Assets\Art\Blacksmith\Source\tradesman-1707b9.fbx.meta
+Assets\Art\Blacksmith\Source\tradesman-1707b9.glb
+Assets\Art\Blacksmith\Source\tradesman-1707b9.glb.meta
+Assets\Editor\Blacksmith\BlacksmithAssetBuilder.cs
+Assets\Editor\Blacksmith\BlacksmithAssetBuilder.cs.meta
+Assets\Editor\Blacksmith\BlacksmithFinalCheck.cs
+Assets\Editor\Blacksmith\BlacksmithFinalCheck.cs.meta
+Assets\Editor\Blacksmith\BlacksmithInspect.cs
+Assets\Editor\Blacksmith\BlacksmithInspect.cs.meta
+Assets\Editor\Blacksmith\BlacksmithInstallIntegration.cs
+Assets\Editor\Blacksmith\BlacksmithInstallIntegration.cs.meta
+Assets\Editor\Blacksmith\BlacksmithIntegrationChecks.cs
+Assets\Editor\Blacksmith\BlacksmithIntegrationChecks.cs.meta
+Assets\Editor\Blacksmith\BlacksmithValidate.cs
+Assets\Editor\Blacksmith\BlacksmithValidate.cs.meta
+Assets\Editor\Blacksmith\CopperbeardSetup.cs
+Assets\Editor\Blacksmith\CopperbeardSetup.cs.meta

@@ -121,7 +121,7 @@ public partial class ForgeMvp
             }
         }finally{job.session.Dispose();if(smithJobs.TryGetValue(id,out var active)&&active==job)smithJobs.Remove(id);SaveProgress();}
     }
-    void StopSmithJobs(){foreach(var job in new List<SmithJob>(smithJobs.Values)){job.session?.Dispose();if(job.coroutine!=null)StopCoroutine(job.coroutine);}smithJobs.Clear();}
+    void StopSmithJobs(){foreach(var id in smithJobs.Keys)if(id<smithMotions.Count&&smithMotions[id])smithMotions[id].CancelCurrentAction();foreach(var job in new List<SmithJob>(smithJobs.Values)){job.session?.Dispose();if(job.coroutine!=null)StopCoroutine(job.coroutine);}smithJobs.Clear();}
     bool SpendSmithStep(Step step,ForgeProductionLedger ledger)
     {
         var needed=new Dictionary<int,int>();

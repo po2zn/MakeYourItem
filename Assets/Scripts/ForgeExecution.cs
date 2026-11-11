@@ -116,6 +116,7 @@ public partial class ForgeMvp
     }
     void StopExecution(bool announce)
     {
+        if(craftMotion)craftMotion.CancelCurrentAction();
         var session=executionSession;executionSession=null;session?.Dispose();
         foreach(var window in codeWindows){window.executionLine=0;window.revealExecution=false;}
         if(announce&&session!=null)report+="\n실행 중단 · 이미 소비한 재료는 돌아오지 않습니다.";

@@ -1,0 +1,13 @@
+User-supplied material artwork integration
+
+Source: Assets/Art/Blacksmith/Materials/재료/*.png. User-provided; separate licence information was not supplied. Original PNG pixels are preserved.
+Catalog: Assets/Art/Blacksmith/Prefabs/Resources/BlacksmithMaterialIcons.asset.
+Mapping: MaterialIconMapping.txt. File suffix numbers are not the game's material IDs.
+
+Nine new images are connected. Water (material 3) keeps the previous image because no separate water PNG was supplied. The icy orb is used for frostwater (material 8).
+Air is displayed with a vertical UV flip (top/bottom reflection). Horizontal UV flip is disabled. Set both flags on the catalog to rotate the whole image 180 degrees instead.
+
+Import: maximum 1024px, uncompressed RGBA, bilinear filtering, clamp wrapping, no mipmaps. Transparency retained. UV regions trim transparent margins with padding; display rectangles preserve aspect ratio. No AI upscaling or pixel repainting was needed.
+HUD, legacy HUD and legacy tutorial use ForgeMaterialHud. Fifteen material purchase/unlock cards in Assets/UI/ForgeResearchUI.prefab have serialized RawImage children referencing the same artwork, with titles moved into their own area. Existing scene files were not edited.
+
+Validation: runtime mapping/UV/aspect checks for ten HUD icons; fifteen live tree cards checked for texture references, title fit and icon/title separation; shared texture lifetime verified. Actual Game view screenshots captured and inspected at 800x600, 1280x720, 1920x1080 and 3840x2160. Minimum-size and unchanged numeric/English labels received local card-layout metric checks, not additional visual captures. See MaterialIconChecks.txt and MaterialResolutionChecks.txt.
