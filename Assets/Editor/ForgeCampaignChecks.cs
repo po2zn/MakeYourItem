@@ -57,8 +57,8 @@ public static class ForgeCampaignChecks
         foreach(var id in new[]{"function-Heat","function-Polish","material-5","function-Plate"})run.Buy(id);
         run.Recipe=Plated;
         run.Buy("material-7");run.Recipe=Star;
-        run.Buy("material-6");run.Buy("function-Charge");run.Recipe=Charged;
-        run.Buy("material-9");run.Buy("function-Refine");run.Recipe=Dragon;
+        run.Buy("function-Charge");run.Recipe=Charged;
+        run.Buy("function-Refine");run.Recipe=Dragon;
         run.Buy("function-Rune");run.Recipe=Final;
         var before=run.Craft(Final);
         Require(ForgeCampaign.IsMasterwork(before)&&!ForgeCampaign.CanComplete(run.Tech,before),"commission must be accepted");

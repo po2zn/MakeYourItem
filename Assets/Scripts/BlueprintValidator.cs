@@ -106,7 +106,7 @@ public sealed class BlueprintValidator
                 case BlueprintStatementKind.For:
                 case BlueprintStatementKind.While:
                     var type=Expr(s.Expr,names,false);
-                    if(s.Kind==BlueprintStatementKind.For ? !Known(type,BlueprintType.List,BlueprintType.Tuple) : !Known(type,BlueprintType.Bool,BlueprintType.Int))Error(s.Token,s.Kind==BlueprintStatementKind.For?"for 대상은 리스트 또는 튜플이어야 합니다.":"반복 조건은 bool 또는 정수여야 합니다. 0은 거짓, 0이 아닌 정수는 참입니다.");
+                    if(s.Kind==BlueprintStatementKind.For ? !Known(type,BlueprintType.List,BlueprintType.Tuple,BlueprintType.Int) : !Known(type,BlueprintType.Bool,BlueprintType.Int))Error(s.Token,s.Kind==BlueprintStatementKind.For?"for 대상은 정수, 리스트 또는 튜플이어야 합니다.":"반복 조건은 bool 또는 정수여야 합니다. 0은 거짓, 0이 아닌 정수는 참입니다.");
                     var local=new Dictionary<string,BlueprintType>(names);if(s.Kind==BlueprintStatementKind.For)local[s.Name]=BlueprintType.Int;
                     Statements(s.Body,local,function,loops+1,false);
                     // Loops may execute zero times; preserve only previously defined names.

@@ -98,7 +98,7 @@ public static class ForgeTechnologyChecks
         Require(!tech.TryPurchase(bundle,ref gold,ref iron,ref stocks,false,out _)&&!tech.MaterialAvailable(4)&&!tech.Owns(BlueprintFeature.Fuel)&&stocks==null,"insufficient bundle funds atomic");
         gold=2400;Require(tech.TryPurchase(bundle,ref gold,ref iron,ref stocks,false,out _)&&gold==0,"single bundle charge");
         Require(tech.MaterialAvailable(4)&&tech.Owns(BlueprintFeature.Fuel)&&stocks.Single(s=>s.material==4).unlocked&&stocks.Single(s=>s.material==4).count==0,"both unlock without granting stock");
-        gold=16;Require(tech.TryPurchase(ForgeTechnology.Find("stock-4"),ref gold,ref iron,ref stocks,false,out _,2)&&gold==0&&stocks.Single(s=>s.material==4).count==2,"coal remains repeatable stock purchase");
+        gold=40;Require(tech.TryPurchase(ForgeTechnology.Find("stock-4"),ref gold,ref iron,ref stocks,false,out _,2)&&gold==0&&stocks.Single(s=>s.material==4).count==2,"coal remains repeatable stock purchase");
         gold=5000;Require(!tech.TryPurchase(bundle,ref gold,ref iron,ref stocks,false,out _)&&gold==5000,"no double purchase");
         foreach(var ids in new[]{new[]{"material-4"},new[]{"function-Fuel"},new[]{"material-4","function-Fuel"}}){
             var old=new ForgeTechnology();old.Restore(Array.Empty<BlueprintFeature>(),ids);
@@ -137,10 +137,10 @@ public static class ForgeTechnologyChecks
         gold=root.Price;Require(tech.TryPurchase(root,ref gold,ref iron,ref stocks,false,out message)&&gold==0,message);
         Require(ForgeTechnology.ControlFeatures.All(tech.Owns),"all nine control forms unlocked");
         Require(!tech.Owns(ForgeTechnology.EnglishResearch),"Control root must not grant English");
-        gold=100000;
+        gold=1000000;
         Require(!tech.TryPurchase(ForgeTechnology.Find(ForgeTechnology.EnglishResearch),ref gold,ref iron,ref stocks,true,out message),"English requires Max");
-        foreach(var id in new[]{"function-Abs","function-Min","function-Max"})Require(tech.TryPurchase(ForgeTechnology.Find(id),ref gold,ref iron,ref stocks,true,out message),message);
-        Require(ForgeTechnology.Find(ForgeTechnology.EnglishResearch).Parents.SequenceEqual(new[]{"function-Max"}),"English follows Max");
+        foreach(var id in new[]{"function-Abs","function-Min"})Require(tech.TryPurchase(ForgeTechnology.Find(id),ref gold,ref iron,ref stocks,true,out message),message);
+        Require(ForgeTechnology.Find(ForgeTechnology.EnglishResearch).Parents.SequenceEqual(new[]{"function-Min"}),"English follows Max");
         Require(tech.TryPurchase(ForgeTechnology.Find(ForgeTechnology.EnglishResearch),ref gold,ref iron,ref stocks,false,out message),message);
         Require(tech.TryPurchase(ForgeTechnology.Find(ForgeTechnology.ImportResearch),ref gold,ref iron,ref stocks,false,out message),message);
         foreach(var source in samples)Require(ForgeMvp.Evaluate(source,technology:tech).error==null,"unlocked controls execute");
@@ -159,12 +159,13 @@ public static class ForgeTechnologyChecks
             var last=ForgeTechnology.Find("function-"+path[2]);int before=gold;
             Require(!tech.TryPurchase(last,ref gold,ref iron,ref stocks,false,out var reason)&&gold==before,"research cannot skip prerequisites");
             foreach(var feature in path){
+                if(tech.Owns(feature))continue;
                 var offer=ForgeTechnology.Find("function-"+feature);
                 Require(offer.Lane>=10&&offer.Parents.All(id=>id==ForgeTechnology.AutomationRoot||ForgeTechnology.Find(id).Lane>=10),"research prerequisites stay in research after common root");
                 Require(tech.TryPurchase(offer,ref gold,ref iron,ref stocks,false,out var message),message);
             }
         }
-        Require(gold==100000000-ForgeTechnology.Find(ForgeTechnology.AutomationRoot).Price-new[]{BlueprintFeature.Abs,BlueprintFeature.Min,BlueprintFeature.Max,BlueprintFeature.Len,BlueprintFeature.Set,BlueprintFeature.Random}.Sum(f=>ForgeTechnology.Find("function-"+f).Price)&&!tech.Owns(BlueprintFeature.Heat)&&stocks==null,"research independent of crafting, cost accounting");
+        Require(gold==100000000-ForgeTechnology.Find(ForgeTechnology.AutomationRoot).Price-new[]{BlueprintFeature.Abs,BlueprintFeature.Min,BlueprintFeature.Max,BlueprintFeature.Len,BlueprintFeature.Set,BlueprintFeature.Random}.Select(f=>ForgeTechnology.Find("function-"+f)).Distinct().Sum(o=>o.Price)&&!tech.Owns(BlueprintFeature.Heat)&&stocks==null,"research independent of crafting, cost accounting");
         Require(ForgeMvp.Evaluate("print(101(-3),000([1,2]),999([1,2]),1111([1]),1010(),66(1,2))",technology:tech).error==null,"research functions execute");
         var restored=new ForgeTechnology();restored.Restore(tech.Export(),tech.ExportNodes());
         Require(restored.ExportNodes().SequenceEqual(tech.ExportNodes()),"research save compatibility");

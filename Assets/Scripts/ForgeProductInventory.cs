@@ -127,6 +127,7 @@ public sealed class ForgeProductInventory : MonoBehaviour
                 cell.info.text=ForgeMaterialGuide.Find(entry.Product.Material).Name+" · 열 "+entry.Product.FinalHeat+"\n"+ForgeMaterialHud.FormatCount(ForgePricing.Quote(entry.Product).SalePrice)+"G";
                 if(preview==null)preview=new ForgeProductPreview();
                 cell.texture=preview.Render(entry.Product,cell.texture);cell.preview.texture=cell.texture;}
+            cell.sell.GetComponentInChildren<Text>(true).text=game.RowSaleUnlocked?"행 판매":"판매";
             cell.selected=cell.id==selected;cell.sell.gameObject.SetActive(cell.selected);cell.sell.interactable=cell.selected;cell.button.GetComponent<Image>().color=cell.selected?new Color(.22f,.4f,.55f):new Color(.12f,.17f,.23f);
         }
     }

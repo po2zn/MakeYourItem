@@ -8,6 +8,9 @@ public sealed class ForgeCraftMotion : MonoBehaviour
     ForgeWorkshopVisuals workshop;
     ForgeActionAudio fallbackAudio;
     uint motionGeneration;
+    public const float DestructionStunSeconds=2f;
+    float stunnedUntil;public bool IsStunned=>Time.time<stunnedUntil;
+    public IEnumerator DestructionReaction(){uint generation=motionGeneration;stunnedUntil=Time.time+DestructionStunSeconds;ActiveProcess=-3;Quaternion pose=smith?smith.localRotation:Quaternion.identity;if(workshop)workshop.BeginDestruction();else if(fallbackAudio)fallbackAudio.PlayDestruction();try{while(IsStunned&&generation==motionGeneration){float phase=1-(stunnedUntil-Time.time)/DestructionStunSeconds;if(workshop)workshop.DestructionPose(phase);else if(smith){float weight=Mathf.Sin(phase*Mathf.PI);smith.localRotation=pose*Quaternion.Euler(-18*weight,0,Mathf.Sin(phase*18)*6*weight);if(arm)arm.localRotation=Quaternion.Euler(-45*weight,0,-35*weight);}yield return null;}}finally{if(workshop)workshop.EndDestruction();else{if(smith)smith.localRotation=pose;if(arm)arm.localRotation=Quaternion.identity;}ActiveProcess=0;}}
     public bool UsesWorkshopAssets => workshop != null;
     public void CancelCurrentAction(){motionGeneration++;if(fallbackAudio)fallbackAudio.Stop();ActiveProcess=0;if(workshop)workshop.Cancel();else{if(fallbackCoal)fallbackCoal.SetActive(false);if(arm){arm.localRotation=Quaternion.identity;var tool=arm.Find("Hammer");if(tool)tool.gameObject.SetActive(true);}}}
     public void ReactToCodeError(){CancelCurrentAction();if(workshop)workshop.ReactToCodeError();}
@@ -51,6 +54,7 @@ public sealed class ForgeCraftMotion : MonoBehaviour
         smith = new GameObject("Blacksmith").transform;
         smith.SetParent(transform, false);
         smith.localPosition = new Vector3(1.2f, 0, 0);
+        fallbackAudio.Follow(smith);
         Shape("Apron", PrimitiveType.Capsule, smith, new Vector3(0, .85f, 0), new Vector3(.5f, .5f, .4f), new Color(.3f,.18f,.1f));
         apron=smith.Find("Apron").GetComponent<Renderer>();
         Shape("Head", PrimitiveType.Sphere, smith, new Vector3(0, 1.55f, 0), Vector3.one*.4f, new Color(.8f,.6f,.4f));
@@ -122,7 +126,7 @@ public sealed class ForgeCraftMotion : MonoBehaviour
         if(workshop){
             uint generation=motionGeneration;
             ActiveProcess=step.process;
-            try{yield return workshop.Play(step);if(generation==motionGeneration&&step.process>0)CompletedActions++;}
+            try{yield return workshop.Play(step);if(generation==motionGeneration&&step.data!=null&&step.data.destroyed)yield return DestructionReaction();if(generation==motionGeneration&&step.process>0)CompletedActions++;}
             finally{if(generation==motionGeneration){ActiveProcess=0;workshop.Cancel();}}
             yield break;
         }
@@ -134,7 +138,7 @@ public sealed class ForgeCraftMotion : MonoBehaviour
         }
         ActiveProcess = step.process;
         fallbackAudio.Begin(step);
-        var fallbackHammer=arm.Find("Hammer");if(fallbackHammer&&step.process==201)fallbackHammer.gameObject.SetActive(false);
+        var fallbackHammer=arm.Find("Hammer");if(fallbackHammer&&(step.process==201||step.process==7))fallbackHammer.gameObject.SetActive(false);
         if(step.process==8){yield return StokeFallback(step);yield break;}
         if(!pieces.TryGetValue(step.pieceId, out var work))
         {
@@ -161,12 +165,14 @@ public sealed class ForgeCraftMotion : MonoBehaviour
             work.transform.localPosition = Vector3.Lerp(start,destination,move);
             float swing = step.process==3 ? Mathf.Sin(Mathf.Clamp01((t-.4f)/.6f)*Mathf.PI*4)*55 : Mathf.Sin(t*Mathf.PI)*20;
             if(step.process==201){float press=t<ForgeActionAudio.SealContactTime?Mathf.SmoothStep(0,1,Mathf.InverseLerp(.4f,ForgeActionAudio.SealContactTime,t)):1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(ForgeActionAudio.SealContactTime,1,t));swing=-45*press;if(!sealApplied&&t>=ForgeActionAudio.SealContactTime){ApplyCraftAppearance(work,step);sealApplied=true;}}
-            arm.localRotation = Quaternion.Euler(0,0,swing);
+            if(step.process==7){float phase=Mathf.Clamp01((t-.4f)/.6f);swing=-20-30*Mathf.Repeat(phase*3,1);}
+            arm.localRotation = step.process==7?Quaternion.Euler(0,Mathf.Sin(Mathf.Clamp01((t-.4f)/.6f)*Mathf.PI*6)*25,swing):Quaternion.Euler(0,0,swing);
             work.GetComponent<Renderer>().material.color = Color.Lerp(from,to,t);
             elapsed += Time.deltaTime;
             yield return null;
         }
         fallbackAudio.Finish();
+        if(step.data!=null&&step.data.destroyed){work.SetActive(false);yield return DestructionReaction();}
         if(fallbackHammer)fallbackHammer.gameObject.SetActive(true);
         smith.localPosition=smithEnd;
         arm.localRotation=Quaternion.identity;

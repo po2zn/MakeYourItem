@@ -61,7 +61,7 @@ public partial class ForgeMvp
     };
     int SmithInt(object value){if(!(value is int))throw new ArgumentException("정수 인자가 필요합니다.");return (int)value;}
     int CheckSmith(int id){if(id<0||id>=blacksmiths.smiths.Count)throw new ArgumentException("고용하지 않은 대장장이 번호: "+id);return id;}
-    bool SmithBusy(int id)=>smithJobs.ContainsKey(id)||(id==0&&(busy||executionSession!=null));
+    bool SmithBusy(int id)=>(id<smithMotions.Count&&smithMotions[id]&&smithMotions[id].IsStunned)||smithJobs.ContainsKey(id)||(id==0&&(busy||executionSession!=null));
     object SmithCall(int current,BlueprintFeature feature,List<object> args)
     {
         blacksmiths.Tick(DayCycle.Day,SmithHours);
@@ -129,7 +129,7 @@ public partial class ForgeMvp
                     yield return smithMotions[id].Play(step);
                     if(job.session.Cancelled)yield break;
                     ProgressStep(step);if(step.refund>0)RefundMaterial(step.refund);
-                    if(step.finished)FinishSmithProduct(id,job.ledger.CompleteNext("대장장이 "+id,step.heat,step.shaped,step.traits,step.material,step.data,step.productionSeconds));
+                    if(step.finished&&FinishSmithProduct(id,job.ledger.CompleteNext("대장장이 "+id,step.heat,step.shaped,step.traits,step.material,step.data,step.productionSeconds))==null)yield return smithMotions[id].DestructionReaction();
                 }
                 if(job.session.Completed){if(evaluation.error!=null){AppendDebug("대장장이 "+id+" · "+evaluation.error);smithMotions[id].ReactToCodeError();}yield break;}
                 // Every worker owns its tick wait independently.
@@ -143,6 +143,9 @@ public partial class ForgeMvp
         return false;
     }
     void StopCodeExecution(int windowId){
+        var window=codeWindows.Find(w=>w.id==windowId);
+        if(window!=null){window.diagnostic=null;window.showDiagnostic=false;window.revealDiagnostic=false;window.diagnosticCaption="";window.diagnosticScroll=Vector2.zero;window.executionLine=0;window.revealExecution=false;if(reportError&&resultOwner==window.name){reportError=false;report="";}}
+        if(hierarchyGame)hierarchyGame.HideCodeHelp();
         if(executionSession!=null&&executionOwner!=null&&executionOwner.id==windowId)StopExecution(true);
         var ids=new List<int>();foreach(var pair in smithJobs)if(pair.Value.ownerId==windowId)ids.Add(pair.Key);
         foreach(int id in ids){var job=smithJobs[id];smithJobs.Remove(id);job.session.Dispose();if(job.coroutine!=null)StopCoroutine(job.coroutine);if(id<smithMotions.Count&&smithMotions[id])smithMotions[id].CancelCurrentAction();}

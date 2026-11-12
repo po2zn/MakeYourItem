@@ -35,12 +35,12 @@ public static class BlueprintGuideChecks {
  Require(entries.Single(e=>e.Id=="print").HeadingFor(false).Contains("print"),"print must remain documented");
 
  foreach(var e in entries){
-   Require(e.ShowResearch?e.ResearchFor(true).Length>0&&e.ResearchFor(false).Length>0:e.ResearchFor(true).Length==0&&e.ResearchFor(false).Length==0,"research section visibility "+e.Id);
+   Require(!e.ShowResearch&&e.ResearchFor(true).Length==0&&e.ResearchFor(false).Length==0,"research section visibility "+e.Id);
    foreach(var alias in BlueprintAliases.All.Where(a=>a.Symbol.Length>0))Require(!System.Text.RegularExpressions.Regex.IsMatch(e.ResearchFor(false),@"(?<![A-Za-z0-9_])"+alias.English+@"(?![A-Za-z0-9_])"),"research English leak "+e.Id+" / "+alias.English);
  }
  string treeGuide=BlueprintResearchGuide.Overview(true);
  foreach(var offer in ForgeTechnology.Offers)Require(treeGuide.Contains(offer.Kind==ForgePurchaseKind.Material?ForgeMaterialGuide.Find(offer.Material).Heading:offer.Title),"missing current tree offer "+offer.Id);
- Require(entries.Single(e=>e.Feature==BlueprintFeature.AutoSell).ResearchFor(false).Contains("자동판매 노드를 별도로 구매"),"auto-sell purchase metadata");
+ foreach(bool english in new[]{false,true})foreach(var offer in ForgeTechnology.Offers)Require(!BlueprintResearchGuide.OfferInfo(offer,english).Contains("선행 구매 필요"),"guide prerequisite text removed "+offer.Id);
  Require(!entries.Single(e=>e.Feature==BlueprintFeature.SmithRun).ShowResearch&&entries.Single(e=>e.Feature==BlueprintFeature.SmithRun).ResearchFor(false)==""&&entries.Single(e=>e.Feature==BlueprintFeature.SmithRun).NoteFor(false)=="","smith run guide shows usage without research or extra notes");
  var master=EvaluateGuide(entries.Single(e=>e.Id=="masterwork-example").Example);
  Require(master.error==null&&master.product.Data.materials[7]==1&&master.product.Data.materials[5]==1&&master.product.Data.materials[9]==1&&master.product.Data.materials[3]==2&&master.product.Data.materials[6]==4,"masterwork example stock requirements");

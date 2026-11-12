@@ -2,7 +2,14 @@ using UnityEngine;
 // One voice set per smith; normalized cues follow the same animation clock.
 public sealed class ForgeActionAudio:MonoBehaviour {
  AudioSource effects,walking,cooling;ForgeMvp.Step step;float previous=-1;
- AudioSource Voice(){var s=gameObject.AddComponent<AudioSource>();s.playOnAwake=false;s.spatialBlend=0;s.pitch=1;s.volume=ForgeAudioSettings.Sfx;return s;}
+ AudioClip destructionClip;
+ public void PlayDestruction(){Stop();if(!destructionClip){const int rate=44100;var data=new float[rate/2];uint seed=719;for(int i=0;i<data.Length;i++){float t=i/(float)rate;seed=seed*1664525u+1013904223u;float noise=(seed>>8)/(float)0xffffff*2-1;float attack=Mathf.Min(1,t/.0015f);data[i]=attack*(noise*.45f*Mathf.Exp(-t*28)+Mathf.Sin(2*Mathf.PI*730*t)*.2f*Mathf.Exp(-t*13)+Mathf.Sin(2*Mathf.PI*1730*t)*.13f*Mathf.Exp(-t*18))*Mathf.Clamp01((.5f-t)/.025f);}destructionClip=AudioClip.Create("Item shatter",data.Length,1,rate,false);destructionClip.SetData(data,0);}UpdatePosition();Volume();effects.PlayOneShot(destructionClip,.85f);}
+ void OnDestroy(){if(destructionClip)Destroy(destructionClip);}
+ Transform emitter,smith;
+ public void Follow(Transform target){smith=target;UpdatePosition();}
+ void UpdatePosition(){if(emitter)emitter.position=(smith?smith.position:transform.position)+Vector3.up;}
+ void LateUpdate(){UpdatePosition();}
+ AudioSource Voice(){if(!emitter){emitter=new GameObject("Smith sound source").transform;emitter.SetParent(transform,false);}var s=emitter.gameObject.AddComponent<AudioSource>();s.playOnAwake=false;s.spatialBlend=1;s.rolloffMode=AudioRolloffMode.Linear;s.minDistance=3;s.maxDistance=40;s.dopplerLevel=0;s.spread=0;s.pitch=1;s.volume=ForgeAudioSettings.Sfx;return s;}
  void Awake(){effects=Voice();walking=Voice();cooling=Voice();walking.loop=cooling.loop=true;}
  void OnEnable(){ForgeAudioSettings.Changed+=Volume;}
  void OnDisable(){ForgeAudioSettings.Changed-=Volume;Stop();}
@@ -17,6 +24,7 @@ public sealed class ForgeActionAudio:MonoBehaviour {
  public static int PolishStrokes(float previous,float current)=>(Crossed(previous,current,.4f)?1:0)+(Crossed(previous,current,.55f)?1:0)+(Crossed(previous,current,.7f)?1:0)+(Crossed(previous,current,.85f)?1:0);
  bool Cross(float t,float cue)=>Crossed(previous,t,cue);
  public void Frame(float t,bool moving){
+  UpdatePosition();
   if(step==null)return;var lib=ForgeSfxLibrary.Instance;if(!lib)return;
   Loop(walking,lib.walk,moving);
   if(step.process==1&&Cross(t,.4f))One(lib.place);

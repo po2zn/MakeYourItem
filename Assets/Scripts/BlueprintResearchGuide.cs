@@ -45,10 +45,11 @@ public static class BlueprintResearchGuide
         }
         return text.ToString();
     }
+    public static string FormatGold(string text)=>Regex.Replace(text,@"(?<![\w.,])([0-9]+(?:,[0-9]{3})*)(?=\s*(?:G(?![A-Za-z])|골드))",m=>long.TryParse(m.Value.Replace(",",""),out var amount)?ForgeMaterialHud.FormatCount(amount):m.Value);
     public static string VisibleProse(string text,ForgeTechnology tech,ForgeBlacksmiths smiths)
     {
         if(tech==null)return "";
-        var parts=Regex.Split(text,@"(?<=\.)\s+|\r?\n");
+        var parts=Regex.Split(FormatGold(text),@"(?<=\.)\s+|\r?\n");
         return string.Join("\n",parts.Where(part=>{
             foreach(var alias in BlueprintAliases.All){
                 if(FeatureVisible(alias.Id,tech,smiths))continue;
@@ -81,46 +82,18 @@ public static class BlueprintResearchGuide
     }
     public static string OfferInfo(ForgeTechnology.Offer offer,bool english)
     {
-        string parents=offer.Parents.Count==0?"기본 공방 (제공)":string.Join(" + ",offer.Parents.Select(id=>Display(ForgeTechnology.Find(id).Title,english)));
-        string result=Display(offer.Title,english)+" · "+offer.Price+"G\n선행 구매 필요: "+parents;
+        string result=Display(offer.Title,english)+" · "+ForgeMaterialHud.FormatCount(offer.Price)+"G";
         if(offer.Features.Count>1)result+="\n함께 해금: "+string.Join(" / ",offer.Features.Select(f=>{var a=BlueprintAliases.Find(f);return a.Symbol+(english?" · "+a.English:"");}));
         return result;
-    }
-    static ForgeTechnology.Offer FeatureOffer(BlueprintFeature feature)=>feature==BlueprintFeature.None?null:ForgeTechnology.Find("function-"+feature);
-    public static string EntryResearch(BlueprintGuide.Entry entry,bool english)
-    {
-        var own=FeatureOffer(entry.Feature);var lines=new List<string>();
-        if(own!=null){
-            lines.Add(OfferInfo(own,english));
-            if(entry.Feature==BlueprintFeature.Speed)lines.Add("설정 가능한 최대 배율은 구매한 단계까지입니다. 예제의 222(2)는 스피드 2단계 구매 후 사용하세요.");
-            if(entry.Feature==BlueprintFeature.AutoSell)lines.Add("스피드 5단계는 선행 조건입니다. 자동판매 노드를 별도로 구매하면 이 안내서와 225()가 해금되고 자동판매가 켜집니다.");
-        }else if(entry.Feature==BlueprintFeature.SmithFavor)lines.Add("대장장이 트리 · 호감도 조회 · "+ForgeBlacksmiths.FavorResearchCost+" 다이아 · 선행: 기본 대장장이");
-        else if(entry.Feature==BlueprintFeature.SmithPosition)lines.Add("대장장이 트리 · 위치 조회 · "+ForgeBlacksmiths.PositionResearchCost+" 다이아 · 선행: 기본 대장장이");
-        else if(entry.Feature==BlueprintFeature.SmithDemand)lines.Add("대장장이 트리 · 요구 수량 조회 · "+ForgeBlacksmiths.DemandResearchCost+" 다이아 · 선행: 기본 대장장이");
-        else if(entry.Feature==BlueprintFeature.GiantRune)lines.Add("거대한 룬은 성장 트리의 룬 각인 연구가 필요합니다. 설치할 때마다 수정 1개와 등급별 25/50/75 다이아를 소비합니다.");
-        else if(entry.Feature!=BlueprintFeature.None||new[]{"1","2","3","4","finish"}.Contains(entry.Id))lines.Add("기본 제공 · 이 명령 자체의 연구 구매 비용은 없습니다.");
-        var needed=new List<ForgeTechnology.Offer>();
-        foreach(var token in BlueprintLexer.Scan(entry.ExampleFor(english),true)){
-            var offer=FeatureOffer(token.Feature);
-            if(offer!=null&&offer!=own&&!needed.Contains(offer))needed.Add(offer);
-            if(token.Feature==BlueprintFeature.GiantRune){offer=FeatureOffer(BlueprintFeature.Rune);if(!needed.Contains(offer))needed.Add(offer);}
-        }
-        if(entry.Id=="import"&&!needed.Any(o=>o.Id==ForgeTechnology.ImportResearch))needed.Add(ForgeTechnology.Find(ForgeTechnology.ImportResearch));
-        if(needed.Count>0)lines.Add("예제에 필요한 추가 연구 (각 선행 조건 포함):\n"+string.Join("\n",needed.Select(o=>"• "+OfferInfo(o,english))));
-        if(entry.Feature==BlueprintFeature.SmithRun)lines.Add("예제는 대장장이 1번을 사용합니다. 2명 고용("+ForgeBlacksmiths.HireCosts[0]+" 다이아)과 제어문 해금이 필요합니다. 번호는 0부터 시작합니다.");
-        if(entry.Id=="masterwork-example")lines.Add(OfferInfo(ForgeTechnology.Find(ForgeTechnology.MasterCommission),english));
-        if(lines.Count==0)lines.Add("별도 연구가 없는 기본 문법 예제입니다.");
-        lines.Add("명령 해금과 재료 보유는 별개입니다. 예제에 쓰는 재료의 공급을 해금하고 실제 재고를 준비하세요.");
-        return Display(string.Join("\n\n",lines),english);
     }
     public static string MaterialInfo(int material,bool english)
     {
         if(material==0)return "공기 · 기본 제공 · 재고와 구매 비용 없음";
         var stock=ForgeTechnology.Find("stock-"+material);
-        string text="재료 상점: 개당 "+stock.Price+"G · 수량을 입력하고 카드를 클릭해 구매";
+        string text="재료 상점: 개당 "+ForgeMaterialHud.FormatCount(stock.Price)+"G · 수량을 입력하고 카드를 클릭해 구매";
         if(material<=3)return "기본 공급 재료 · 별도 공급 해금 없음\n"+text;
         var permit=ForgeTechnology.Find("material-"+material);
-        string permitInfo=material==4?Display(permit.Title,english)+" · "+permit.Price+"G":OfferInfo(permit,english);
+        string permitInfo=material==4?Display(permit.Title,english)+" · "+ForgeMaterialHud.FormatCount(permit.Price)+"G":OfferInfo(permit,english);
         return permitInfo+"\n해금비에는 재료가 포함되지 않습니다.\n"+text;
     }
     public static string Overview(bool english)
@@ -139,7 +112,7 @@ public static class BlueprintResearchGuide
                 text.AppendLine(OfferInfo(offer,english));text.AppendLine(Display(offer.Description,english));text.AppendLine();
             }
         }
-        text.AppendLine("【재료 상점】");foreach(var offer in ForgeTechnology.Offers.Where(o=>o.Kind==ForgePurchaseKind.Material))text.AppendLine(ForgeMaterialGuide.Find(offer.Material).Heading+" · "+offer.Price+"G/개");
+        text.AppendLine("【재료 상점】");foreach(var offer in ForgeTechnology.Offers.Where(o=>o.Kind==ForgePurchaseKind.Material))text.AppendLine(ForgeMaterialGuide.Find(offer.Material).Heading+" · "+ForgeMaterialHud.FormatCount(offer.Price)+"G/개");
         text.AppendLine("공급 해금비와 재료 구매비는 별개입니다. 재료 카드에서 수량을 입력한 후 클릭하세요.\n");
         text.AppendLine("【명장의 마지막 의뢰】");text.AppendLine(OfferInfo(ForgeTechnology.Find(ForgeTechnology.MasterCommission),english));text.AppendLine(ForgeTechnology.Find(ForgeTechnology.MasterCommission).Description);
         text.AppendLine("\n【대장장이 트리 · 다이아】");

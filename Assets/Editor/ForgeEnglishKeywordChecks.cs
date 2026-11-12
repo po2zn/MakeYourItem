@@ -22,9 +22,10 @@ public static class ForgeEnglishKeywordChecks
         Require(BlueprintRuntime.Evaluate("# while return\nprint(\"for while return\")",100,10,"test",1,technology:tech).error==null,"Comments/strings blocked");
         var modules=new Dictionary<string,string>{{"other","while 1:\n    break"}};
         Require(BlueprintRuntime.Evaluate("import other",100,10,"test",1,technology:tech,modules:modules).error.Contains("영어 예약어"),"Import bypass");
-        int gold=1000,iron=10;var stocks=Array.Empty<ForgeMaterialStock>();
+        tech.Restore(Array.Empty<BlueprintFeature>(),new[]{ForgeTechnology.AutomationRoot,ForgeTechnology.ImportResearch,"function-Min"});
+        int gold=150000,iron=10;var stocks=Array.Empty<ForgeMaterialStock>();
         Require(tech.TryPurchase(ForgeTechnology.Find(ForgeTechnology.EnglishResearch),ref gold,ref iron,ref stocks,false,out var message),message);
-        Require(gold==500,"Wrong research cost");
+        Require(gold==0,"Wrong research cost");
         foreach(var source in examples)Require(BlueprintRuntime.Evaluate(source,100,10,"test",1,technology:tech).error==null,"Unlocked failed: "+source);
         var saved=JsonUtility.FromJson<ForgeMvp.SavedProgress>(JsonUtility.ToJson(new ForgeMvp.SavedProgress{technologyNodes=tech.ExportNodes(),features=tech.Export()}));
         var restored=new ForgeTechnology();restored.Restore(saved.features,saved.technologyNodes);Require(restored.Owns(ForgeTechnology.EnglishResearch),"Research lost on save");

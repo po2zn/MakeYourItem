@@ -20,8 +20,8 @@ public static class ForgeCampaign
         if(sales==0)return "첫 목표: 기본 검을 만들어 판매하세요. 철·나무·물은 바로 구매할 수 있습니다.";
         if(!tech.Owns("material-5")&&!tech.Owns("material-6"))return "다음 목표: 금속(은 공급) 또는 마력(수정 공급) 분야에 투자하세요.";
         if(!tech.Owns("material-7"))return "금속 성장: 연마 → 은 공급 → 도금 → 별철 공급.";
-        if(!tech.Owns(BlueprintFeature.Charge))return "마력 성장: 수정 공급 → 9() 충전.";
-        if(!tech.Owns(BlueprintFeature.Refine))return "두 분야 결합: 별철 공급 + 충전 → 용뼈 공급 → 10() 정제.";
+        if(!tech.Owns(BlueprintFeature.Charge))return "마력 성장: 수정 공급 + 9() 충전 묶음.";
+        if(!tech.Owns(BlueprintFeature.Refine))return "두 분야 결합: 별철 공급 + 충전 → 용뼈 공급 + 10() 정제 묶음.";
         if(!tech.Owns(BlueprintFeature.Rune))return "최종 준비: 211() 룬 각인을 해금하세요.";
         if(!tech.Owns(ForgeTechnology.MasterCommission))return "최종 목표: 명장의 마지막 의뢰를 "+ForgeTechnology.Find(ForgeTechnology.MasterCommission).Price+"G로 수락하세요.";
         return "최종 의뢰: "+FinalGoal;

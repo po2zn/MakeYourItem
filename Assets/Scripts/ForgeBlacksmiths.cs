@@ -47,7 +47,7 @@ public sealed class ForgeBlacksmiths
     public bool Gift(int id,int amount,ref int diamonds)
     {
         if(id<0||id>=smiths.Count||amount<1||amount>9||diamonds<amount)return false;
-        var s=smiths[id];diamonds-=amount;s.favor=Math.Max(-100,Math.Min(100,s.favor+(amount==s.required?5:-10)));
+        var s=smiths[id];diamonds-=amount;s.favor=Math.Max(-100,Math.Min(100,s.favor+(amount==s.required?15:-10)));
         int next=Next(8)+1;if(next>=s.required)next++;s.required=next;return true;
     }
     public double RuneBonus(int id,int family)
@@ -96,7 +96,7 @@ public static class ForgeSmithLanguage
     }
     public static readonly BlueprintAlias[] Aliases={
         new BlueprintAlias(BlueprintFeature.SmithDemand,"smith_demand","90909",BlueprintSyntaxKind.Builtin,"요구 다이아 수량 1~9. 생략 시 현재 대장장이. 선물을 줄 때마다 재추첨합니다.","90909([대장장이 번호]) → 정수 · 다이아 연구",-1),
-        new BlueprintAlias(BlueprintFeature.SmithGift,"smith_gift","90901",BlueprintSyntaxKind.Builtin,"다이아 선물. 정확하면 호감도 +5, 틀리면 -10. 수량은 1~9.","90901(수량) 또는 90901(번호, 수량) · 기본 제공",-1),
+        new BlueprintAlias(BlueprintFeature.SmithGift,"smith_gift","90901",BlueprintSyntaxKind.Builtin,"다이아 선물. 정확하면 호감도 +15, 틀리면 -10. 수량은 1~9.","90901(수량) 또는 90901(번호, 수량) · 기본 제공",-1),
         new BlueprintAlias(BlueprintFeature.SmithFavor,"smith_favor","90902",BlueprintSyntaxKind.Builtin,"대장장이 호감도 -100~100 조회. 게임 시간 2시간마다 -1.","90902([번호]) → 정수 · 다이아 연구",-1),
         new BlueprintAlias(BlueprintFeature.SmithPosition,"smith_position","90903",BlueprintSyntaxKind.Builtin,"대장장이 공방 격자 좌표 (x,y). 첫 대장장이는 (0,0).", "90903([번호]) → 튜플 · 다이아 연구",-1),
         new BlueprintAlias(BlueprintFeature.SmithRun,"smith_run","90904",BlueprintSyntaxKind.Builtin,"지정한 대장장이에게 함수를 맡겨 병렬 실행. 함수명에 괄호를 붙이지 마세요. 이미 작업 중이면 -1.","90904(번호, 함수, 추가 인자...) → 번호 또는 -1 · 기본 제공",-1),

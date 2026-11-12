@@ -81,11 +81,13 @@ public sealed partial class BlueprintRuntime
             case BlueprintStatementKind.If:
                 var branch=await Block(Bool(await Eval(s.Expr,env))?s.Body:s.Other,env,inLoop);if(branch.Flow!=Flow.Next)return branch;break;
             case BlueprintStatementKind.For:
-                var items=Sequence(Copy(await Eval(s.Expr,env)));
-                for(int index=0;index<=items.Count;index++){
+                var iterable=Copy(await Eval(s.Expr,env));
+                var items=iterable is int?null:Sequence(iterable);
+                int count=iterable is int repetitions?Math.Max(0,repetitions):items.Count;
+                for(int index=0;index<=count;index++){
                     if(index>0){await BeforeStatement(s.Token);Tick(s.Token);}
-                    if(index==items.Count)break;
-                    env[s.Name]=items[index];var flow=await Block(s.Body,env,true);if(flow.Flow==Flow.Break)break;if(flow.Flow==Flow.Return||flow.Flow==Flow.Finish)return flow;
+                    if(index==count)break;
+                    env[s.Name]=items==null?index:items[index];var flow=await Block(s.Body,env,true);if(flow.Flow==Flow.Break)break;if(flow.Flow==Flow.Return||flow.Flow==Flow.Finish)return flow;
                 }break;
             case BlueprintStatementKind.While:
                 while(WhileCondition(await Eval(s.Expr,env))){Tick(s.Token);var flow=await Block(s.Body,env,true);if(flow.Flow==Flow.Break)break;if(flow.Flow==Flow.Return||flow.Flow==Flow.Finish)return flow;await BeforeStatement(s.Token);Tick(s.Token);}break;

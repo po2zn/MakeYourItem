@@ -31,7 +31,7 @@ public partial class ForgeMvp
     }
     void Execute(bool singleStep)
     {
-        if(busy||smithJobs.ContainsKey(0)||codeWindows.Count==0)return;
+        if(busy||smithJobs.ContainsKey(0)||craftMotion&&craftMotion.IsStunned||codeWindows.Count==0)return;
         codeWindows[activeWindow].text=source;
         if(executionSession!=null&&ExecutionSourceChanged()){
             StopExecution(false);reportError=false;
@@ -99,6 +99,7 @@ public partial class ForgeMvp
                 if(step.finished){
                     executionProduct=executionLedger.CompleteNext(executionOwner.name,step.heat,step.shaped,step.traits,step.material,step.data,step.productionSeconds);
                     executionProduct=FinishSmithProduct(0,executionProduct);
+                    if(executionProduct==null)yield return craftMotion.DestructionReaction();
                 }
             }
             if(returnToTitleRequested){busy=false;FinishTitleReturn();yield break;}

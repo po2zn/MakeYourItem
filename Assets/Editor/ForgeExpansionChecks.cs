@@ -15,7 +15,7 @@ public static class ForgeExpansionChecks
    int layers=feature==BlueprintFeature.SealCount?2:3;int materialCost=0;
    foreach(var offer in ForgeTechnology.Offers.Where(x=>x.Kind==ForgePurchaseKind.Material))materialCost+=offer.Price*e.product.Data.materials[offer.Material];
    Require(e.product.Data.seals.Count==0&&e.product.Data.sealBonus==layers&&ForgePricing.Quote(e.product).SalePrice==28+layers*140,"guide reward");
-   Require(materialCost==(layers==2?7:17),"guide material cost");
+   Require(materialCost==(layers==2?7:29),"guide material cost");
   }
   Require(ForgePricing.Quote(Good(Cold+"201(p,2)\n!p").product).SalePrice==0,"unreleased seals are unfinished and worth zero");
  });

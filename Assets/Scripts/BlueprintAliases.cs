@@ -25,7 +25,7 @@ public static class BlueprintAliases
         new BlueprintAlias(BlueprintFeature.NightTime,"night_time","24",BlueprintSyntaxKind.Builtin,"24()는 밤이면 정수 1, 낮이면 0을 반환합니다. 24(60)은 자정부터 지난 정수 분을 반환합니다.","24() → 0 또는 1 · 24(60) → 0~1439분 · 호출 비용 0G",-1),
         new BlueprintAlias(BlueprintFeature.Print,"print","",BlueprintSyntaxKind.Builtin,"여러 값을 공백으로 구분해 디버그 출력 창에 출력합니다. print()는 빈 줄을 출력합니다.","print(값, ...) → None · 비용0G",-1),
         new BlueprintAlias(BlueprintFeature.While,"while","888",BlueprintSyntaxKind.Block,"조건이 참인 동안 반복합니다. 0은 거짓, 0이 아닌 정수는 참입니다.","888(1): · 계속 반복 · !!로 중단 · 실행 안전 제한 적용"),
-        new BlueprintAlias(BlueprintFeature.For,"for","123",BlueprintSyntaxKind.Block,"리스트 또는 튜플을 순서대로 순회합니다.","123(이름 in 대상):"),
+        new BlueprintAlias(BlueprintFeature.For,"for","123",BlueprintSyntaxKind.Block,"정수 N은 0부터 N-1까지 반복하며, 0과 음수는 반복하지 않습니다. 리스트 또는 튜플은 원소를 순서대로 순회합니다.","123(이름 in 대상):"),
         new BlueprintAlias(BlueprintFeature.Break,"break","!!",BlueprintSyntaxKind.Control,"가장 가까운 반복문을 종료합니다."),
         new BlueprintAlias(BlueprintFeature.Continue,"continue","~~",BlueprintSyntaxKind.Control,"현재 반복의 남은 부분을 건너뛰고 다음 반복으로 이동합니다."),
         new BlueprintAlias(BlueprintFeature.If,"if","1?",BlueprintSyntaxKind.Block,"조건이 참이면 블록을 실행합니다.","1?(조건): · 조건은 bool"),

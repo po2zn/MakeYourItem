@@ -325,19 +325,15 @@ public sealed partial class ForgeGuideReader
         if(entry.Feature==BlueprintFeature.Speed&&technology.MaxSpeedLevel==1)example=example.Replace("222(2)","222(1)").Replace("speed(2)","speed(1)");
         float bodyH=Height(description,bodyStyle,width);
         float codeHeight=Mathf.Max(codeStyle.CalcSize(new GUIContent(example+"\n ")).y,codeStyle.padding.vertical+(BlueprintViewport.Row(example,example.Length)+2)*Mathf.Max(1,codeStyle.lineHeight));
-        string expected=entry.IsFunctionReference?"":entry.Expected;
+        string expected=entry.IsFunctionReference?"":BlueprintResearchGuide.FormatGold(entry.Expected);
         float expectedH=expected.Length==0?0:SubsectionHeight("실행 결과",expected,width);
         string note=VisibleProse(entry.NoteFor(englishUnlocked));
         float noteH=note.Length==0?0:SubsectionHeight("주의할 점",note,width);
-        string research=VisibleProse(entry.ResearchFor(englishUnlocked));
-        if(entry.Feature==BlueprintFeature.Speed)research="구매한 최대 속도: "+ForgeTechnology.SpeedMultiplier(technology.MaxSpeedLevel)+"배. 222(1)은 1.5배이며 구매한 단계까지 설정할 수 있습니다.";
-        float researchH=entry.ShowResearch?SubsectionHeight("연구 및 준비",research,width):0;
-        float total=sectionH+titleH+bodyH+researchH+codeHeight+expectedH+noteH+170;
+        float total=sectionH+titleH+bodyH+codeHeight+expectedH+noteH+170;
         detailScroll=BeginScroll(view,detailScroll,new Rect(0,0,width,Mathf.Max(view.height,total)));
         float y=0;ForgeTextLayout.Label(new Rect(0,y,width,sectionH),entry.Section,sectionStyle);y+=sectionH+4;
         ForgeTextLayout.Label(new Rect(0,y,width,titleH),entry.HeadingFor(englishUnlocked),titleStyle);y+=titleH+10;
         ForgeTextLayout.Label(new Rect(0,y,width,bodyH),description,bodyStyle);y+=bodyH+12;
-        if(entry.ShowResearch){DrawSubsection(y,width,"연구 및 준비",research);y+=researchH+16;}
         if(ForgeTextLayout.Button(new Rect(0,y,Mathf.Min(width,150),28),copied?"복사했습니다":"예제 복사",buttonStyle)){GUIUtility.systemCopyBuffer=example;copied=true;}
         y+=34;
         Rect codeRect=new Rect(0,y,width,codeHeight);

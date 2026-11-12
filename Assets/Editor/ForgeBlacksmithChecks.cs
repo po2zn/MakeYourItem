@@ -16,8 +16,8 @@ public static class ForgeBlacksmithChecks
     {
         var state=new ForgeBlacksmiths();state.Normalize(8);int diamonds=10000;
         Require(state.smiths.Count==1&&ForgeBlacksmiths.X(0)==0&&ForgeBlacksmiths.Y(0)==0,"initial smith origin");
-        state.smiths[0].required=2;Require(state.Gift(0,2,ref diamonds)&&state.smiths[0].favor==5&&diamonds==9998,"correct gift");
-        state.smiths[0].required=2;Require(state.Gift(0,3,ref diamonds)&&state.smiths[0].favor==-5&&diamonds==9995,"incorrect gift");
+        state.smiths[0].required=2;Require(state.Gift(0,2,ref diamonds)&&state.smiths[0].favor==15&&diamonds==9998,"correct gift");
+        state.smiths[0].required=2;Require(state.Gift(0,3,ref diamonds)&&state.smiths[0].favor==5&&diamonds==9995,"incorrect gift");
         int previous=diamonds;Require(!state.Gift(0,10,ref diamonds)&&diamonds==previous,"invalid gift atomic");
         for(int i=0;i<100;i++){int demand=state.smiths[0].required;state.Gift(0,demand,ref diamonds);Require(state.smiths[0].required>=1&&state.smiths[0].required<=9&&state.smiths[0].required!=demand,"fresh demand every gift");}
         state.smiths[0].favor=0;state.Tick(1,9.99);Require(state.smiths[0].favor==0,"fractional decay");
