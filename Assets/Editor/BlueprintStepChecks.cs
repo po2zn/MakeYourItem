@@ -11,6 +11,37 @@ public static class BlueprintStepChecks
     public static string Run()
     {
         int count=0;var log=new StringBuilder();Action<string,Action> check=(name,test)=>{test();count++;log.AppendLine("PASS "+name);};
+        check("execution tick is 20ms and never releases before its deadline",()=>{
+            Require(BlueprintExecutionTiming.SecondsPerTick==.02,"fixed tick definition");
+            double now=100;var wait=BlueprintExecutionTiming.WaitForTick(()=>now);
+            Require(wait.MoveNext(),"first line must wait");
+            now=100.019999;Require(wait.MoveNext(),"not before 20ms");
+            for(int i=0;i<10;i++)Require(wait.MoveNext(),"paused clock must not consume ticks");
+            now=100.02;Require(!wait.MoveNext(),"release at 20ms");
+            var next=BlueprintExecutionTiming.WaitForTick(()=>now);Require(next.MoveNext(),"each line has a fresh tick");
+            now=100.039999;Require(next.MoveNext(),"no early second line");now=100.040001;Require(!next.MoveNext(),"second tick");
+        });
+        check("slow frames do not burst later lines and worker tick waits are independent",()=>{
+            double now=0;var a=BlueprintExecutionTiming.WaitForTick(()=>now);Require(a.MoveNext(),"worker A start");
+            now=.01;var b=BlueprintExecutionTiming.WaitForTick(()=>now);Require(b.MoveNext(),"worker B start");
+            now=.020001;Require(!a.MoveNext()&&b.MoveNext(),"separate worker deadlines");
+            now=.5;Require(!b.MoveNext(),"late frame can release current tick");
+            var c=BlueprintExecutionTiming.WaitForTick(()=>now);Require(c.MoveNext()&&c.MoveNext(),"no catch-up burst in same frame");
+            now=.519999;Require(c.MoveNext(),"fresh deadline after slow frame");now=.520001;Require(!c.MoveNext(),"release fresh tick");
+        });
+        check("every visited loop and function line receives a tick including final submission",()=>{
+            using(var session=Start("def f():\n    x = 0\n    while x < 2:\n        x = x + 1\n    return x\ny = f()\np = 1(1)\n!p")){
+                var lines=new List<int>();double now=0;int ticks=0;
+                while(!session.Completed){
+                    var wait=BlueprintExecutionTiming.WaitForTick(()=>now);Require(wait.MoveNext(),"line waits before execution");
+                    int pending=session.NextLine;now+=BlueprintExecutionTiming.SecondsPerTick;
+                    Require(!wait.MoveNext()&&session.NextLine==pending,"wait does not evaluate future code");
+                    lines.Add(pending);ticks++;Step(session);
+                }
+                Require(lines.SequenceEqual(new[]{1,6,2,3,4,3,4,3,5,7,8}),"all executed line boundaries");
+                Require(ticks==11&&Math.Abs(now-.22)<.000001,"11 lines cost 11 ticks");
+            }
+        });
         check("first click executes one line with no future effects",()=>{
             using(var s=Start("x = 1\np = 1(1)\n2(p)\n!p")){
                 Require(s.NextLine==1&&s.Evaluation.cost==0&&!s.Evaluation.values.ContainsKey("x"),"initial pause");

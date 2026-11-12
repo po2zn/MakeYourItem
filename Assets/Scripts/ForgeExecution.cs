@@ -69,6 +69,9 @@ public partial class ForgeMvp
         do {
             if(ExecutionSourceChanged()){StopExecution(false);report+="\n실행 중인 코드창이 변경되거나 삭제되어 실행을 중단했습니다. 다음 실행은 처음부터 시작합니다.";busy=false;yield break;}
             UpdateExecutionLocation();
+            if(!session.Completed)yield return BlueprintExecutionTiming.WaitForTick(()=>Time.timeAsDouble);
+            if(executionSession!=session||session.Cancelled){busy=false;yield break;}
+            if(ExecutionSourceChanged()){StopExecution(false);report+="\n실행 대기 중 코드가 변경되어 중단했습니다.";busy=false;yield break;}
             var advance=session.Advance();
             while(!advance.IsCompleted)yield return null;
             if(executionSession!=session||session.Cancelled){busy=false;yield break;}
@@ -99,7 +102,7 @@ public partial class ForgeMvp
                 }
             }
             if(returnToTitleRequested){busy=false;FinishTitleReturn();yield break;}
-            if(!singleStep&&!session.Completed)yield return null;
+            // The next statement pays its own tick; no extra frame delay.
         }while(!singleStep&&!session.Completed);
         if(session.Completed){
             reportError=session.Evaluation.error!=null;

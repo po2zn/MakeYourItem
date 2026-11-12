@@ -31,7 +31,7 @@ public sealed class ForgeProductInventory : MonoBehaviour
     public static float ContentHeight(int count)=>Mathf.Max(0,Rows(count)*RowHeight-Gap);
     public void Bind(ForgeMvp owner,ForgeShop products,Font textFont)
     {
-        if(game)return;game=owner;shop=products;font=textFont;
+        if(game)return;game=owner;shop=products;font=textFont;ForgeSfxButton.Bind(this);
         foreach(var text in GetComponentsInChildren<Text>(true))text.font=font;
         backButton.onClick.AddListener(()=>game.GameUIAction("products-close"));
         // Retain the authored button only as the visual template for slot actions.
@@ -92,7 +92,7 @@ public sealed class ForgeProductInventory : MonoBehaviour
         var sellLabel=cell.sell.GetComponentInChildren<Text>(true);sellLabel.text="판매";sellLabel.font=font;sellLabel.fontSize=16;
         sellLabel.resizeTextForBestFit=true;sellLabel.resizeTextMinSize=12;sellLabel.resizeTextMaxSize=16;
         cell.sell.gameObject.SetActive(false);
-        button.onClick.AddListener(()=>SelectCell(cell));cells.Add(cell);return cell;
+        button.onClick.AddListener(()=>SelectCell(cell));ForgeSfxButton.Bind(button);cells.Add(cell);return cell;
     }
     void SelectCell(Cell cell)
     {

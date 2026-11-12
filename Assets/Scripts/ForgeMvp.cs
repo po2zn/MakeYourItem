@@ -62,6 +62,8 @@ public partial class ForgeMvp : MonoBehaviour
     {
         purchaseSucceeded=technology.TryPurchase(offer,ref gold,ref iron,ref materialStocks,busy||executionSession!=null,out purchaseMessage,quantity);
         if(purchaseSucceeded){
+            if(offer.Kind==ForgePurchaseKind.Material)ForgeSoundEffects.MaterialPurchased();
+            else ForgeSoundEffects.PurchaseSucceeded();
             if(offer.SpeedLevel>0)craftSpeed=ForgeTechnology.SpeedMultiplier(offer.SpeedLevel);
             if(offer.Feature==BlueprintFeature.AutoSell){autoSell=true;purchaseMessage+=" · 자동판매 활성화";}
             SaveProgress();
@@ -841,7 +843,7 @@ public partial class ForgeMvp : MonoBehaviour
         owner.diagnosticScroll = GUILayout.BeginScrollView(owner.diagnosticScroll);
         ForgeTextLayout.LayoutLabel(owner.diagnostic.Line + "줄: " + owner.diagnostic.Message, errorLabel);
         GUILayout.EndScrollView();
-        if (GUILayout.Button("오류 줄 보기"))
+        if (ForgeSoundEffects.LayoutButton("오류 줄 보기"))
         {
             owner.revealDiagnostic = true;
             if (owner.collapsed) { owner.collapsed = false; owner.rect.height = owner.expandedHeight; }

@@ -20,3 +20,7 @@ MonoBehaviour:
   hammer: {fileID: 8300000, guid: 44dcd436f21bfe54f8f70a583cbef18f, type: 3}
   water: {fileID: 8300000, guid: 1a6b3e237f63e0a4ab836fcfc0a13d3a, type: 3}
   air: {fileID: 8300000, guid: ea079b09829e0014585ed683c6ea9005, type: 3}
+  seal: {fileID: 8300000, guid: 95e6157319fa768498e24a715a480055, type: 3}
+  upgrade: {fileID: 8300000, guid: 619b54eec28e930458e4639c0b806bd4, type: 3}
+  polish: {fileID: 8300000, guid: 7ac170c558406441be2a53ec9bc1b786, type: 3}
+  sparkle: {fileID: 8300000, guid: 9659985d8d9135e6376f21cafae5b6a8, type: 3}

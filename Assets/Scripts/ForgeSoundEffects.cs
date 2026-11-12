@@ -31,8 +31,14 @@ public sealed class ForgeSoundEffects : MonoBehaviour
         if(clip)Instance.source.PlayOneShot(clip,Mathf.Clamp01(volume));
     }
     public static void Click(){var lib=ForgeSfxLibrary.Instance;if(lib)Play(lib.ui,.6f);}
-    public static void PurchaseClick(){var lib=ForgeSfxLibrary.Instance;if(lib)Play(lib.click,.6f);}
-    public static void Preview()
+    public static void PurchaseSucceeded(){var lib=ForgeSfxLibrary.Instance;if(lib)Play(lib.upgrade,.7f);}
+    public static void PurchaseClick()=>Click();
+    public static bool Button(Rect rect,GUIContent content,GUIStyle style){bool clicked=GUI.Button(rect,content,style);if(clicked)Click();return clicked;}
+    public static bool LayoutButton(string text,params GUILayoutOption[] options)=>LayoutButton(text,GUI.skin.button,options);
+    public static bool LayoutButton(string text,GUIStyle style,params GUILayoutOption[] options){bool clicked=GUILayout.Button(text,style,options);if(clicked)Click();return clicked;}
+    public static void Preview()=>PlayPreview(true);
+    public static void MaterialPurchased()=>PlayPreview(false);
+    static void PlayPreview(bool stopPrevious)
     {
         var player=Instance;
         if(!player.preview){
@@ -46,7 +52,7 @@ public sealed class ForgeSoundEffects : MonoBehaviour
             player.preview=AudioClip.Create("SFX preview",samples.Length,1,rate,false);
             player.preview.SetData(samples,0);
         }
-        player.source.Stop();
+        if(stopPrevious)player.source.Stop();
         Play(player.preview);
     }
     void OnDestroy(){if(instance==this)instance=null;if(preview)Destroy(preview);}

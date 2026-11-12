@@ -48,9 +48,9 @@ public partial class ForgeMvp
         ForgeTextLayout.LayoutLabel("게임 메뉴",gameMenuTitle);GUILayout.Space(12);
         ForgeTextLayout.LayoutLabel(description,gameMenuBody);GUILayout.Space(16);
         bool enabled=GUI.enabled;GUI.enabled=enabled&&!returnToTitleRequested;
-        if(GUILayout.Button("계속하기 · ESC",gameMenuButton,GUILayout.MinHeight(48)))ToggleGameMenu();
+        if(ForgeSoundEffects.LayoutButton("계속하기 · ESC",gameMenuButton,GUILayout.MinHeight(48)))ToggleGameMenu();
         GUILayout.Space(10);
-        if(GUILayout.Button("저장하고 타이틀로",gameMenuButton,GUILayout.MinHeight(48)))RequestTitleReturn();
+        if(ForgeSoundEffects.LayoutButton("저장하고 타이틀로",gameMenuButton,GUILayout.MinHeight(48)))RequestTitleReturn();
         GUILayout.EndScrollView();GUILayout.EndArea();
         GUI.enabled=enabled;
     }

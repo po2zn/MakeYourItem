@@ -21,7 +21,7 @@ public static class ForgeGoldGUI
  }
  }
  public static void Label(Rect rect,GUIContent content,GUIStyle style){if(!HasGold(content.text)){GUI.Label(rect,content,style);return;}content=Prefix(content);GUI.Label(rect,Hidden(content),new GUIStyle(style){richText=true});Coins(rect,content,style);}
- public static bool Button(Rect rect,GUIContent content,GUIStyle style){if(!HasGold(content.text))return GUI.Button(rect,content,style);content=Prefix(content);bool clicked=GUI.Button(rect,Hidden(content),new GUIStyle(style){richText=true});Coins(rect,content,style);return clicked;}
+ public static bool Button(Rect rect,GUIContent content,GUIStyle style){if(!HasGold(content.text))return ForgeSoundEffects.Button(rect,content,style);content=Prefix(content);bool clicked=ForgeSoundEffects.Button(rect,Hidden(content),new GUIStyle(style){richText=true});Coins(rect,content,style);return clicked;}
  public static bool LayoutButton(string text,GUIStyle style,params GUILayoutOption[] options){var content=new GUIContent(text);var rect=GUILayoutUtility.GetRect(content,style,options);return Button(rect,content,style);}
  public static void LayoutLabel(string text,GUIStyle style,params GUILayoutOption[] options){var content=new GUIContent(text);var rect=GUILayoutUtility.GetRect(content,style,options);Label(rect,content,style);}
 }

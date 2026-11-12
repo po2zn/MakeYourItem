@@ -134,6 +134,7 @@ public sealed class ForgeCraftMotion : MonoBehaviour
         }
         ActiveProcess = step.process;
         fallbackAudio.Begin(step);
+        var fallbackHammer=arm.Find("Hammer");if(fallbackHammer&&step.process==201)fallbackHammer.gameObject.SetActive(false);
         if(step.process==8){yield return StokeFallback(step);yield break;}
         if(!pieces.TryGetValue(step.pieceId, out var work))
         {
@@ -149,7 +150,7 @@ public sealed class ForgeCraftMotion : MonoBehaviour
         Color from = work.GetComponent<Renderer>().material.color;
         Color to = step.heat>0 ? Color.Lerp(Color.gray,Color.red,step.heat/1200f) : Color.gray;
         float elapsed = 0;
-        float duration = step.duration;
+        float duration = step.duration;bool sealApplied=false;
         while(elapsed < duration)
         {
             float t = Mathf.Clamp01(elapsed/duration);
@@ -159,12 +160,14 @@ public sealed class ForgeCraftMotion : MonoBehaviour
             fallbackAudio.Frame(t,(smith.localPosition-old).sqrMagnitude>.000001f);
             work.transform.localPosition = Vector3.Lerp(start,destination,move);
             float swing = step.process==3 ? Mathf.Sin(Mathf.Clamp01((t-.4f)/.6f)*Mathf.PI*4)*55 : Mathf.Sin(t*Mathf.PI)*20;
+            if(step.process==201){float press=t<ForgeActionAudio.SealContactTime?Mathf.SmoothStep(0,1,Mathf.InverseLerp(.4f,ForgeActionAudio.SealContactTime,t)):1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(ForgeActionAudio.SealContactTime,1,t));swing=-45*press;if(!sealApplied&&t>=ForgeActionAudio.SealContactTime){ApplyCraftAppearance(work,step);sealApplied=true;}}
             arm.localRotation = Quaternion.Euler(0,0,swing);
             work.GetComponent<Renderer>().material.color = Color.Lerp(from,to,t);
             elapsed += Time.deltaTime;
             yield return null;
         }
         fallbackAudio.Finish();
+        if(fallbackHammer)fallbackHammer.gameObject.SetActive(true);
         smith.localPosition=smithEnd;
         arm.localRotation=Quaternion.identity;
         work.transform.localPosition=destination;

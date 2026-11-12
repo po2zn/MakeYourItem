@@ -114,6 +114,8 @@ public partial class ForgeMvp
         try{
             while(smithJobs.TryGetValue(id,out var active)&&active==job&&!job.session.Cancelled){
                 job.line=job.session.NextLine;job.module=job.session.NextModule;
+                if(!job.session.Completed)yield return BlueprintExecutionTiming.WaitForTick(()=>Time.timeAsDouble);
+                if(job.session.Cancelled||!smithJobs.TryGetValue(id,out var current)||current!=job)yield break;
                 var advance=job.session.Advance();while(!advance.IsCompleted)yield return null;
                 if(job.session.Cancelled)yield break;
                 if(advance.IsFaulted){AppendDebug("대장장이 "+id+": "+advance.Exception.GetBaseException().Message);smithMotions[id].ReactToCodeError();yield break;}
@@ -130,7 +132,7 @@ public partial class ForgeMvp
                     if(step.finished)FinishSmithProduct(id,job.ledger.CompleteNext("대장장이 "+id,step.heat,step.shaped,step.traits,step.material,step.data,step.productionSeconds));
                 }
                 if(job.session.Completed){if(evaluation.error!=null){AppendDebug("대장장이 "+id+" · "+evaluation.error);smithMotions[id].ReactToCodeError();}yield break;}
-                yield return null;
+                // Every worker owns its tick wait independently.
             }
         }finally{job.session.Dispose();if(smithJobs.TryGetValue(id,out var active)&&active==job)smithJobs.Remove(id);SaveProgress();}
     }

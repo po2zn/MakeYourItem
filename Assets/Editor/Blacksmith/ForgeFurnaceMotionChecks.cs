@@ -67,6 +67,31 @@ public static class ForgeFurnaceMotionChecks
             yield return Frames(view.Play(new ForgeMvp.Step{finished=true,pieceId=submission.steps[1].pieceId}));
             Require(view.PieceCount==0,"second submission removes remaining workpiece");
             Debug.Log("PASS submission cleanup: targeted, immediate, repeated finish, cancel, multiple workpieces");
+            foreach(float speed in new[]{1f,5f}){
+                view.Clear();var sealedSword=BlueprintRuntime.Evaluate("p=1(1)\n2(p)\n3(p)\n4(p,0)\n201(p,1)\n201(p,2)",0,10,"seal motion",1,context:new ForgeRunContext{Speed=speed});
+                Require(sealedSword.error==null,sealedSword.error);
+                foreach(var receipt in sealedSword.steps){
+                    bool visible=false;var action=Frames(view.Play(receipt));
+                    try{while(action.MoveNext()){
+                        if(receipt.process==201){
+                            var layer=root.GetComponentsInChildren<Transform>(true).FirstOrDefault(t=>t.name=="HeldSealLayer");
+                            visible|=layer&&layer.gameObject.activeSelf;
+                            Require(!Find("HeldHammer").gameObject.activeSelf,"seal uses free hand");
+                            Require(float.IsFinite(Find("RightHandSocket").position.x),"finite seal hand pose");
+                        }
+                        yield return action.Current;
+                    }}finally{(action as IDisposable)?.Dispose();}
+                    if(receipt.process==201)Require(visible&&!Find("HeldSealLayer").gameObject.activeSelf,"seal shown then cleaned up at "+speed+"x");
+                }
+                var cancelStep=sealedSword.steps.Last();cancelStep.duration=2;
+                var interrupted=Frames(view.Play(cancelStep));
+                try{while(interrupted.MoveNext()){
+                    if(Find("HeldSealLayer").gameObject.activeSelf){view.Cancel();break;}
+                    yield return interrupted.Current;
+                }}finally{(interrupted as IDisposable)?.Dispose();}
+                Require(!view.IsActing&&!Find("HeldSealLayer").gameObject.activeSelf,"cancel hides temporary seal");
+            }
+            Debug.Log("PASS seal motion: held layer, free hand, 1x/5x, successive layers, cancellation cleanup");
             Debug.Log("PASS furnace motion: approach, coal, poker, 1x/5x, no phantom workpiece, cancellation cleanup");
         }finally{UnityEngine.Object.Destroy(root);}
     }

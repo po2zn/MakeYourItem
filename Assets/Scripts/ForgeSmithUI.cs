@@ -55,6 +55,7 @@ public partial class ForgeMvp
         if(diamonds<price){smithMessage="다이아가 부족합니다.";return;}
         if(id<=5){if(!blacksmiths.Hire(ref diamonds,SmithHours))return;UpdateSmiths();}
         else{diamonds-=price;if(id==6)blacksmiths.favorUnlocked=true;else if(id==7)blacksmiths.positionUnlocked=true;else blacksmiths.demandUnlocked=true;}
+        ForgeSoundEffects.PurchaseSucceeded();
         smithMessage=SmithNodeTitle(id)+" 구매 완료";SaveProgress();
     }
 }

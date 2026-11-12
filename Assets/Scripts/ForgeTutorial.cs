@@ -144,14 +144,21 @@ public partial class ForgeMvp
     }
     void SubmitTutorial()
     {
+        if(tutorialAnimating)return;
         if(lesson.Crafted){if(lesson.AdvanceSale(out tutorialFeedback)){tutorialScroll=Vector2.zero;ClearUIFocus();SaveProgress();}return;}
+        StartCoroutine(SubmitTutorialCode(tutorialInput));
+    }
+    IEnumerator SubmitTutorialCode(string submittedCode)
+    {
+        tutorialAnimating=true;
+        yield return BlueprintExecutionTiming.WaitForTick(()=>Time.timeAsDouble);
         int previous=lesson.Evaluation==null?0:lesson.Evaluation.steps.Count;
         tutorialSuccessAt=-100;
-        if(!lesson.SubmitDocument(tutorialInput,out tutorialFeedback))return;
+        if(!lesson.SubmitDocument(submittedCode,out tutorialFeedback)){tutorialAnimating=false;yield break;}
         tutorialInput=lesson.Code;tutorialHint=false;tutorialSuccessAt=Time.unscaledTime;
         tutorialScroll=Vector2.zero;
         ClearUIFocus();SaveProgress();
-        StartCoroutine(AnimateTutorial(lesson.Evaluation,previous));
+        yield return AnimateTutorial(lesson.Evaluation,previous);
     }
     void PreviousTutorial()
     {
@@ -225,12 +232,12 @@ public partial class ForgeMvp
             ForgeTextLayout.LayoutLabel(lesson.Complete?"판매까지 완료했습니다!":"완성한 검을 판매해 봅시다",tutorialTitleStyle);
             GUILayout.Space(12);
             ForgeTextLayout.LayoutLabel(lesson.SaleInstructions,tutorialBodyStyle);
-            if(!lesson.Complete&&GUILayout.Button(lesson.SaleAction,tutorialPrimaryStyle,GUILayout.MinHeight(60)))SubmitTutorial();
+            if(!lesson.Complete&&ForgeSoundEffects.LayoutButton(lesson.SaleAction,tutorialPrimaryStyle,GUILayout.MinHeight(60)))SubmitTutorial();
             GUILayout.Space(20);
             GUILayout.Space(24);
-            if(GUILayout.Button("도면 복사",tutorialPrimaryStyle,GUILayout.MinHeight(60)))GUIUtility.systemCopyBuffer=lesson.Code;
+            if(ForgeSoundEffects.LayoutButton("도면 복사",tutorialPrimaryStyle,GUILayout.MinHeight(60)))GUIUtility.systemCopyBuffer=lesson.Code;
             GUILayout.Space(12);
-            if(GUILayout.Button("처음부터 다시 연습",tutorialButtonStyle,GUILayout.MinHeight(54))){lesson=new ForgeTutorialLesson();tutorialInput="";tutorialSuccessAt=-100;showTutorialWelcome=true;tutorialWelcomeScroll=Vector2.zero;tutorialFeedback="재료부터 다시 골라 보세요.";craftMotion.BeginRun();SaveProgress();}
+            if(ForgeSoundEffects.LayoutButton("처음부터 다시 연습",tutorialButtonStyle,GUILayout.MinHeight(54))){lesson=new ForgeTutorialLesson();tutorialInput="";tutorialSuccessAt=-100;showTutorialWelcome=true;tutorialWelcomeScroll=Vector2.zero;tutorialFeedback="재료부터 다시 골라 보세요.";craftMotion.BeginRun();SaveProgress();}
         }else{
             ForgeTextLayout.LayoutLabel(ForgeTutorialLesson.Titles[lesson.Stage],lesson.Stage==0?new GUIStyle(tutorialTitleStyle){fontSize=28,fontStyle=FontStyle.Bold}:tutorialTitleStyle);
             GUILayout.Space(12);
@@ -244,7 +251,7 @@ public partial class ForgeMvp
                     for(int column=0;column<2;column++){
                         int id=row*2+column;
                         if(column>0)GUILayout.Space(12);
-                        if(GUILayout.Button(ForgeMaterialGuide.Find(id).Heading,tutorialButtonStyle,GUILayout.Width(Mathf.Max(1,(contentWidth-32)/2)),GUILayout.MinHeight(64))){tutorialSuccessAt=-100;if(lesson.SelectMaterial(id,out tutorialFeedback)){tutorialSuccessAt=Time.unscaledTime;SaveProgress();}}
+                        if(ForgeSoundEffects.LayoutButton(ForgeMaterialGuide.Find(id).Heading,tutorialButtonStyle,GUILayout.Width(Mathf.Max(1,(contentWidth-32)/2)),GUILayout.MinHeight(64))){tutorialSuccessAt=-100;if(lesson.SelectMaterial(id,out tutorialFeedback)){tutorialSuccessAt=Time.unscaledTime;SaveProgress();}}
                     }
                     GUILayout.EndHorizontal();
                     GUILayout.Space(12);
@@ -252,7 +259,7 @@ public partial class ForgeMvp
             }else{
                 ForgeTextLayout.LayoutLabel("오른쪽 코드창에서 "+lesson.Stage+"번째 줄을 이어서 작성하세요.",tutorialBodyStyle);
                 GUILayout.Space(12);
-                if(GUILayout.Button(tutorialHint?"힌트 숨기기":"막히셨나요? 힌트 보기",tutorialButtonStyle,GUILayout.MinHeight(54)))tutorialHint=!tutorialHint;
+                if(ForgeSoundEffects.LayoutButton(tutorialHint?"힌트 숨기기":"막히셨나요? 힌트 보기",tutorialButtonStyle,GUILayout.MinHeight(54)))tutorialHint=!tutorialHint;
                 if(tutorialHint&&!lesson.Complete){GUILayout.Space(16);ForgeTextLayout.LayoutLabel(ForgeTutorialLesson.Hints[lesson.Stage],tutorialBodyStyle);}
             }
         }

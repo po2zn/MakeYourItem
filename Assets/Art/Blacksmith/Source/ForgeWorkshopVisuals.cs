@@ -12,7 +12,7 @@ public sealed class ForgeWorkshopVisuals : MonoBehaviour
     readonly List<Material> owned=new List<Material>();
     ForgeWorkshopAssets assets;ForgeActionAudio actionAudio;
     Transform smith,leftArm,leftFore,leftHand,leftSocket,rightArm,rightFore,rightHand,rightSocket,leftLeg,rightLeg;
-    Transform heatTarget,strikeTarget,waterTarget,hammer,polishingStone;
+    Transform heatTarget,strikeTarget,waterTarget,hammer,polishingStone,sealLayer;
     Transform leftKnee,rightKnee,leftFoot,rightFoot,headBone,spine,tongs;
     readonly List<Bounds> obstacles=new List<Bounds>();
     Vector3 leftFootRest,rightFootRest;
@@ -98,6 +98,30 @@ public sealed class ForgeWorkshopVisuals : MonoBehaviour
         var appearance=p.root.GetComponent<ForgeSwordAppearance>()??p.root.AddComponent<ForgeSwordAppearance>();
         appearance.Apply(step.material,step.shaped,step.data,step.heat,false);
     }
+    void HideSealLayer(){if(sealLayer)sealLayer.gameObject.SetActive(false);}
+    void AnimateSealLayer(PieceView p,ForgeMvp.Step step,float t)
+    {
+        if(t<.4f){HideSealLayer();return;}
+        if(!sealLayer){
+            var layer=GameObject.CreatePrimitive(PrimitiveType.Cube);layer.name="HeldSealLayer";
+            Destroy(layer.GetComponent<Collider>());sealLayer=layer.transform;sealLayer.SetParent(transform,false);
+            layer.GetComponent<Renderer>().sharedMaterial=DetailMaterial(ref sealMaterial,new Color(.3f,.6f,1));
+        }
+        int index=Mathf.Max(0,(step.data?.seals.Count??1)-1);
+        Vector3 contact=p.root.transform.TransformPoint(new Vector3(0,.3f+index*.055f,0));
+        Vector3 ready=smith.TransformPoint(new Vector3(.26f,1.08f,.20f));
+        float approach=Mathf.SmoothStep(0,1,Mathf.InverseLerp(.4f,.64f,t));
+        float press=Mathf.SmoothStep(0,1,Mathf.InverseLerp(.64f,ForgeActionAudio.SealContactTime,t));
+        float release=Mathf.SmoothStep(0,1,Mathf.InverseLerp(ForgeActionAudio.SealContactTime,1,t));
+        Vector3 hand=Vector3.Lerp(ready,contact+Vector3.up*.18f,approach);
+        if(t>=.64f)hand=contact+Vector3.up*Mathf.Lerp(.18f,.065f,press)+smith.right*Mathf.Sin(press*Mathf.PI)*.06f;
+        hand=Vector3.Lerp(hand,ready,release);
+        Reach(rightArm,rightFore,rightHand,rightSocket,hand,Quaternion.LookRotation(smith.forward,Vector3.up),false);
+        sealLayer.gameObject.SetActive(t<ForgeActionAudio.SealContactTime);
+        sealLayer.position=t<.64f?rightSocket.position-Vector3.up*.055f:contact+Vector3.up*Mathf.Lerp(.12f,0,press);
+        sealLayer.rotation=p.root.transform.rotation;
+        sealLayer.localScale=new Vector3(.10f,Mathf.Lerp(.006f,.025f,press),.055f);
+    }
     public void SetBurning(bool value){if(apronMaterial)apronMaterial.SetColor("_BaseColor",value?new Color(1f,.05f,.05f):apronColor);}
     void ResetPose()
     {
@@ -111,7 +135,7 @@ public sealed class ForgeWorkshopVisuals : MonoBehaviour
     {
         if(luckySparkles)luckySparkles.Hide();
         if(idle)idle.CancelErrorReaction();
-        HideFurnaceTools();furnaceGlow=ForgeBalance.DefaultFurnaceTemperature/1200f;
+        HideFurnaceTools();HideSealLayer();furnaceGlow=ForgeBalance.DefaultFurnaceTemperature/1200f;
         epoch++;acting=false;LastProcess=0;ReleaseHeldPiece();ResetPose();if(coolingVapor)coolingVapor.Clear();if(polishingStone)polishingStone.gameObject.SetActive(false);
         foreach(var p in pieces.Values){if(p.root)Destroy(p.root);foreach(var m in new[]{p.material,p.handleMaterial})if(m){owned.Remove(m);Destroy(m);}}
         pieces.Clear();
@@ -123,7 +147,7 @@ public sealed class ForgeWorkshopVisuals : MonoBehaviour
         heldPiece=null;
     }
     public void ReactToCodeError(){if(idle)idle.ReactToCodeError();}
-    public void Cancel(){if(actionAudio&&acting)actionAudio.Stop();HideFurnaceTools();if(luckySparkles)luckySparkles.Hide();if(idle)idle.CancelErrorReaction();epoch++;acting=false;LastProcess=0;ReleaseHeldPiece();ResetPose();if(coolingVapor)coolingVapor.Clear();if(hammer)hammer.gameObject.SetActive(true);if(tongs)tongs.gameObject.SetActive(false);if(polishingStone)polishingStone.gameObject.SetActive(false);}
+    public void Cancel(){if(actionAudio&&acting)actionAudio.Stop();HideSealLayer();HideFurnaceTools();if(luckySparkles)luckySparkles.Hide();if(idle)idle.CancelErrorReaction();epoch++;acting=false;LastProcess=0;ReleaseHeldPiece();ResetPose();if(coolingVapor)coolingVapor.Clear();if(hammer)hammer.gameObject.SetActive(true);if(tongs)tongs.gameObject.SetActive(false);if(polishingStone)polishingStone.gameObject.SetActive(false);}
     void OnDisable(){Cancel();}
     void OnDestroy(){foreach(var m in owned)if(m)Destroy(m);}
     static Color Metal(int material)=>material==5?new Color(.72f,.81f,.9f):material==7?new Color(.3f,.35f,.65f):material==9?Color.white:new Color(.48f,.52f,.56f);
@@ -292,7 +316,7 @@ public sealed class ForgeWorkshopVisuals : MonoBehaviour
         var route=ForgePoseSolver.Route(smithStart,stand,worldObstacles,.18f);
         Quaternion startFacing=smith.rotation;float traveled=0;
         float initialHeat=p.heat,duration=Mathf.Max(.08f,step.duration),elapsed=0;
-        bool vaporEmitted=false;Quaternion initialRotation=p.root.transform.rotation;
+        bool sealApplied=false;bool vaporEmitted=false;Quaternion initialRotation=p.root.transform.rotation;
         hammer.gameObject.SetActive(step.process==3);
         if(tongs)tongs.gameObject.SetActive(heating);
         try{
@@ -365,6 +389,10 @@ public sealed class ForgeWorkshopVisuals : MonoBehaviour
                     Reach(rightArm,rightFore,rightHand,rightSocket,handTarget,stonePose,false);
                     polishingStone.SetPositionAndRotation(rightSocket.position-Vector3.up*.055f,stonePose);
                 }
+                if(step.process==201){
+                    AnimateSealLayer(p,step,t);
+                    if(!sealApplied&&t>=ForgeActionAudio.SealContactTime){Details(p,step);sealApplied=true;}
+                }
                 float coolingProgress=Mathf.Clamp01((t-.4f)/.48f);
                 if(lucky&&t>.48f&&t<.92f)luckySparkles.Show(p.root.transform,Mathf.InverseLerp(.48f,.92f,t));
                 else if(lucky)luckySparkles.Hide();
@@ -377,6 +405,6 @@ public sealed class ForgeWorkshopVisuals : MonoBehaviour
                 else{p.root.transform.position=grip;p.root.transform.rotation=pose;}
                 Appearance(p,step,step.heat);Details(p,step);
             }
-        }finally{if(run==epoch){actionAudio.AbortIfActive();if(luckySparkles)luckySparkles.Hide();acting=false;if(heldPiece==null)ResetPose();if(hammer)hammer.gameObject.SetActive(heldPiece==null);if(tongs)tongs.gameObject.SetActive(false);if(polishingStone)polishingStone.gameObject.SetActive(false);}}
+        }finally{if(run==epoch){HideSealLayer();actionAudio.AbortIfActive();if(luckySparkles)luckySparkles.Hide();acting=false;if(heldPiece==null)ResetPose();if(hammer)hammer.gameObject.SetActive(heldPiece==null);if(tongs)tongs.gameObject.SetActive(false);if(polishingStone)polishingStone.gameObject.SetActive(false);}}
     }
 }

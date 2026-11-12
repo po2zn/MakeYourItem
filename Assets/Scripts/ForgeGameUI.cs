@@ -142,7 +142,7 @@ public sealed partial class ForgeGameUI:MonoBehaviour
  ForgeGuideExample guideExample;
  public void GuideExample(string source,string notes){if(!guideExample)guideExample=ForgeGuideExample.Create(texts["GuideBody"]);guideExample.Show(source,notes);}
  Button inventoryShortcut;
- public void InventoryShortcut(){if(inventoryShortcut)return;inventoryShortcut=Instantiate(salePrefab,salesList);inventoryShortcut.name="OpenProductInventory";ForgeLegacyUIFont.Apply(inventoryShortcut.transform);inventoryShortcut.GetComponentInChildren<Text>().text="완성품 목록 열기";inventoryShortcut.onClick.AddListener(()=>{game.GameUIAction("products");Refresh();});}
+ public void InventoryShortcut(){if(inventoryShortcut)return;inventoryShortcut=Instantiate(salePrefab,salesList);ForgeSfxButton.Bind(inventoryShortcut);inventoryShortcut.name="OpenProductInventory";ForgeLegacyUIFont.Apply(inventoryShortcut.transform);inventoryShortcut.GetComponentInChildren<Text>().text="완성품 목록 열기";inventoryShortcut.onClick.AddListener(()=>{game.GameUIAction("products");Refresh();});}
  ForgeProductInventory inventory;
  public void Inventory(bool visible,ForgeShop shop){if(!inventory)inventory=GetComponentInChildren<ForgeProductInventory>(true);if(!inventory)return;inventory.Bind(game,shop,texts["Products"].font);if(inventory.gameObject.activeSelf!=visible)inventory.gameObject.SetActive(visible);if(visible)inventory.Refresh();}
  public void CenterGuide(){StartCoroutine(CenterGuideAfterLayout());}
@@ -168,6 +168,6 @@ public sealed partial class ForgeGameUI:MonoBehaviour
  public void CommitCodeWindowBounds(){foreach(var view in codes.Values)if(view)view.CommitBounds();}
  public void DiscardCodeViews(){foreach(var view in GetComponentsInChildren<ForgeCodeView>(true)){view.Detach();view.gameObject.SetActive(false);Destroy(view.gameObject);}codes.Clear();}
  public void PruneCodes(HashSet<int> ids){var remove=new List<int>();foreach(var pair in codes)if(!ids.Contains(pair.Key)){pair.Value.gameObject.SetActive(false);Destroy(pair.Value.gameObject);remove.Add(pair.Key);}foreach(int id in remove)codes.Remove(id);}
- public void Sale(int id,string value,bool selected){if(!sales.TryGetValue(id,out var b)){b=Instantiate(salePrefab,salesList);ForgeLegacyUIFont.Apply(b.transform);b.gameObject.name="Product_"+id;b.onClick.AddListener(()=>{game.GameUIAction("product:"+id);Refresh();});sales.Add(id,b);}b.GetComponentInChildren<Text>().text=(selected?"● ":"○ ")+value;}
+ public void Sale(int id,string value,bool selected){if(!sales.TryGetValue(id,out var b)){b=Instantiate(salePrefab,salesList);ForgeSfxButton.Bind(b);ForgeLegacyUIFont.Apply(b.transform);b.gameObject.name="Product_"+id;b.onClick.AddListener(()=>{game.GameUIAction("product:"+id);Refresh();});sales.Add(id,b);}b.GetComponentInChildren<Text>().text=(selected?"● ":"○ ")+value;}
  public void PruneSales(HashSet<int> ids){var remove=new List<int>();foreach(var p in sales)if(!ids.Contains(p.Key)){p.Value.gameObject.SetActive(false);Destroy(p.Value.gameObject);remove.Add(p.Key);}foreach(int id in remove)sales.Remove(id);}
 }

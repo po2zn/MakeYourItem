@@ -84,3 +84,14 @@ public sealed partial class BlueprintRuntime
         return new Session(new BlueprintRuntime(program,gold,iron,owner,seed,materialStocks,modules,technology,clockHour,context),deferErrors);
     }
 }
+
+// Presentation schedulers wait once at each statement boundary. Preview evaluation stays immediate.
+public static class BlueprintExecutionTiming
+{
+    public const double SecondsPerTick = 0.02;
+    public static System.Collections.IEnumerator WaitForTick(Func<double> clock)
+    {
+        double deadline=clock()+SecondsPerTick;
+        while(clock()<deadline)yield return null;
+    }
+}

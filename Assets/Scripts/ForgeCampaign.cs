@@ -44,8 +44,8 @@ public partial class ForgeMvp
         ForgeTextLayout.LayoutLabel("기술 연구: 절댓값 → 최솟값 → 최댓값 / 길이 → 집합 → 난수");
         ForgeTextLayout.LayoutLabel("최종 의뢰: "+ForgeCampaign.FinalGoal);
         ForgeTextLayout.LayoutLabel("의뢰 "+(technology.Owns(ForgeTechnology.MasterCommission)?"수락 완료":"미수락")+" · 엔딩 "+(campaignComplete?"달성":"미달성"));
-        if(GUILayout.Button("성장 트리 열기")){showProgress=false;OpenTechTree();}
-        if(campaignComplete&&GUILayout.Button("엔딩 다시 보기")){showProgress=false;endingSeen=false;}
+        if(ForgeSoundEffects.LayoutButton("성장 트리 열기")){showProgress=false;OpenTechTree();}
+        if(campaignComplete&&ForgeSoundEffects.LayoutButton("엔딩 다시 보기")){showProgress=false;endingSeen=false;}
     }
     void DrawCampaignEnding()
     {
@@ -67,9 +67,9 @@ public partial class ForgeMvp
         GUILayout.Space(20);
         ForgeTextLayout.LayoutLabel("명장의 마지막 의뢰 완료\n"+ForgeCampaign.FinalGoal+"\n\nDay "+DayCycle.Day+" · 판매 "+totalSales+"개 · 누적 판매액 "+earnedGold+"G",endingBody);
         GUILayout.Space(28);
-        if(GUILayout.Button("계속 제작하기",endingButton,GUILayout.MinHeight(52))){endingSeen=true;SaveProgress();}
+        if(ForgeSoundEffects.LayoutButton("계속 제작하기",endingButton,GUILayout.MinHeight(52))){endingSeen=true;SaveProgress();}
         GUILayout.Space(10);
-        if(GUILayout.Button("저장하고 타이틀로",endingButton,GUILayout.MinHeight(52))){endingSeen=true;SaveProgress();ReturnToTitle();}
+        if(ForgeSoundEffects.LayoutButton("저장하고 타이틀로",endingButton,GUILayout.MinHeight(52))){endingSeen=true;SaveProgress();ReturnToTitle();}
         if(saveMessage.StartsWith("저장 실패"))ForgeTextLayout.LayoutLabel(saveMessage,endingBody);
         GUILayout.EndScrollView();GUILayout.EndArea();
     }

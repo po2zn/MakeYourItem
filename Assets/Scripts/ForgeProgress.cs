@@ -192,9 +192,9 @@ public partial class ForgeMvp : ISerializationCallbackReceiver
     {
         GUI.Box(new Rect(0,0,Screen.width,Screen.height),"");
         GUILayout.BeginArea(new Rect(20,20,Mathf.Max(100,Screen.width-40),Mathf.Max(100,Screen.height-40)));
-        if(GUILayout.Button("← 대장간으로 돌아가기")){showProgress=false;}
+        if(ForgeSoundEffects.LayoutButton("← 대장간으로 돌아가기")){showProgress=false;}
         bool canReturn=GUI.enabled;GUI.enabled=canReturn&&!busy&&executionSession==null;
-        if(GUILayout.Button("저장하고 타이틀로"))ReturnToTitle();
+        if(ForgeSoundEffects.LayoutButton("저장하고 타이틀로"))ReturnToTitle();
         GUI.enabled=canReturn;
         progressScroll=GUILayout.BeginScrollView(progressScroll);
         ForgeTextLayout.LayoutLabel("공방 기록 · Day "+DayCycle.Day+" · "+((int)DayCycle.CurrentHour).ToString("00")+":"+((int)(DayCycle.CurrentHour*60)%60).ToString("00"));
@@ -202,7 +202,7 @@ public partial class ForgeMvp : ISerializationCallbackReceiver
         ForgeTextLayout.LayoutLabel("가속 "+craftSpeed+"배 · 자동판매 "+(autoSell?"켜짐":"꺼짐"));
         ForgeTextLayout.LayoutLabel(lesson.Heading);
         bool tutorialEnabled=GUI.enabled;GUI.enabled=tutorialEnabled&&!busy&&executionSession==null;
-        if(GUILayout.Button(lesson.Complete?"검 제작 튜토리얼 다시 보기":"검 제작 튜토리얼 시작 / 이어하기"))OpenTutorial();
+        if(ForgeSoundEffects.LayoutButton(lesson.Complete?"검 제작 튜토리얼 다시 보기":"검 제작 튜토리얼 시작 / 이어하기"))OpenTutorial();
         GUI.enabled=tutorialEnabled;
         DrawCampaignProgress();
         ForgeTextLayout.LayoutLabel("발견 도감");
@@ -210,9 +210,9 @@ public partial class ForgeMvp : ISerializationCallbackReceiver
         foreach(var discovery in discoveries)ForgeTextLayout.LayoutLabel(discovery+" · "+DiscoveryRule(discovery));
         ForgeTextLayout.LayoutLabel("행운 완성 검은 판매 +30G와 다이아 기본 1개. 별무늬 별철 검 +1개, 최종 의뢰 조건의 명작 +1개로 최대 3개입니다. 다이아는 대장장이 연구·고용·선물·거대한 룬에 사용합니다.");
         bool old=GUI.enabled;GUI.enabled=!busy&&executionSession==null;
-        if(GUILayout.Button("공방 저장"))SaveProgress();
-        if(GUILayout.Button("현재 도면을 숫자 표기로 변환"))TranslateCurrent(false);
-        if(GUILayout.Button("현재 도면을 영문 표기로 변환"))TranslateCurrent(true);
+        if(ForgeSoundEffects.LayoutButton("공방 저장"))SaveProgress();
+        if(ForgeSoundEffects.LayoutButton("현재 도면을 숫자 표기로 변환"))TranslateCurrent(false);
+        if(ForgeSoundEffects.LayoutButton("현재 도면을 영문 표기로 변환"))TranslateCurrent(true);
         GUI.enabled=old;
         ForgeTextLayout.LayoutLabel(saveMessage);
         ForgeTextLayout.LayoutLabel("제작·판매·구매 후 자동 저장. 실행 도중 종료하면 지불한 재료는 유지되며 실행 스택과 작업 중 물체는 복원하지 않습니다. 종료 중에는 시간이 흐르지 않습니다.");
@@ -340,13 +340,13 @@ public partial class ForgeMvp
         titleScroll=GUILayout.BeginScrollView(titleScroll);
         ForgeTextLayout.LayoutLabel("숫자로 도면을 그리고, 나만의 무기를 만드세요.",menuText);GUILayout.Space(24);
         if(titlePage==0){
-            if(GUILayout.Button("게임 시작",menuButton,GUILayout.MinHeight(58))){titlePage=1;titleMessage="";}
+            if(ForgeSoundEffects.LayoutButton("게임 시작",menuButton,GUILayout.MinHeight(58))){titlePage=1;titleMessage="";}
             GUILayout.Space(14);
-            if(GUILayout.Button("이어하기",menuButton,GUILayout.MinHeight(58))){titlePage=2;titleMessage="";}
+            if(ForgeSoundEffects.LayoutButton("이어하기",menuButton,GUILayout.MinHeight(58))){titlePage=2;titleMessage="";}
             GUILayout.Space(14);
-            if(GUILayout.Button("설정",SettingsButton,GUILayout.MinHeight(58))){titlePage=4;RefreshDisplaySizes();settingsDropdown=0;settingsMessage="";}
+            if(ForgeSoundEffects.LayoutButton("설정",SettingsButton,GUILayout.MinHeight(58))){titlePage=4;RefreshDisplaySizes();settingsDropdown=0;settingsMessage="";}
             GUILayout.Space(14);
-            if(GUILayout.Button("종료",menuButton,GUILayout.MinHeight(58)))QuitFromTitle();
+            if(ForgeSoundEffects.LayoutButton("종료",menuButton,GUILayout.MinHeight(58)))QuitFromTitle();
         }else if(titlePage==1||titlePage==2){
             bool fresh=titlePage==1;
             ForgeTextLayout.LayoutLabel(fresh?"새 게임을 저장할 슬롯을 선택하세요.":"이어할 슬롯을 선택하세요.",menuText);
@@ -358,15 +358,15 @@ public partial class ForgeMvp
                 GUI.enabled=enabled;
                 GUILayout.Space(12);
             }
-            if(GUILayout.Button("뒤로",menuButton))titlePage=0;
+            if(ForgeSoundEffects.LayoutButton("뒤로",menuButton))titlePage=0;
         }else if(titlePage==3){
             ForgeTextLayout.LayoutLabel("슬롯 "+confirmSlot+"에서 새 게임을 시작할까요?",new GUIStyle(menuTitle){fontSize=26});
             GUILayout.Space(16);
             ForgeTextLayout.LayoutLabel(PlayerPrefs.HasKey(SlotKey(confirmSlot))?"이 슬롯의 기존 진행 상황과 작성한 도면을 덮어씁니다. 되돌릴 수 없습니다. 다른 슬롯은 유지됩니다.":"100G와 철 10개로 Day 1 오전 8시에 시작합니다. 진행 상황은 선택한 슬롯에 저장됩니다.",menuText);
             GUILayout.Space(20);
-            if(GUILayout.Button("확인 · 새 게임 시작",menuButton,GUILayout.MinHeight(58)))StartNewSlot(confirmSlot);
+            if(ForgeSoundEffects.LayoutButton("확인 · 새 게임 시작",menuButton,GUILayout.MinHeight(58)))StartNewSlot(confirmSlot);
             GUILayout.Space(14);
-            if(GUILayout.Button("취소",menuButton,GUILayout.MinHeight(58)))titlePage=1;
+            if(ForgeSoundEffects.LayoutButton("취소",menuButton,GUILayout.MinHeight(58)))titlePage=1;
         }
         if(!string.IsNullOrEmpty(titleMessage)){GUILayout.Space(12);ForgeTextLayout.LayoutLabel(titleMessage,menuText);}
         GUILayout.EndScrollView();GUILayout.EndArea();

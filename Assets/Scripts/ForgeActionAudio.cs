@@ -10,8 +10,11 @@ public sealed class ForgeActionAudio:MonoBehaviour {
  public void Begin(ForgeMvp.Step value){walking.Stop();cooling.Stop();step=value;previous=-1;Volume();}
  void One(AudioClip clip){var lib=ForgeSfxLibrary.Instance;if(lib){clip=lib.AtSpeed(clip,step.workSpeed);if(clip)effects.PlayOneShot(clip,.75f);}}
  void Loop(AudioSource voice,AudioClip clip,bool active){if(!active){voice.Stop();return;}if(voice.isPlaying)return;var lib=ForgeSfxLibrary.Instance;if(!lib)return;voice.clip=lib.AtSpeed(clip,step.workSpeed);if(voice.clip)voice.Play();}
+ public const float SealContactTime=.82f;
  public static bool Crossed(float previous,float current,float cue)=>previous<cue&&current>=cue;
  public static int HammerHits(float previous,float current)=>(Crossed(previous,current,.7f)?1:0)+(Crossed(previous,current,1f)?1:0);
+ // Two back-and-forth polishing cycles produce four strokes from t=.4 to t=1.
+ public static int PolishStrokes(float previous,float current)=>(Crossed(previous,current,.4f)?1:0)+(Crossed(previous,current,.55f)?1:0)+(Crossed(previous,current,.7f)?1:0)+(Crossed(previous,current,.85f)?1:0);
  bool Cross(float t,float cue)=>Crossed(previous,t,cue);
  public void Frame(float t,bool moving){
   if(step==null)return;var lib=ForgeSfxLibrary.Instance;if(!lib)return;
@@ -19,6 +22,9 @@ public sealed class ForgeActionAudio:MonoBehaviour {
   if(step.process==1&&Cross(t,.4f))One(lib.place);
   if(step.process==8&&Cross(t,.64f))One(lib.coal);
   if(step.process==3)for(int hit=0;hit<HammerHits(previous,t);hit++)One(lib.hammer);
+  if(step.process==777&&Cross(t,.48f))One(lib.sparkle);
+  if(step.process==201&&Cross(t,SealContactTime))One(lib.seal);
+  if(step.process==6)for(int stroke=0;stroke<PolishStrokes(previous,t);stroke++)One(lib.polish);
   bool wet=step.consumed!=null&&(step.consumed.ContainsKey(3)||step.consumed.ContainsKey(8));
   Loop(cooling,wet?lib.water:lib.air,step.process==4&&t>=(wet?.58f:.4f)&&t<.9f);
   previous=t;
