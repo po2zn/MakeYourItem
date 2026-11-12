@@ -119,7 +119,7 @@ public static class BlueprintResearchGuide
         for(int i=0;i<ForgeBlacksmiths.HireCosts.Length;i++)text.AppendLine(ForgeBlacksmiths.Counts[i]+" → "+ForgeBlacksmiths.Counts[i+1]+"명 · "+ForgeBlacksmiths.HireCosts[i]+" 다이아 · 이전 고용 단계 필요");
         text.AppendLine("호감도 조회 90902: "+ForgeBlacksmiths.FavorResearchCost+" 다이아 / 위치 조회 90903: "+ForgeBlacksmiths.PositionResearchCost+" 다이아 / 요구 수량 조회 90909: "+ForgeBlacksmiths.DemandResearchCost+" 다이아. 세 연구는 기본 대장장이에서 각각 분기합니다.");
         text.AppendLine("선물 90901, 병렬 명령 90904, 인원 90905, 자기 번호 90906, 작업 여부 90907은 기본 제공됩니다. 병렬 명령에 전달하는 사용자 함수는 성장 트리의 제어문 해금이 필요합니다. 자세한 사용법은 대장장이 책갈피에서 확인하세요.");
-        return Display(text.ToString(),english);
+        return FormatGold(Display(text.ToString(),english));
     }
     static string OfferSection(ForgeTechnology.Offer offer)
     {

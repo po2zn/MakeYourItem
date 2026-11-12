@@ -38,7 +38,7 @@ public sealed class ForgeTechnology
     static Offer MaterialBundle(int material,BlueprintFeature feature,int price,int tier,int lane,string name,params string[] parents)
     {return new Offer("function-"+feature,ForgePurchaseKind.Function,price,name,"재료 공급과 함수를 함께 해금합니다. 재료 재고는 상점에서 별도로 구매합니다.\n"+BlueprintAliases.Find(feature).Description,tier,lane,material,feature,parents);}
     static Offer Bundle(BlueprintFeature feature,BlueprintFeature companion,int price,int tier,int lane,string name,params string[] parents)
-    {return new Offer("function-"+feature,ForgePurchaseKind.Function,price,name,"한 번 구매하면 두 함수의 숫자/영문 표기가 함께 해금됩니다.\n"+BlueprintAliases.Find(feature).Description+"\n"+BlueprintAliases.Find(companion).Description,tier,lane,0,feature,parents);}
+    {return new Offer("function-"+feature,ForgePurchaseKind.Function,price,name,feature==BlueprintFeature.Lucky?"다이아몬드 획득 · 기본 1D\n행운을 적용한 완성 검을 판매하면 받습니다.\n777?() 함께 해금 · 자세한 내용은 도면 안내서":"한 번 구매하면 두 함수의 숫자/영문 표기가 함께 해금됩니다.\n"+BlueprintAliases.Find(feature).Description+"\n"+BlueprintAliases.Find(companion).Description,tier,lane,0,feature,parents);}
     public static float SpeedMultiplier(int level)=>level<=0?1f:level==1?1.5f:level;
     public float RestoreSpeed(float saved)=>MaxSpeedLevel==0?1f:Math.Max(1.5f,Math.Min(float.IsNaN(saved)?1.5f:saved,SpeedMultiplier(MaxSpeedLevel)));
     static Offer Speed(int level,int price)=>new Offer("speed-"+level,ForgePurchaseKind.Function,price,"스피드 "+level+"단계 · "+SpeedMultiplier(level)+"배",

@@ -9,7 +9,7 @@ public static class MaterialIconSetup
  if(EditorApplication.isPlaying)throw new System.Exception("Exit Play first");
  const string path="Assets/UI/ForgeResearchUI.prefab";var root=PrefabUtility.LoadPrefabContents(path);var icons=new ForgeMaterialHud();int count=0;
  try{foreach(var card in root.GetComponentsInChildren<ForgeTreeCard>(true)){
- var offer=ForgeTechnology.Find(card.offerId);if(offer==null||(offer.Kind!=ForgePurchaseKind.Material&&offer.Kind!=ForgePurchaseKind.MaterialUnlock))continue;
+ var offer=ForgeTechnology.Find(card.offerId);if(offer==null||(offer.Kind!=ForgePurchaseKind.Material&&offer.Kind!=ForgePurchaseKind.MaterialUnlock&&offer.Material!=6&&offer.Material!=9))continue;
  var node=card.transform.Find("MaterialArtwork");if(!node)node=new GameObject("MaterialArtwork",typeof(RectTransform),typeof(UnityEngine.UI.RawImage)).transform;
  node.SetParent(card.transform,false);var rect=(RectTransform)node;rect.anchorMin=rect.anchorMax=rect.pivot=new Vector2(0,1);
  float aspect=icons.GetIconAspect(offer.Material);Vector2 size=aspect>=1?new Vector2(64,64/aspect):new Vector2(64*aspect,64);

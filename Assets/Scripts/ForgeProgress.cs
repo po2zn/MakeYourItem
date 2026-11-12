@@ -33,6 +33,22 @@ public partial class ForgeMvp : ISerializationCallbackReceiver
         foreach(var w in codeWindows)nextWindowId=Math.Max(nextWindowId,w.id+1);
     }
 
+    // Index is the material ID; keep the last valid input independently of shop UI lifetime.
+    [SerializeField,HideInInspector] int[] materialPurchaseQuantities=new int[10];
+    public int MaterialPurchaseQuantity(int material)=>material>0&&material<10&&materialPurchaseQuantities!=null&&material<materialPurchaseQuantities.Length&&materialPurchaseQuantities[material]>0?materialPurchaseQuantities[material]:1;
+    public void SetMaterialPurchaseQuantity(int material,int quantity)
+    {
+        if(material<1||material>=10||quantity<1||MaterialPurchaseQuantity(material)==quantity)return;
+        if(materialPurchaseQuantities==null||materialPurchaseQuantities.Length!=10)RestoreMaterialPurchaseQuantities(materialPurchaseQuantities);
+        materialPurchaseQuantities[material]=quantity;QueueCodeSave();
+    }
+    void RestoreMaterialPurchaseQuantities(int[] saved)
+    {
+        materialPurchaseQuantities=new int[10];
+        for(int i=1;i<10;i++)materialPurchaseQuantities[i]=saved!=null&&i<saved.Length&&saved[i]>0?saved[i]:1;
+        if(hierarchyTree)hierarchyTree.RestorePurchaseQuantities();
+    }
+
     const string LegacySaveKey="MakeYourItem.Progress.v1";
     const int SlotCount=3;
     int activeSaveSlot;
@@ -60,6 +76,7 @@ public partial class ForgeMvp : ISerializationCallbackReceiver
         public string savedAt;public long nextProductOrder;
         public long savedAtUtcTicks;public List<SavedItem> titleSwords;
         public int version=1,gold,iron,day,seed,diamonds,sales,tutorial;public long earned;public double hour;public float speed;public bool autoSell;
+        public int[] materialPurchaseQuantities;
         public ForgeMaterialStock[] stocks;public BlueprintFeature[] features;public string[] discoveries;
         public List<SavedWindow> windows=new List<SavedWindow>();public List<SavedItem> items=new List<SavedItem>();
     }
@@ -80,6 +97,7 @@ public partial class ForgeMvp : ISerializationCallbackReceiver
             gold=saved.gold;iron=saved.iron;worldSeed=saved.seed;diamonds=saved.diamonds;totalSales=saved.sales;tutorialStage=saved.tutorial;earnedGold=saved.earned;
             lesson=ForgeTutorialLesson.Restore(saved.introStage,saved.introCode);
             craftSpeed=Mathf.Clamp(saved.speed,1,5);autoSell=saved.autoSell;materialStocks=saved.stocks??Array.Empty<ForgeMaterialStock>();technology.Restore(saved.features,saved.technologyNodes,saved.stocks);campaignComplete=saved.campaignComplete;endingSeen=saved.endingSeen;
+            RestoreMaterialPurchaseQuantities(saved.materialPurchaseQuantities);
             craftSpeed=technology.RestoreSpeed(craftSpeed);
             bool legacySpeed=saved.technologyNodes==null?Array.Exists(saved.features??Array.Empty<BlueprintFeature>(),f=>f==BlueprintFeature.Speed||f==BlueprintFeature.AutoSell):Array.Exists(saved.technologyNodes,id=>id=="function-Speed");
             autoSell=technology.Owns(BlueprintFeature.AutoSell)&&(saved.autoSell||legacySpeed);
@@ -112,6 +130,8 @@ public partial class ForgeMvp : ISerializationCallbackReceiver
         try {
             if(hierarchyGame)hierarchyGame.CommitCodeWindowBounds();
             var saved=new SavedProgress{windowDataVersion=1,activeCodeWindow=activeWindow,nextCodeWindowId=nextWindowId,viewOffset=workspaceOffset,viewZoom=workspaceZoom,savedAt=DateTime.Now.ToString("yyyy-MM-dd HH:mm"),gold=gold,iron=iron,seed=worldSeed,diamonds=diamonds,sales=totalSales,tutorial=tutorialStage,earned=earnedGold,day=DayCycle.Day,hour=DayCycle.CurrentHour,speed=craftSpeed,autoSell=autoSell,stocks=materialStocks,features=technology.Export(),technologyNodes=technology.ExportNodes(),campaignComplete=campaignComplete,endingSeen=endingSeen,discoveries=new List<string>(discoveries).ToArray()};
+            saved.materialPurchaseQuantities=new int[10];
+            for(int material=1;material<10;material++)saved.materialPurchaseQuantities[material]=MaterialPurchaseQuantity(material);
             saved.nextProductOrder=shop.NextOrder;
             saved.savedAtUtcTicks=DateTime.UtcNow.Ticks;saved.titleSwords=new List<SavedItem>(titleSwordHistory);
             saved.introStage=lesson.Stage;saved.introCode=lesson.Code;
@@ -126,6 +146,7 @@ public partial class ForgeMvp : ISerializationCallbackReceiver
         if(busy||executionSession!=null)return;
         if(hierarchyGame)hierarchyGame.DiscardCodeViews();
         codeSavePending=false;
+        RestoreMaterialPurchaseQuantities(null);
         StopSmithJobs();blacksmiths=new ForgeBlacksmiths();showSmithTree=false;
         EndWorkspaceDrag();CancelHierarchyTreeDrag();guideBook.CancelDrag();
         GUIUtility.hotControl=0;if(Event.current!=null)ClearUIFocus();

@@ -38,10 +38,22 @@ public sealed class ForgeTreePanel : MonoBehaviour
         currency.hide=HideTooltip;
         if(materialStockIcons!=null){stockArtwork=new ForgeMaterialHud();for(int i=0;i<materialStockIcons.Length;i++){var icon=materialStockIcons[i];int id=i+1;icon.texture=stockArtwork.GetIcon(id);icon.uvRect=stockArtwork.GetIconUV(id);float aspect=stockArtwork.GetIconAspect(id);icon.rectTransform.sizeDelta=aspect>=1?new Vector2(27,27/aspect):new Vector2(27*aspect,27);}}
         foreach(var card in cards)card.Bind(this);
+        RestorePurchaseQuantities();
         growthButton.onClick.AddListener(()=>ShowPage(0));materialsButton.onClick.AddListener(()=>ShowPage(1));smithButton.onClick.AddListener(()=>ShowPage(2));
         fitButton.onClick.AddListener(()=>{if(page==3)ShowPage(2);maps[page].Fit();});resetButton.onClick.AddListener(()=>{if(page==3)ShowPage(2);maps[page].ResetView();});
         detailsButton.onClick.AddListener(()=>ShowPage(page==3?2:3));backButton.onClick.AddListener(()=>owner.CloseHierarchyTree());
         stopJobsButton.onClick.AddListener(()=>{owner.StopHierarchySmithJobs();Refresh();});
+    }
+    public void RestorePurchaseQuantities()
+    {
+        if(owner==null)return;
+        foreach(var card in cards)if(card.quantity!=null&&card.offer!=null&&card.offer.Kind==ForgePurchaseKind.Material)
+            card.quantity.SetTextWithoutNotify(owner.MaterialPurchaseQuantity(card.offer.Material).ToString());
+    }
+    public void QuantityChanged(ForgeTreeCard card)
+    {
+        if(card.offer!=null&&card.offer.Kind==ForgePurchaseKind.Material)owner.SetMaterialPurchaseQuantity(card.offer.Material,card.Quantity);
+        RefreshHover(card);
     }
     public void Open(){gameObject.SetActive(true);ShowPage(0);}
     public void ShowPage(int index)

@@ -25,7 +25,7 @@ public static class BlueprintGuide
             return body==alias.Description||body==summary?summary:summary+"\n\n"+body;
         }
         public Entry(string id,string section,string title,string body,string example,string expected,string note,BlueprintFeature feature,string numericTitle=null,string numericBody=null,string numericExample=null,string numericNote=null)
-        {this.numericTitle=numericTitle??title;this.numericBody=numericBody??body;this.numericExample=numericExample??example;this.numericNote=numericNote??note;Id=id;Section=BlueprintResearchGuide.SectionFor(feature,section);Title=title;Body=body;Example=example;Expected=expected;Note=note;Feature=feature;}
+        {this.numericTitle=numericTitle??title;this.numericBody=numericBody??body;this.numericExample=numericExample??example;this.numericNote=numericNote??note;Id=id;Section=BlueprintResearchGuide.SectionFor(feature,section);Title=title;Body=body;Example=example;Expected=BlueprintResearchGuide.FormatGold(expected);Note=note;Feature=feature;}
         public string HeadingFor(bool englishUnlocked) => FormatHeading(englishUnlocked);
         string FormatHeading(bool english)
         {
@@ -44,9 +44,9 @@ public static class BlueprintGuide
             }
             return (english&&alias.Symbol.Length>0?symbol+" / "+alias.English:symbol)+" · "+title;
         }
-        public string DescriptionFor(bool englishUnlocked) => (Id=="notation"?"영어 제어 예약어는 테크 트리의 '영어 예약어' 연구(150,000G)로 해금합니다. 숫자·기호 표기는 계속 사용할 수 있습니다.\n\n":"")+Describe(englishUnlocked?Body:numericBody)+(Feature==BlueprintFeature.While?"\n\n888(1):은 계속 반복하고 888(0):은 실행하지 않습니다. 0이 아닌 정수는 참입니다. !!로 빠져나오거나 실행 중지 버튼으로 멈출 수 있으며, 실행 안전 한도에 도달하면 중단됩니다.":"");
+        public string DescriptionFor(bool englishUnlocked) => BlueprintResearchGuide.FormatGold((Id=="notation"?"영어 제어 예약어는 테크 트리의 '영어 예약어' 연구(150,000G)로 해금합니다. 숫자·기호 표기는 계속 사용할 수 있습니다.\n\n":"")+Describe(englishUnlocked?Body:numericBody)+(Feature==BlueprintFeature.While?"\n\n888(1):은 계속 반복하고 888(0):은 실행하지 않습니다. 0이 아닌 정수는 참입니다. !!로 빠져나오거나 실행 중지 버튼으로 멈출 수 있으며, 실행 안전 한도에 도달하면 중단됩니다.":""));
         public string ExampleFor(bool englishUnlocked) => englishUnlocked?Example:numericExample;
-        public string NoteFor(bool englishUnlocked) => englishUnlocked?Note:numericNote;
+        public string NoteFor(bool englishUnlocked) => BlueprintResearchGuide.FormatGold(englishUnlocked?Note:numericNote);
         public bool Matches(string query,bool englishUnlocked)
         {return string.IsNullOrWhiteSpace(query)||(Section+" "+HeadingFor(englishUnlocked)+" "+DescriptionFor(englishUnlocked)).IndexOf(query.Trim(),StringComparison.OrdinalIgnoreCase)>=0;}
         public bool Matches(string query)

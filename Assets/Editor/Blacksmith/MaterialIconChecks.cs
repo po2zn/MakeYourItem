@@ -25,7 +25,7 @@ public static class MaterialIconChecks
  }
  ScreenCapture.CaptureScreenshot("Assets/Art/Blacksmith/Documentation/MaterialHud.png");await Task.Delay(300);
  treeFlag.SetValue(game,true);await Task.Delay(250);var panel=game.HierarchyTree;panel.ShowPage(1);panel.maps[1].Fit();Canvas.ForceUpdateCanvases();await Task.Delay(250);
- int count=0;foreach(var card in panel.cards){var offer=card.offer;if(offer==null||(offer.Kind!=ForgePurchaseKind.Material&&offer.Kind!=ForgePurchaseKind.MaterialUnlock))continue;
+ int count=0;foreach(var card in panel.cards){var offer=card.offer;if(offer==null||(offer.Kind!=ForgePurchaseKind.Material&&offer.Kind!=ForgePurchaseKind.MaterialUnlock&&offer.Material!=6&&offer.Material!=9))continue;
  var image=card.transform.Find("MaterialArtwork")?.GetComponent<RawImage>();if(!image||image.texture!=hud.GetIcon(offer.Material))throw new Exception("Tree mapping "+offer.Id);
  var text=card.title;var settings=text.GetGenerationSettings(text.rectTransform.rect.size);settings.fontSize=text.resizeTextMinSize;settings.resizeTextForBestFit=false;float h=new TextGenerator().GetPreferredHeight(text.text,settings)/text.pixelsPerUnit;
  if(h>text.rectTransform.rect.height+1)throw new Exception("Title overflow "+text.text);

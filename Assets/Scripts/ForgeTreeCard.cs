@@ -18,7 +18,7 @@ public sealed class ForgeTreeCard : MonoBehaviour, IPointerEnterHandler, IPointe
         panel=owner;offer=string.IsNullOrEmpty(offerId)?null:ForgeTechnology.Find(offerId);
         if(offer!=null)title.text=offer.Title;
         button.onClick.AddListener(()=>panel.Purchase(this));
-        if(quantity!=null)quantity.onValueChanged.AddListener(_=>panel.RefreshHover(this));
+        if(quantity!=null)quantity.onValueChanged.AddListener(_=>panel.QuantityChanged(this));
     }
     public int Quantity=>quantity==null?1:int.TryParse(quantity.text,out int count)&&count>0?count:0;
     public void OnPointerEnter(PointerEventData e){panel.Hover(this,e.position);}
