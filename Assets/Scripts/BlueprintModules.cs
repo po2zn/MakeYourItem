@@ -101,7 +101,7 @@ public sealed partial class BlueprintRuntime
         currentModule=module;localNames=null;importDepth++;
         try {
             bool deferErrors=session!=null&&session.DeferredErrors;
-            var program=new BlueprintValidator(new BlueprintParser(source,deferErrors).Parse(),moduleTechnology,deferErrors).Validate();
+            var program=new BlueprintValidator(new BlueprintParser(source,deferErrors,moduleTechnology).Parse(),moduleTechnology,deferErrors).Validate();
             BindFunctions(module,program);
             await Block(program.Body,module.Globals);
             module.Initializing=false;

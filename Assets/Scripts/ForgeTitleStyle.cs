@@ -38,6 +38,19 @@ public static class ForgeTitleStyle
             var edge=rect;edge.position+=offset*2;GUI.Label(edge,title,style);
         }
         SetLogoColor(style,new Color(1f,.91f,.72f));GUI.Label(rect,title,style);
+        float phase=Mathf.Repeat(Time.unscaledTime,6f)/1.3f;
+        if(phase<1f){
+            float center=Mathf.Lerp(-.15f,1.15f,phase)*rect.width;
+            for(int band=0;band<7;band++){
+                float width=rect.width*.022f;
+                float left=center+(band-3)*width;
+                float x=Mathf.Max(0,left),right=Mathf.Min(rect.width,left+width);
+                if(right<=x)continue;
+                SetLogoColor(style,Color.Lerp(new Color(1f,.91f,.72f),Color.white,(1f-Mathf.Abs(band-3)/4f)*.85f));
+                GUI.BeginGroup(new Rect(rect.x+x,rect.y,right-x,rect.height));
+                GUI.Label(new Rect(-x,0,rect.width,rect.height),title,style);GUI.EndGroup();
+            }
+        }
     }
     static void SetLogoColor(GUIStyle style,Color color)
     {

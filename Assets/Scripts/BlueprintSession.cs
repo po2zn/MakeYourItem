@@ -77,7 +77,7 @@ public sealed partial class BlueprintRuntime
     public static Session StartSession(string source,int gold,int iron,string owner="",uint seed=1,IReadOnlyDictionary<int,long> materialStocks=null,ForgeTechnology technology=null,IReadOnlyDictionary<string,string> modules=null,bool deferErrors=false,Func<double> clockHour=null,ForgeRunContext context=null)
     {
         BlueprintProgram program;
-        try {program=new BlueprintValidator(new BlueprintParser(source,deferErrors).Parse(),technology,deferErrors).Validate();}
+        try {program=new BlueprintValidator(new BlueprintParser(source,deferErrors,technology).Parse(),technology,deferErrors).Validate();}
         catch(BlueprintException e){return new Session(Failure(new ForgeMvp.Evaluation(),e,true));}
         return new Session(new BlueprintRuntime(program,gold,iron,owner,seed,materialStocks,modules,technology,clockHour,context),deferErrors);
     }

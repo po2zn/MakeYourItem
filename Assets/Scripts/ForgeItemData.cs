@@ -27,7 +27,8 @@ public static class ForgeLuck
 {
     public static int Code(int seed,int day)
     {
-        var excluded=new HashSet<int>{666,404,777};
+        // Retain the old query number so existing seeds keep the same daily codes.
+        var excluded=new HashSet<int>{666,404,777,778};
         foreach(var a in BlueprintAliases.All)if(int.TryParse(a.Symbol,out int n))excluded.Add(n);
         var candidates=new List<int>();for(int n=100;n<=999;n++)if(!excluded.Contains(n))candidates.Add(n);
         // Shuffle the eligible numbers once per seed; successive dates visit different entries.

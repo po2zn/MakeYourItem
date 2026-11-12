@@ -10,6 +10,7 @@ public sealed class ForgeTechnology
 {
     public const string MasterCommission="master-commission";
     public const string AutomationRoot="automation-root";
+    public const string EnglishResearch="research-english-keywords";
     public const string ImportResearch="research-import";
     public static readonly BlueprintFeature[] ControlFeatures={BlueprintFeature.If,BlueprintFeature.Elif,BlueprintFeature.Else,BlueprintFeature.For,BlueprintFeature.While,BlueprintFeature.Break,BlueprintFeature.Continue,BlueprintFeature.Def,BlueprintFeature.Return};
     public sealed class Offer
@@ -27,7 +28,7 @@ public sealed class ForgeTechnology
         internal Offer(string id,ForgePurchaseKind kind,int price,string name,string description,int tier,int lane,int material,BlueprintFeature feature,params string[] parents)
         {Id=id;Kind=kind;Price=kind==ForgePurchaseKind.Material?price:ForgeBalance.ResearchPrice(id,price);Name=name;Description=description;Tier=tier+(kind!=ForgePurchaseKind.Material&&id!=AutomationRoot?1:0);Lane=lane;Material=material;Feature=feature;
             Parents=Array.AsReadOnly(parents.Length==0&&kind!=ForgePurchaseKind.Material&&id!=AutomationRoot?new[]{AutomationRoot}:parents);
-            Features=Array.AsReadOnly(id==AutomationRoot?(BlueprintFeature[])ControlFeatures.Clone():kind!=ForgePurchaseKind.Function||feature==BlueprintFeature.None?Array.Empty<BlueprintFeature>():id=="speed-5"?new[]{BlueprintFeature.Speed,BlueprintFeature.AutoSell}:feature==BlueprintFeature.IsDay?new[]{feature,BlueprintFeature.NightTime}:feature==BlueprintFeature.Lucky?new[]{feature,BlueprintFeature.LuckyCode}:new[]{feature});}
+            Features=Array.AsReadOnly(id==AutomationRoot?(BlueprintFeature[])ControlFeatures.Clone():kind!=ForgePurchaseKind.Function||feature==BlueprintFeature.None?Array.Empty<BlueprintFeature>():feature==BlueprintFeature.IsDay?new[]{feature,BlueprintFeature.NightTime}:feature==BlueprintFeature.Lucky?new[]{feature,BlueprintFeature.LuckyCode}:new[]{feature});}
     }
     static Offer F(BlueprintFeature f,int price,int tier,int lane,params string[] parents)
     {var a=BlueprintAliases.Find(f);return new Offer("function-"+f,ForgePurchaseKind.Function,price,a.Symbol+"() · "+a.English,a.Description,tier,lane,0,f,parents);}
@@ -37,12 +38,13 @@ public sealed class ForgeTechnology
     {return new Offer("function-"+feature,ForgePurchaseKind.Function,price,name,"한 번 구매하면 두 함수의 숫자/영문 표기가 함께 해금됩니다.\n"+BlueprintAliases.Find(feature).Description+"\n"+BlueprintAliases.Find(companion).Description,tier,lane,0,feature,parents);}
     static Offer Speed(int level,int price)=>new Offer("speed-"+level,ForgePurchaseKind.Function,price,"스피드 "+level+"단계 · "+level+"배",
         (level==1?"기본 속도는 1배입니다. 1단계 구매로 222()/speed() 속도 제어와 다음 단계 구매를 엽니다.":"구매 즉시 "+level+"배로 설정됩니다. 222(1)부터 222("+level+")까지 사용할 수 있습니다.")
-        +(level==5?" 1~5단계 완성 보상: 자동판매가 무료로 해금되고 켜집니다. 225(0)으로 끄고 225(1)로 다시 켤 수 있습니다.":" 다음 단계는 이 단계를 구매한 뒤 해금할 수 있습니다."),
+        +(level==5?" 최대 속도 단계입니다. 자동판매는 다음 노드를 별도로 구매해야 사용할 수 있습니다.":" 다음 단계는 이 단계를 구매한 뒤 해금할 수 있습니다."),
         level+3,6,0,BlueprintFeature.Speed,level==1?"function-Wrap":"speed-"+(level-1));
     public static readonly ReadOnlyCollection<Offer> Offers=Array.AsReadOnly(new[]{
         new Offer(1,5),new Offer(2,3),new Offer(3,1),new Offer(4,8),new Offer(5,20),
         new Offer(6,30),new Offer(7,40),new Offer(8,25),new Offer(9,50),
-        new Offer(AutomationRoot,ForgePurchaseKind.Function,500,"제어문 해금 · 자동화 시작","기본 공정으로 자금을 모아 첫 연구를 시작하세요. 조건(if/elif/else), 반복(for/while), 반복 제어(break/continue), 사용자 함수(def/return)를 함께 해금합니다. 구매 후 모든 분야의 첫 노드를 구매할 수 있습니다.",1,4,0,BlueprintFeature.If),
+        new Offer(AutomationRoot,ForgePurchaseKind.Function,500,"제어문 해금 · 자동화 시작","조건·반복·반복 제어·사용자 함수의 숫자/기호 표기를 해금합니다. 영어 예약어는 별도 연구가 필요합니다. 구매 후 모든 분야의 첫 노드를 구매할 수 있습니다.",1,4,0,BlueprintFeature.If),
+        new Offer(EnglishResearch,ForgePurchaseKind.Function,500,"영어 예약어","제어문을 영어로도 작성합니다. if / elif / else / for / while / break / continue / def / return. 숫자·기호 표기도 계속 사용할 수 있습니다. in, and, or, not, True, False, None은 기본 문법이며 import는 별도 연구를 따릅니다.",2,12,0,BlueprintFeature.None,AutomationRoot),
         F(BlueprintFeature.Heat,20,1,0),
         // General computation branches start from the workshop, independently of forging.
         F(BlueprintFeature.Abs,15,1,10),
@@ -73,14 +75,15 @@ public sealed class ForgeTechnology
         F(BlueprintFeature.Recover,40,3,7,"function-Fuel"),
         F(BlueprintFeature.Wrap,40,3,6,"function-Fuel"),
         Speed(1,100),Speed(2,150),Speed(3,200),Speed(4,300),Speed(5,450),
-        Bundle(BlueprintFeature.Lucky,BlueprintFeature.LuckyCode,500,1,2,"오늘의 행운 · 777() + 778()"),
+        new Offer("function-AutoSell",ForgePurchaseKind.Function,300000,"자동판매 · 225()","스피드 5단계 이후 별도 구매합니다. 구매하면 자동판매가 켜집니다. 225(0)으로 끄고 225(1)로 다시 켤 수 있습니다.",9,6,0,BlueprintFeature.AutoSell,"speed-5"),
+        Bundle(BlueprintFeature.Lucky,BlueprintFeature.LuckyCode,500,1,2,"오늘의 행운 · 777() + 777?()"),
         new Offer(MasterCommission,ForgePurchaseKind.Commission,800,"명장의 마지막 의뢰","별무늬 별철 검 + 정제 용뼈 손잡이 + 충전 3회 + 서로 다른 계열 룬 3개. 균열 없이 완성해 제출하면 엔딩입니다.",8,1,0,BlueprintFeature.None,"function-Refine","function-Rune")
     });
     readonly HashSet<string> purchased=new HashSet<string>(StringComparer.Ordinal);
     static string CanonicalId(string id)
     {
         foreach(var f in ControlFeatures)if(id=="function-"+f)return AutomationRoot;
-        return id=="function-NightTime"?"function-IsDay":id=="function-LuckyCode"?"function-Lucky":id=="function-Speed"?"speed-1":id=="function-AutoSell"?"speed-5":id;
+        return id=="function-NightTime"?"function-IsDay":id=="function-LuckyCode"?"function-Lucky":id=="function-Speed"?"speed-1":id;
     }
     public static Offer Find(string id)=>Offers.FirstOrDefault(o=>o.Id==CanonicalId(id));
     public static bool RequiresPurchase(BlueprintFeature feature)=>Offers.Any(o=>o.Features.Contains(feature));
@@ -95,10 +98,10 @@ public sealed class ForgeTechnology
     public void Restore(BlueprintFeature[] features,string[] nodes=null,ForgeMaterialStock[] legacyStocks=null)
     {
         purchased.Clear();
-        foreach(var id in nodes??Array.Empty<string>())GrantWithParents(id=="function-Speed"||id=="function-AutoSell"?"speed-5":id);
+        foreach(var id in nodes??Array.Empty<string>())GrantWithParents(id=="function-Speed"?"function-AutoSell":id);
         foreach(var f in features??Array.Empty<BlueprintFeature>()){
             // New node saves are authoritative for levels; the legacy feature flag had all five speeds.
-            if(f==BlueprintFeature.Speed||f==BlueprintFeature.AutoSell){if(nodes==null)GrantWithParents("speed-5");}
+            if(f==BlueprintFeature.Speed){if(nodes==null)GrantWithParents("function-AutoSell");}
             else GrantWithParents("function-"+f);
         }
         if(nodes==null)foreach(var stock in legacyStocks??Array.Empty<ForgeMaterialStock>())

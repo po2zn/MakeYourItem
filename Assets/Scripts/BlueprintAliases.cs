@@ -24,7 +24,7 @@ public static class BlueprintAliases
         new BlueprintAlias(BlueprintFeature.IsDay,"is_day","12",BlueprintSyntaxKind.Builtin,"낮(06:00 이상 18:00 미만)이면 정수 1, 밤이면 0을 반환합니다.","12() → 정수 0 또는 1 · 호출 비용 0G",0),
         new BlueprintAlias(BlueprintFeature.NightTime,"night_time","24",BlueprintSyntaxKind.Builtin,"24()는 밤이면 정수 1, 낮이면 0을 반환합니다. 24(60)은 자정부터 지난 정수 분을 반환합니다.","24() → 0 또는 1 · 24(60) → 0~1439분 · 호출 비용 0G",-1),
         new BlueprintAlias(BlueprintFeature.Print,"print","",BlueprintSyntaxKind.Builtin,"여러 값을 공백으로 구분해 디버그 출력 창에 출력합니다. print()는 빈 줄을 출력합니다.","print(값, ...) → None · 비용0G",-1),
-        new BlueprintAlias(BlueprintFeature.While,"while","888",BlueprintSyntaxKind.Block,"조건이 참인 동안 블록을 반복합니다.","888(조건): · 조건은 bool"),
+        new BlueprintAlias(BlueprintFeature.While,"while","888",BlueprintSyntaxKind.Block,"조건이 참인 동안 반복합니다. 0은 거짓, 0이 아닌 정수는 참입니다.","888(1): · 계속 반복 · !!로 중단 · 실행 안전 제한 적용"),
         new BlueprintAlias(BlueprintFeature.For,"for","123",BlueprintSyntaxKind.Block,"리스트 또는 튜플을 순서대로 순회합니다.","123(이름 in 대상):"),
         new BlueprintAlias(BlueprintFeature.Break,"break","!!",BlueprintSyntaxKind.Control,"가장 가까운 반복문을 종료합니다."),
         new BlueprintAlias(BlueprintFeature.Continue,"continue","~~",BlueprintSyntaxKind.Control,"현재 반복의 남은 부분을 건너뛰고 다음 반복으로 이동합니다."),
@@ -43,5 +43,5 @@ public static class BlueprintAliases
     };
     public static readonly ReadOnlyCollection<BlueprintAlias> All = Array.AsReadOnly(ForgeExpansion.Combine(definitions));
     public static BlueprintAlias Find(BlueprintFeature id) { foreach(var a in All) if(a.Id==id) return a; return null; }
-    public static BlueprintAlias Find(string spelling) { foreach(var a in All) if(a.English==spelling || a.Symbol.Length>0 && a.Symbol==spelling) return a; return null; }
+    public static BlueprintAlias Find(string spelling) { if(spelling=="778")return Find(BlueprintFeature.LuckyCode);foreach(var a in All) if(a.English==spelling || a.Symbol.Length>0 && a.Symbol==spelling) return a; return null; }
 }

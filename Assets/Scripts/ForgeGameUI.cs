@@ -123,21 +123,11 @@ public sealed partial class ForgeGameUI:MonoBehaviour
  }
  void LateUpdate(){UpdateMaterialUseAnimation();UpdateTutorialPresentation();if(game)UpdateSmithHover();if(layoutPasses<=0)return;layoutPasses--;foreach(var group in GetComponentsInChildren<VerticalLayoutGroup>(false))LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)group.transform);}
  void OnDisable(){ResetMaterialUseAnimation();HideCodeHelp();}
- void Update(){if(!game)return;UpdateGuideNewGlow();TracePointerHit();if(screenWidth!=Screen.width||screenHeight!=Screen.height){screenWidth=Screen.width;screenHeight=Screen.height;layoutPasses=3;}
+ void Update(){if(!game)return;TracePointerHit();if(screenWidth!=Screen.width||screenHeight!=Screen.height){screenWidth=Screen.width;screenHeight=Screen.height;layoutPasses=3;}
 #if ENABLE_INPUT_SYSTEM
  if(Time.frameCount!=enabledFrame&&UnityEngine.InputSystem.Keyboard.current?.escapeKey.wasPressedThisFrame==true){game.GameUIAction("menu");Refresh();}
 #endif
  if(Time.unscaledTime>=nextRefresh)Refresh();}
- Color guideNewSurface,guideNewInk;bool guideNewColorsCached;
- void UpdateGuideNewGlow(){
- if(!buttons.TryGetValue("GuideNew",out var button))return;
- var surface=button.GetComponent<Image>();var label=button.GetComponentInChildren<Text>(true);
- if(!guideNewColorsCached){guideNewSurface=surface.color;guideNewInk=label.color;guideNewColorsCached=true;}
- if(!button.gameObject.activeInHierarchy){surface.color=guideNewSurface;label.color=guideNewInk;return;}
- float glow=.5f+.5f*Mathf.Sin(Time.unscaledTime*4f);
- surface.color=Color.Lerp(new Color(.78f,.48f,.12f),new Color(1f,.86f,.36f),glow);
- label.color=new Color(.16f,.10f,.04f);
- }
  ForgeGuideExample guideExample;
  public void GuideExample(string source,string notes){if(!guideExample)guideExample=ForgeGuideExample.Create(texts["GuideBody"]);guideExample.Show(source,notes);}
  Button inventoryShortcut;

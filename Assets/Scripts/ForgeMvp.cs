@@ -62,15 +62,13 @@ public partial class ForgeMvp : MonoBehaviour
     {
         purchaseSucceeded=technology.TryPurchase(offer,ref gold,ref iron,ref materialStocks,busy||executionSession!=null,out purchaseMessage,quantity);
         if(purchaseSucceeded){
-            if(offer.SpeedLevel>0){craftSpeed=offer.SpeedLevel;if(offer.SpeedLevel==5){autoSell=true;purchaseMessage+=" · 자동판매 해금 및 활성화";}}
+            if(offer.SpeedLevel>0)craftSpeed=offer.SpeedLevel;
+            if(offer.Feature==BlueprintFeature.AutoSell){autoSell=true;purchaseMessage+=" · 자동판매 활성화";}
             SaveProgress();
         }
     }
-    [SerializeField, Tooltip("안내서의 영문 문법 표시 여부. 추후 구매/저장 상태에서 설정합니다.")]
-    bool englishGuideUnlocked;
+    bool englishGuideUnlocked => technology.Owns(ForgeTechnology.EnglishResearch);
     public bool EnglishGuideUnlocked => englishGuideUnlocked;
-    // Presentation only: never changes parser support, inventory or funds.
-    public void SetEnglishGuideUnlocked(bool unlocked) { englishGuideUnlocked=unlocked; }
     readonly ForgeBookWindow guideBook=new ForgeBookWindow();
     Rect salesWindow = new Rect(430, 135, 350, 480);
     IForgeWindow salesFrame,debugFrame;
@@ -137,7 +135,7 @@ public partial class ForgeMvp : MonoBehaviour
         if (!workspaceCamera) return;
         if(showTitle){
             // Frame the live workshop independently of saved gameplay zoom/pan.
-            float size=Mathf.Max(2.6f,2.8f/Mathf.Max(.5f,workspaceCamera.aspect));
+            float size=Mathf.Max(3.1f,2.8f/Mathf.Max(.5f,workspaceCamera.aspect));
             workspaceCamera.orthographicSize=size;
             float screenX=Screen.width>=760?.25f:.5f;
             workspaceCamera.transform.position=cameraOrigin+workspaceCamera.transform.right*((.5f-screenX)*2*size*workspaceCamera.aspect);
@@ -151,7 +149,7 @@ public partial class ForgeMvp : MonoBehaviour
             - workspaceCamera.transform.right * workspaceOffset.x * WorkspaceUnitsPerPixel
             + workspaceCamera.transform.up * workspaceOffset.y * WorkspaceUnitsPerPixel;
     }
-    void LateUpdate() { SyncHierarchyTree(); SyncHierarchyGame(); UpdateSmiths(); UpdateWorkspaceCamera(); UpdateRenderVisibility(); SaveEditedCode(); }
+    void LateUpdate() { SyncHierarchyTree(); SyncHierarchyGame(); UpdateSmiths(); UpdateWorkspaceCamera(); UpdateTitleDisplay(); UpdateRenderVisibility(); SaveEditedCode(); }
     void OnApplicationFocus(bool focused) { ForgeMouseTrace.Mark("APPLICATION_FOCUS","focused="+focused,true); if (!focused) {pointerResetPending=true;SaveEditedCode(true);} }
     void OnApplicationPause(bool paused) { ForgeMouseTrace.Mark("APPLICATION_PAUSE","paused="+paused,true); if (paused) {pointerResetPending=true;SaveEditedCode(true);} }
     Vector2 scroll, logs, lastMouse;

@@ -63,6 +63,8 @@ public static class BlueprintLexer
                 if(!closed && !tolerant) throw new BlueprintException(line,"문자열을 닫는 따옴표가 필요합니다.");
                 kind=BlueprintTokenKind.String;
             }
+            // Match the query before scanning its numeric prefix or the '?' symbol.
+            else if(index+3<source.Length && source.Substring(index,4)=="777?") { index+=4; kind=BlueprintTokenKind.Symbol; }
             // Longest conditional symbol first: 01? must remain one raw token.
             else if(index+2<source.Length && source.Substring(index,3)=="01?") { index+=3; kind=BlueprintTokenKind.Symbol; }
             else if(index+1<source.Length && (source.Substring(index,2)=="1?" || source.Substring(index,2)=="0?")) { index+=2; kind=BlueprintTokenKind.Symbol; }

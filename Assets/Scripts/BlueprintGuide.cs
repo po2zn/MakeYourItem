@@ -6,7 +6,7 @@ using System.Collections.ObjectModel;
 public static class BlueprintGuide
 {
     public const string IntroductionTitle="대장간에 오신 것을 환영합니다!";
-    public const string Introduction="이 안내서는 현재 성장 트리와 대장장이 트리의 기능을 설명합니다. 먼저 ‘테크’ 책갈피에서 구매 순서와 준비물을 확인하고, 분야별 책갈피에서 함수와 예제를 찾아보세요.\n\n처음부터 쓸 수 있는 것은 재료 올리기 1, 가열 2, 타격 3, 냉각 4, 손잡이 제작 5와 ! 제출입니다. 철·나무·물은 공급 연구 없이 재료 상점에서 구매합니다. 기본 공정으로 제작하고 완성품을 판매해 첫 연구 자금을 모으세요.\n\n제어문 해금은 조건·반복·반복 제어·사용자 함수를 한 번에 엽니다. 이후 금속 가공, 행운, 마력 가공, 공방 운영, 시간 조회, 기술 연구로 분기합니다. 함수마다 필요한 선행 연구가 다르며, 연결된 조건은 모두 구매해야 합니다.\n\n스피드는 1~5단계를 순서대로 구매합니다. 마지막 단계까지 구매하면 자동판매가 추가 비용 없이 해금되고 켜집니다. 재료 공급 해금비와 실제 재료 구매비는 별개입니다.\n\n대장장이 트리는 다이아로 고용 인원을 늘리고 조회 기능을 연구합니다. ‘대장장이’ 책갈피에서 고용, 병렬 제작, 선물과 거대한 룬을 확인하세요.\n\n각 페이지의 ‘연구 및 준비’를 읽은 뒤 예제를 실행하세요. 안내서의 예제를 복사하는 것만으로 연구나 재료가 지급되지는 않습니다. ▷ 한 줄 실행도 실제 재료를 소비합니다.";
+    public const string Introduction="이 안내서는 현재 성장 트리와 대장장이 트리의 기능을 설명합니다. 먼저 ‘테크’ 책갈피에서 구매 순서와 준비물을 확인하고, 분야별 책갈피에서 함수와 예제를 찾아보세요.\n\n처음부터 쓸 수 있는 것은 재료 올리기 1, 가열 2, 타격 3, 냉각 4, 손잡이 제작 5와 ! 제출입니다. 철·나무·물은 공급 연구 없이 재료 상점에서 구매합니다. 기본 공정으로 제작하고 완성품을 판매해 첫 연구 자금을 모으세요.\n\n제어문 해금은 조건·반복·반복 제어·사용자 함수를 한 번에 엽니다. 이후 금속 가공, 행운, 마력 가공, 공방 운영, 시간 조회, 기술 연구로 분기합니다. 함수마다 필요한 선행 연구가 다르며, 연결된 조건은 모두 구매해야 합니다.\n\n스피드는 1~5단계를 순서대로 구매합니다. 5단계 이후 자동판매 노드를 별도로 구매해야 자동판매와 해당 안내서가 해금됩니다. 재료 공급 해금비와 실제 재료 구매비는 별개입니다.\n\n대장장이 트리는 다이아로 고용 인원을 늘리고 조회 기능을 연구합니다. ‘대장장이’ 책갈피에서 고용, 병렬 제작, 선물과 거대한 룬을 확인하세요.\n\n각 페이지의 ‘연구 및 준비’를 읽은 뒤 예제를 실행하세요. 안내서의 예제를 복사하는 것만으로 연구나 재료가 지급되지는 않습니다. ▷ 한 줄 실행도 실제 재료를 소비합니다.";
     public sealed class Entry
     {
         public readonly string Id,Section,Title,Body,Example,Expected,Note;
@@ -17,7 +17,7 @@ public static class BlueprintGuide
         public bool IsFunctionReference => Alias!=null&&Alias.Syntax==BlueprintSyntaxKind.Builtin||Id=="1"||Id=="2"||Id=="3"||Id=="4"||Id=="finish";
         public BlueprintAlias Alias => BlueprintAliases.Find(Feature);
         public string Heading => FormatHeading(true);
-        public string Description => Describe(Body);
+        public string Description => DescriptionFor(true);
         string Describe(string body){
             var alias=Alias;if(alias==null)return body;
             string summary=alias.Description+"\n"+alias.Signature;
@@ -43,7 +43,7 @@ public static class BlueprintGuide
             }
             return (english&&alias.Symbol.Length>0?symbol+" / "+alias.English:symbol)+" · "+title;
         }
-        public string DescriptionFor(bool englishUnlocked) => Describe(englishUnlocked?Body:numericBody);
+        public string DescriptionFor(bool englishUnlocked) => (Id=="notation"?"영어 제어 예약어는 테크 트리의 '영어 예약어' 연구(500G)로 해금합니다. 숫자·기호 표기는 계속 사용할 수 있습니다.\n\n":"")+Describe(englishUnlocked?Body:numericBody)+(Feature==BlueprintFeature.While?"\n\n888(1):은 계속 반복하고 888(0):은 실행하지 않습니다. 0이 아닌 정수는 참입니다. !!로 빠져나오거나 실행 중지 버튼으로 멈출 수 있으며, 실행 안전 한도에 도달하면 중단됩니다.":"");
         public string ExampleFor(bool englishUnlocked) => englishUnlocked?Example:numericExample;
         public string NoteFor(bool englishUnlocked) => englishUnlocked?Note:numericNote;
         public bool Matches(string query,bool englishUnlocked)

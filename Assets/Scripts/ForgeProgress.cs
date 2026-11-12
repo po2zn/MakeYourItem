@@ -6,13 +6,27 @@ public partial class ForgeMvp : ISerializationCallbackReceiver
 {
     [SerializeField,HideInInspector] List<SavedWindow> reloadCodeWindows=new List<SavedWindow>();
     [SerializeField,HideInInspector] bool hasReloadCodeWindows;
+    // HashSet-backed research and immutable shop entries are not Unity-serializable.
+    // Keep a DTO snapshot so a script/domain reload cannot erase them before autosave.
+    [SerializeField,HideInInspector] bool hasReloadWorkshop;
+    [SerializeField,HideInInspector] string[] reloadTechnologyNodes;
+    [SerializeField,HideInInspector] List<SavedItem> reloadProducts=new List<SavedItem>();
+    [SerializeField,HideInInspector] long reloadNextProductOrder;
     public void OnBeforeSerialize(){
         if(!windowsInitialized)return;
+        reloadTechnologyNodes=technology.ExportNodes();
+        reloadProducts=CaptureProducts(shop);reloadNextProductOrder=shop.NextOrder;hasReloadWorkshop=true;
         var snapshot=new List<SavedWindow>();
         foreach(var w in codeWindows)snapshot.Add(new SavedWindow{id=w.id,name=w.name,text=w.text,rect=w.rect,seed=w.seed,collapsed=w.collapsed,expandedHeight=w.expandedHeight});
         reloadCodeWindows=snapshot;hasReloadCodeWindows=true;
     }
     public void OnAfterDeserialize(){
+        if(hasReloadWorkshop){
+            technology.Restore(Array.Empty<BlueprintFeature>(),reloadTechnologyNodes);
+            shop.Clear();
+            foreach(var item in reloadProducts??new List<SavedItem>())shop.Add(RestoreProduct(item),item.order);
+            shop.RestoreNextOrder(reloadNextProductOrder);
+        }
         if(!hasReloadCodeWindows||reloadCodeWindows==null)return;
         codeWindows.Clear();foreach(var w in reloadCodeWindows)codeWindows.Add(new CodeWindow{id=w.id,name=w.name,text=w.text,rect=w.rect,seed=w.seed,collapsed=w.collapsed,expandedHeight=w.expandedHeight});
         windowsInitialized=true;activeWindow=Math.Max(0,Math.Min(activeWindow,codeWindows.Count-1));source=codeWindows.Count>0?codeWindows[activeWindow].text:"";
@@ -33,11 +47,18 @@ public partial class ForgeMvp : ISerializationCallbackReceiver
     Vector2 progressScroll;
     [Serializable] public class SavedWindow { public int id;public string name,text; public Rect rect; public uint seed; public bool collapsed;public float expandedHeight; }
     [Serializable] public class SavedItem { public long order;public string owner; public int material,heat,iron,cost;public bool shaped;public ForgeTraits traits;public ForgeItemData data;public double seconds; }
+    static List<SavedItem> CaptureProducts(ForgeShop source){
+        var result=new List<SavedItem>();
+        foreach(var entry in source.Items){var p=entry.Product;result.Add(new SavedItem{order=entry.Order,owner=p.BlueprintName,material=p.Material,heat=p.FinalHeat,shaped=p.Shaped,traits=p.Traits,cost=p.CashCost,iron=p.IronConsumed,data=p.Data,seconds=p.ProductionSeconds});}
+        return result;
+    }
+    static ForgeProduct RestoreProduct(SavedItem item)=>new ForgeProduct(item.owner,item.heat,item.shaped,item.traits,item.cost,item.iron,item.material,item.data,item.seconds);
     [Serializable] public class SavedProgress {
         public int windowDataVersion,activeCodeWindow,nextCodeWindowId;public Vector2 viewOffset;public float viewZoom;
         public ForgeBlacksmiths blacksmiths;
         public int introStage;public string introCode;public string[] technologyNodes;public bool campaignComplete,endingSeen;
         public string savedAt;public long nextProductOrder;
+        public long savedAtUtcTicks;public List<SavedItem> titleSwords;
         public int version=1,gold,iron,day,seed,diamonds,sales,tutorial;public long earned;public double hour;public float speed;public bool autoSell;
         public ForgeMaterialStock[] stocks;public BlueprintFeature[] features;public string[] discoveries;
         public List<SavedWindow> windows=new List<SavedWindow>();public List<SavedItem> items=new List<SavedItem>();
@@ -52,14 +73,15 @@ public partial class ForgeMvp : ISerializationCallbackReceiver
             if(double.IsNaN(saved.hour)||double.IsInfinity(saved.hour)||saved.items==null)throw new Exception("저장 데이터가 손상되었습니다.");
             foreach(var window in saved.windows??new List<SavedWindow>())if(window==null||window.name==null||window.text==null)throw new Exception("도면 데이터가 손상되었습니다.");
             // Parse products before applying state so an invalid product cannot half-load a save.
-            var restoredShop=new ForgeShop();foreach(var item in saved.items){if(item==null)throw new Exception("완성품 데이터가 손상되었습니다.");restoredShop.Add(new ForgeProduct(item.owner,item.heat,item.shaped,item.traits,item.cost,item.iron,item.material,item.data,item.seconds),item.order);}
+            var restoredShop=new ForgeShop();foreach(var item in saved.items){if(item==null)throw new Exception("완성품 데이터가 손상되었습니다.");restoredShop.Add(RestoreProduct(item),item.order);}
             restoredShop.RestoreNextOrder(saved.nextProductOrder);
-            ResetProgressForDebug(false);
+            var restoredHistory=DisplayHistory(saved);
+            ResetProgressForDebug(false);titleSwordHistory=restoredHistory;
             gold=saved.gold;iron=saved.iron;worldSeed=saved.seed;diamonds=saved.diamonds;totalSales=saved.sales;tutorialStage=saved.tutorial;earnedGold=saved.earned;
             lesson=ForgeTutorialLesson.Restore(saved.introStage,saved.introCode);
             craftSpeed=Mathf.Clamp(saved.speed,1,5);autoSell=saved.autoSell;materialStocks=saved.stocks??Array.Empty<ForgeMaterialStock>();technology.Restore(saved.features,saved.technologyNodes,saved.stocks);campaignComplete=saved.campaignComplete;endingSeen=saved.endingSeen;
             craftSpeed=Mathf.Clamp(craftSpeed,1,Math.Max(1,technology.MaxSpeedLevel));
-            bool legacySpeed=saved.technologyNodes==null?Array.Exists(saved.features??Array.Empty<BlueprintFeature>(),f=>f==BlueprintFeature.Speed||f==BlueprintFeature.AutoSell):Array.Exists(saved.technologyNodes,id=>id=="function-Speed"||id=="function-AutoSell");
+            bool legacySpeed=saved.technologyNodes==null?Array.Exists(saved.features??Array.Empty<BlueprintFeature>(),f=>f==BlueprintFeature.Speed||f==BlueprintFeature.AutoSell):Array.Exists(saved.technologyNodes,id=>id=="function-Speed");
             autoSell=technology.Owns(BlueprintFeature.AutoSell)&&(saved.autoSell||legacySpeed);
             DayCycle.Clock.Restore(saved.day,saved.hour);
             blacksmiths=saved.blacksmiths??new ForgeBlacksmiths();blacksmiths.Normalize(SmithHours);
@@ -91,10 +113,11 @@ public partial class ForgeMvp : ISerializationCallbackReceiver
             if(hierarchyGame)hierarchyGame.CommitCodeWindowBounds();
             var saved=new SavedProgress{windowDataVersion=1,activeCodeWindow=activeWindow,nextCodeWindowId=nextWindowId,viewOffset=workspaceOffset,viewZoom=workspaceZoom,savedAt=DateTime.Now.ToString("yyyy-MM-dd HH:mm"),gold=gold,iron=iron,seed=worldSeed,diamonds=diamonds,sales=totalSales,tutorial=tutorialStage,earned=earnedGold,day=DayCycle.Day,hour=DayCycle.CurrentHour,speed=craftSpeed,autoSell=autoSell,stocks=materialStocks,features=technology.Export(),technologyNodes=technology.ExportNodes(),campaignComplete=campaignComplete,endingSeen=endingSeen,discoveries=new List<string>(discoveries).ToArray()};
             saved.nextProductOrder=shop.NextOrder;
+            saved.savedAtUtcTicks=DateTime.UtcNow.Ticks;saved.titleSwords=new List<SavedItem>(titleSwordHistory);
             saved.introStage=lesson.Stage;saved.introCode=lesson.Code;
             saved.blacksmiths=blacksmiths;
             for(int i=0;i<codeWindows.Count;i++){var w=codeWindows[i];saved.windows.Add(new SavedWindow{id=w.id,name=w.name,text=w.text,rect=w.rect,seed=w.seed,collapsed=w.collapsed,expandedHeight=w.expandedHeight});}
-            foreach(var entry in shop.Items){var p=entry.Product;saved.items.Add(new SavedItem{order=entry.Order,owner=p.BlueprintName,material=p.Material,heat=p.FinalHeat,shaped=p.Shaped,traits=p.Traits,cost=p.CashCost,iron=p.IronConsumed,data=p.Data,seconds=p.ProductionSeconds});}
+            saved.items=CaptureProducts(shop);
             PlayerPrefs.SetString(SaveKey,JsonUtility.ToJson(saved));PlayerPrefs.Save();codeSavePending=false;saveMessage="공방 저장 완료";
         }catch(Exception error){saveMessage="저장 실패: "+error.Message;}
     }
@@ -113,7 +136,7 @@ public partial class ForgeMvp : ISerializationCallbackReceiver
         worldSeed=Guid.NewGuid().GetHashCode();craftSpeed=1;autoSell=false;
         materialStocks=new ForgeMaterialStock[8];
         for(int i=0;i<materialStocks.Length;i++)materialStocks[i]=new ForgeMaterialStock{material=i+2,unlocked=i<2};
-        technology.Restore(Array.Empty<BlueprintFeature>());discoveries.Clear();shop.Clear();
+        technology.Restore(Array.Empty<BlueprintFeature>());discoveries.Clear();shop.Clear();titleSwordHistory.Clear();
         DayCycle.Clock.Restore(1,8);
         workspaceOffset=Vector2.zero;workspaceZoom=1;UpdateWorkspaceCamera();
         source=InitialSource;workspaceWindow=InitialCodeWindow;showSalesPanel=false;
@@ -123,7 +146,7 @@ public partial class ForgeMvp : ISerializationCallbackReceiver
         undoHistory=codeWindows[0].undo;scroll=Vector2.zero;
         deleteWindowId=-1;renamingWindow=-1;selectedProductId=-1;
         executionSources.Clear();executionOwner=null;executionLedger=null;executionProduct=null;receiptCursor=0;
-        workspaceOffset=Vector2.zero;workspaceZoom=1;englishGuideUnlocked=false;
+        workspaceOffset=Vector2.zero;workspaceZoom=1;
         showGuideBook=false;showTechTree=false;showProgress=false;showDebugWindow=false;showProductInventory=false;
         debugOutput.Clear();debugScroll=Vector2.zero;logs=Vector2.zero;
         if(craftMotion!=null)craftMotion.BeginRun();
@@ -148,6 +171,7 @@ public partial class ForgeMvp : ISerializationCallbackReceiver
     }
     void CompleteProgress(ForgeProduct product)
     {
+        RememberTitleSword(product);
         if(ForgeCampaign.CanComplete(technology,product))campaignComplete=true;
         diamonds=checked(diamonds+product.DiamondReward);
         foreach(var bonus in ForgePricing.Bonuses(product))if(bonus.Value>0)discoveries.Add(bonus.Key);
@@ -209,13 +233,14 @@ public partial class ForgeMvp : ISerializationCallbackReceiver
             case "결계":return "봉인층을 손상 없이 역순으로 해제";
             case "마력 단조":return "시간에 따라 감소하는 강도를 냉각 시 확정";
             case "삼중 공명":return "서로 다른 계열의 룬 3개 각인";
-            case "오늘의 행운":return "778() 코드로 777(코드,완성 검) 적용 후 제출";
+            case "오늘의 행운":return "777?() 코드로 777(코드,완성 검) 적용 후 제출";
             case "저주 배율":return "666() 적용 후 파괴되지 않은 작업물";
             default:return "룬 번호의 계열과 등급에 따른 각인 보너스";
         }
     }
     void TranslateCurrent(bool english)
     {
+        if(english&&!englishGuideUnlocked){saveMessage="테크 트리에서 영어 예약어 연구를 먼저 구매하세요.";return;}
         source=ForgeCodeTranslation.Translate(source,english);
         if(codeWindows.Count>0)codeWindows[activeWindow].text=source;
         QueueCodeSave();
@@ -249,7 +274,7 @@ public partial class ForgeMvp
         AudioListener.volume=masterVolume;
         if(PlayerPrefs.HasKey("MakeYourItem.Settings.Fullscreen"))Screen.fullScreen=PlayerPrefs.GetInt("MakeYourItem.Settings.Fullscreen")==1;
         InitializeDisplaySettings();
-        showTitle=true;titlePage=0;progressLoaded=false;activeSaveSlot=0;DayCycle.Paused=true;
+        showTitle=true;titlePage=0;progressLoaded=false;activeSaveSlot=0;DayCycle.Paused=true;RefreshTitleDisplay();
     }
     string SlotSummary(int slot)
     {
@@ -279,7 +304,7 @@ public partial class ForgeMvp
         if(busy||executionSession!=null)return;
         SaveProgress();
         if(saveMessage.StartsWith("저장 실패"))return;
-        showProgress=false;showTitle=true;titlePage=0;titleMessage="";DayCycle.Paused=true;progressLoaded=false;
+        showProgress=false;showTitle=true;titlePage=0;titleMessage="";DayCycle.Paused=true;progressLoaded=false;RefreshTitleDisplay();
         if(Event.current!=null)ClearUIFocus();
     }
     void QuitFromTitle()

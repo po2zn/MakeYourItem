@@ -10,7 +10,7 @@ public sealed partial class ForgeGuideReader
     string VisibleProse(string text){if(!proseCache.TryGetValue(text,out var result)){result=BlueprintResearchGuide.VisibleProse(text,technology,smiths);proseCache[text]=result;}return result;}
     readonly HashSet<int> visible=new HashSet<int>(),fresh=new HashSet<int>(),visibleMaterials=new HashSet<int>(),freshMaterials=new HashSet<int>();
     bool newOnly;
-    float noticeUntil;int knownSpeed;
+    float noticeUntil;int knownSpeed;bool knownEnglish;
     public int NewCount => fresh.Count+freshMaterials.Count;
     public bool HasNew => NewCount>0;
     public void Sync(ForgeTechnology tech,ForgeBlacksmiths team)
@@ -25,7 +25,8 @@ public sealed partial class ForgeGuideReader
         for(int i=0;i<BlueprintGuide.Entries.Count;i++)if(BlueprintResearchGuide.EntryVisible(BlueprintGuide.Entries[i],tech,team))next.Add(i);
         foreach(int i in next)if(notify&&!visible.Contains(i)){fresh.Add(i);noticeUntil=Time.realtimeSinceStartup+8;}
         if(notify&&tech.MaxSpeedLevel>knownSpeed)foreach(int i in next)if(BlueprintGuide.Entries[i].Feature==BlueprintFeature.Speed){fresh.Add(i);noticeUntil=Time.realtimeSinceStartup+8;}
-        knownSpeed=tech.MaxSpeedLevel;
+        if(notify&&tech.Owns(ForgeTechnology.EnglishResearch)&&!knownEnglish)foreach(int i in next)if(BlueprintGuide.Entries[i].Id=="notation"||System.Array.IndexOf(ForgeTechnology.ControlFeatures,BlueprintGuide.Entries[i].Feature)>=0){fresh.Add(i);noticeUntil=Time.realtimeSinceStartup+8;}
+        knownEnglish=tech.Owns(ForgeTechnology.EnglishResearch);knownSpeed=tech.MaxSpeedLevel;
         fresh.IntersectWith(next);visible.Clear();visible.UnionWith(next);
         var materials=new HashSet<int>();for(int i=0;i<ForgeMaterialGuide.Entries.Count;i++)if(tech.MaterialAvailable(ForgeMaterialGuide.Entries[i].Number))materials.Add(i);
         foreach(int i in materials)if(notify&&!visibleMaterials.Contains(i)){freshMaterials.Add(i);noticeUntil=Time.realtimeSinceStartup+8;}

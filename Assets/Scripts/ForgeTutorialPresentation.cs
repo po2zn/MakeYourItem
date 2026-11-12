@@ -6,6 +6,31 @@ public sealed partial class ForgeGameUI
  CanvasGroup tutorialGroup;
  Image tutorialBlackout;
  bool tutorialStyled;
+ Text tutorialHintText;
+ static readonly Color TutorialHintGreen=new Color(.08f,.40f,.18f);
+ public void ShowTutorialHint(string value,bool visible,bool available)
+ {
+  var button=buttons["TutorialHint"];
+  if(!tutorialHintText){
+   var actions=Node("TutorialActions");
+   var block=new GameObject("TutorialHintBlock",typeof(RectTransform),typeof(VerticalLayoutGroup));
+   block.layer=actions.gameObject.layer;block.transform.SetParent(actions.parent,false);
+   block.transform.SetSiblingIndex(actions.GetSiblingIndex());
+   var layout=block.GetComponent<VerticalLayoutGroup>();layout.spacing=8;
+   layout.childControlWidth=layout.childControlHeight=true;
+   layout.childForceExpandWidth=true;layout.childForceExpandHeight=false;
+   button.transform.SetParent(block.transform,false);
+   var label=new GameObject("TutorialHintText",typeof(RectTransform),typeof(Text),typeof(LayoutElement));
+   label.layer=block.layer;label.transform.SetParent(block.transform,false);
+   tutorialHintText=label.GetComponent<Text>();tutorialHintText.font=texts["TutorialInstructions"].font;
+   tutorialHintText.fontSize=20;tutorialHintText.supportRichText=false;tutorialHintText.raycastTarget=false;
+   tutorialHintText.horizontalOverflow=HorizontalWrapMode.Wrap;tutorialHintText.verticalOverflow=VerticalWrapMode.Overflow;
+  }
+  button.transform.parent.gameObject.SetActive(available);
+  tutorialHintText.text=value;tutorialHintText.color=TutorialHintGreen;
+  tutorialHintText.gameObject.SetActive(available&&visible);
+  Label("TutorialHint",visible?"힌트 숨기기":"힌트 보기");
+ }
  void UpdateTutorialPresentation()
  {
   if(!game||!nodes.TryGetValue("Tutorial",out var tutorial)||!tutorial)return;
@@ -37,7 +62,7 @@ public sealed partial class ForgeGameUI
   foreach(var text in tutorial.GetComponentsInChildren<Text>(true)){
    text.font=texts["GuideBody"].font;
    if(!text.GetComponentInParent<Button>()&&!text.GetComponentInParent<InputField>()){
-    text.color=ink;text.fontSize=text.name=="TutorialHeading"?22:18;
+    text.color=text.name=="TutorialHintText"?TutorialHintGreen:ink;text.fontSize=text.name=="TutorialHeading"?26:20;
     text.horizontalOverflow=HorizontalWrapMode.Wrap;text.verticalOverflow=VerticalWrapMode.Overflow;
    }
   }
@@ -47,13 +72,14 @@ public sealed partial class ForgeGameUI
    if(surface){surface.sprite=source.sprite;surface.type=source.type;surface.color=source.color;}
    button.colors=prototype.colors;
    var label=button.GetComponentInChildren<Text>(true);
-   if(label){label.color=prototype.GetComponentInChildren<Text>(true).color;label.fontSize=18;label.resizeTextForBestFit=false;label.horizontalOverflow=HorizontalWrapMode.Wrap;label.verticalOverflow=VerticalWrapMode.Overflow;}
+   if(label){label.color=prototype.GetComponentInChildren<Text>(true).color;label.fontSize=20;label.resizeTextForBestFit=false;label.horizontalOverflow=HorizontalWrapMode.Wrap;label.verticalOverflow=VerticalWrapMode.Overflow;}
   }
   var editor=Node("TutorialEditor").GetComponent<Image>();
   var window=Node("Debug").GetComponent<Image>();
   editor.sprite=window.sprite;editor.type=window.type;editor.color=window.color;
   texts["TutorialEditorTitle"].color=texts["DebugTitle"].color;
-  texts["TutorialEditorTitle"].fontSize=18;
+  texts["TutorialEditorTitle"].fontSize=20;
+  inputs["TutorialInput"].textComponent.fontSize=20;
   var title=texts["TutorialEditorTitle"].rectTransform;title.offsetMax=new Vector2(-12,title.offsetMax.y);
   Label("TutorialClose","나중에 계속하기");
   var existing=transform.Find("TutorialBlackout");

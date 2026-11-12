@@ -30,7 +30,7 @@ public sealed partial class BlueprintRuntime
     public static ForgeMvp.Evaluation Evaluate(string source,int gold,int iron,string owner,uint seed,IReadOnlyDictionary<int,long> materialStocks=null,ForgeTechnology technology=null,IReadOnlyDictionary<string,string> modules=null,Func<double> clockHour=null,ForgeRunContext context=null)
     {
         BlueprintProgram program;
-        try {program=new BlueprintValidator(new BlueprintParser(source).Parse(),technology).Validate();}
+        try {program=new BlueprintValidator(new BlueprintParser(source,technology:technology).Parse(),technology).Validate();}
         catch(BlueprintException e){return Failure(new ForgeMvp.Evaluation(),e,true);}
         var runtime=new BlueprintRuntime(program,gold,iron,owner,seed,materialStocks,modules,technology,clockHour,context);
         try {
@@ -47,6 +47,7 @@ public sealed partial class BlueprintRuntime
     void Tick(BlueprintToken token){currentLine=token.Line;if(++commands>CommandLimit)Fail("도면 실행 명령 수 제한(10000)에 도달했습니다.");}
     int Int(object value){if(!(value is int))Fail("정수 인자가 필요합니다.");return (int)value;}
     bool Bool(object value){if(!(value is bool))Fail("조건은 bool이어야 합니다.");return (bool)value;}
+    bool WhileCondition(object value){if(value is int number)return number!=0;return Bool(value);}
     ForgeMvp.Piece Piece(object value){if(!(value is ForgeMvp.Piece))Fail("작업물이 필요합니다.");var piece=(ForgeMvp.Piece)value;if(submittedPieces.Contains(piece))Fail("이미 제출한 작업물은 다시 사용할 수 없습니다.");return piece;}
     void Allocate(int count){if(count>CollectionLimit)Fail("컬렉션은 최대1024개입니다.");allocated+=count;if(allocated>16384)Fail("컬렉션 누적 복사 제한(16384)에 도달했습니다.");}
     object Copy(object value)
@@ -86,7 +87,7 @@ public sealed partial class BlueprintRuntime
                     env[s.Name]=items[index];var flow=await Block(s.Body,env,true);if(flow.Flow==Flow.Break)break;if(flow.Flow==Flow.Return||flow.Flow==Flow.Finish)return flow;
                 }break;
             case BlueprintStatementKind.While:
-                while(Bool(await Eval(s.Expr,env))){Tick(s.Token);var flow=await Block(s.Body,env,true);if(flow.Flow==Flow.Break)break;if(flow.Flow==Flow.Return||flow.Flow==Flow.Finish)return flow;await BeforeStatement(s.Token);Tick(s.Token);}break;
+                while(WhileCondition(await Eval(s.Expr,env))){Tick(s.Token);var flow=await Block(s.Body,env,true);if(flow.Flow==Flow.Break)break;if(flow.Flow==Flow.Return||flow.Flow==Flow.Finish)return flow;await BeforeStatement(s.Token);Tick(s.Token);}break;
             case BlueprintStatementKind.Break:return new Signal(Flow.Break);
             case BlueprintStatementKind.Continue:return new Signal(Flow.Continue);
             case BlueprintStatementKind.Return:return new Signal(Flow.Return,s.Expr==null?null:Copy(await Eval(s.Expr,env)));

@@ -43,11 +43,15 @@ public static class ForgeExpansionChecks
   var bone=Good(Cold+"6(p)\nb = 1(9)\n10(b,p,100,13)\n5(p,b)\n9(p,1)\n9(p,1)\n9(p,1)\n!p");Require(bone.product.Data.handle==9&&ForgePricing.Bonuses(bone.product).ContainsKey("용의 맥동"),"dragon combo");
  });
  check("lucky daily identity, validation, duplicate application and midnight",()=>{
+  Require(BlueprintAliases.Find(BlueprintFeature.LuckyCode).Symbol=="777?","canonical lucky query");
+  Require(BlueprintLexer.Scan("777(777?(),p) # 777?()\ns=\"777?()\"").Count(t=>t.Feature==BlueprintFeature.LuckyCode)==1,"query is one token and comments/strings remain opaque");
+  Require(ForgeCodeTranslation.Translate("lucky_code()",false)=="777?()","query translation");
+  Require(ForgeMvp.Evaluate("x=778()").error==null,"old saved blueprint compatibility");
   int day=1;var context=new ForgeRunContext{Day=()=>day,Seed=31};int yesterday=context.LuckyCode;day++;Require(context.LuckyCode!=yesterday,"daily refresh");
   Require(!BlueprintAliases.All.Any(a=>a.Symbol==context.LuckyCode.ToString()),"reserved code exclusion");
-  var e=Good(Cold+"5(p,2)\np=777(778(),p)\np=777(778(),p)\n!p",context:context);Require(e.product.DiamondReward==1&&e.steps.Count(s=>s.process==777)==1,"one reward");
+  var e=Good(Cold+"5(p,2)\np=777(777?(),p)\np=777(777?(),p)\n!p",context:context);Require(e.product.DiamondReward==1&&e.steps.Count(s=>s.process==777)==1,"one reward");
   Require(ForgeMvp.Evaluate(Cold+"5(p,2)\n777("+yesterday+",p)",context:context).error!=null,"stale code rejected");
-  using(var session=BlueprintRuntime.StartSession(Cold+"5(p,2)\np=777(778(),p)\n!p",0,10,context:context)){
+  using(var session=BlueprintRuntime.StartSession(Cold+"5(p,2)\np=777(777?(),p)\n!p",0,10,context:context)){
    while(session.NextLine!=7&&!session.Completed)session.Advance().GetAwaiter().GetResult();day++;session.Advance().GetAwaiter().GetResult();Require(session.Evaluation.product.DiamondReward==1&&session.Evaluation.product.Data.luckyDay==2,"application survives midnight");
   }
  });

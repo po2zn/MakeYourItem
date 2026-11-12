@@ -40,7 +40,7 @@ public partial class ForgeMvp
         ForgeTextLayout.LayoutLabel("공통 시작: 기본 제작 → 제어문 해금("+ForgeTechnology.Find(ForgeTechnology.AutomationRoot).Price+"G) → 다섯 분야로 분기");
         ForgeTextLayout.LayoutLabel("금속: 열 조회 → 연마 → 은 → 도금 → 별철 → 용뼈 → 정제");
         ForgeTextLayout.LayoutLabel("마력: 수정 → 충전 → 룬 / 보호 · 상태 조회 → 마력 단조 → 공명");
-        ForgeTextLayout.LayoutLabel("운영: 석탄 → 연료 → 봉인 → 스피드 1~5단계 → 자동판매 무료 해금");
+        ForgeTextLayout.LayoutLabel("운영: 석탄 → 연료 → 봉인 → 스피드 1~5단계 → 자동판매 별도 구매");
         ForgeTextLayout.LayoutLabel("기술 연구: 절댓값 → 최솟값 → 최댓값 / 길이 → 집합 → 난수");
         ForgeTextLayout.LayoutLabel("최종 의뢰: "+ForgeCampaign.FinalGoal);
         ForgeTextLayout.LayoutLabel("의뢰 "+(technology.Owns(ForgeTechnology.MasterCommission)?"수락 완료":"미수락")+" · 엔딩 "+(campaignComplete?"달성":"미달성"));

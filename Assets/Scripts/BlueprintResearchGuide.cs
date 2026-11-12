@@ -93,7 +93,7 @@ public static class BlueprintResearchGuide
         if(own!=null){
             lines.Add(OfferInfo(own,english));
             if(entry.Feature==BlueprintFeature.Speed)lines.Add("설정 가능한 최대 배율은 구매한 단계까지입니다. 예제의 222(2)는 스피드 2단계 구매 후 사용하세요.");
-            if(entry.Feature==BlueprintFeature.AutoSell)lines.Add("별도 자동판매 구매 비용은 없습니다. 스피드 5단계 보상으로 자동 해금되고 켜집니다.");
+            if(entry.Feature==BlueprintFeature.AutoSell)lines.Add("스피드 5단계는 선행 조건입니다. 자동판매 노드를 별도로 구매하면 이 안내서와 225()가 해금되고 자동판매가 켜집니다.");
         }else if(entry.Feature==BlueprintFeature.SmithFavor)lines.Add("대장장이 트리 · 호감도 조회 · "+ForgeBlacksmiths.FavorResearchCost+" 다이아 · 선행: 기본 대장장이");
         else if(entry.Feature==BlueprintFeature.SmithPosition)lines.Add("대장장이 트리 · 위치 조회 · "+ForgeBlacksmiths.PositionResearchCost+" 다이아 · 선행: 기본 대장장이");
         else if(entry.Feature==BlueprintFeature.SmithDemand)lines.Add("대장장이 트리 · 요구 수량 조회 · "+ForgeBlacksmiths.DemandResearchCost+" 다이아 · 선행: 기본 대장장이");

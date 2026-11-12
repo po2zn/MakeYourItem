@@ -19,7 +19,11 @@ public sealed class ForgeProductInventory : MonoBehaviour
     const float DoubleClickSeconds=.3f;
     Vector2 size,viewportSize;
     readonly List<Cell> cells=new List<Cell>();
-    sealed class Cell {public Button button,sell;public RectTransform rect;public Text order,name,info;public Image blade;public int id=-1;public bool selected;}
+    ForgeProductPreview preview;
+    RawImage detailPreview;
+    RenderTexture detailTexture;
+    sealed class Cell {public Button button,sell;public RectTransform rect;public Text order,name,info;public Image blade;public RawImage preview;public RenderTexture texture;public int id=-1;public bool selected;}
+    void OnDestroy(){if(preview!=null)preview.Dispose();foreach(var cell in cells)if(cell.texture){cell.texture.Release();Destroy(cell.texture);}if(detailTexture){detailTexture.Release();Destroy(detailTexture);}}
     public int PoolCount=>cells.Count;
     public static int Rows(int count)=>count<=0?0:(count-1)/Columns+1;
     public static int PoolLimit(float height)=>Columns*(Mathf.CeilToInt(Mathf.Max(0,height)/RowHeight)+2);
@@ -36,6 +40,9 @@ public sealed class ForgeProductInventory : MonoBehaviour
         detailRect.offsetMin=new Vector2(detailRect.offsetMin.x,12);
         gridScroll.onValueChanged.AddListener(_=>Populate());
         cellTemplate.gameObject.SetActive(false);
+        var picture=new GameObject("SelectedProduct3D",typeof(RectTransform),typeof(RawImage));picture.layer=gameObject.layer;picture.transform.SetParent(detailScroll.content,false);
+        detailPreview=picture.GetComponent<RawImage>();detailPreview.raycastTarget=false;
+        var rect=detailPreview.rectTransform;rect.anchorMin=rect.anchorMax=new Vector2(.5f,1);rect.pivot=new Vector2(.5f,1);rect.anchoredPosition=new Vector2(0,-8);rect.sizeDelta=new Vector2(200,200);picture.SetActive(false);
     }
     void OnEnable(){lastClickedEntry=null;lastClickedAt=-1;revision=-1;size=Vector2.zero;viewportSize=Vector2.zero;}
     void LateUpdate(){if(!game)return;Layout();Refresh();}
@@ -49,6 +56,9 @@ public sealed class ForgeProductInventory : MonoBehaviour
             if(shop.Find(selected)!=selectedEntry){selected=-1;selectedEntry=null;}foreach(var cell in cells)cell.id=-1;Populate();}
         var item=shop.Find(selected);sellButton.interactable=item!=null;
         if(detailSelection!=selected||detailRevision!=revision){detailSelection=selected;detailRevision=revision;
+            detailPreview.gameObject.SetActive(item!=null);
+            if(item!=null){if(preview==null)preview=new ForgeProductPreview();detailTexture=preview.Render(item.Product,detailTexture,256);detailPreview.texture=detailTexture;}
+            var offset=detailText.rectTransform.offsetMax;offset.y=item!=null?-216:0;detailText.rectTransform.offsetMax=offset;
             detailText.text=item==null?"완성품을 선택하면 검의 상태와 판매 정보를 확인할 수 있습니다.":"제작 순서 #"+item.Order+"\n도면: "+item.Product.BlueprintName+"\n\n"+ForgePricing.Describe(item.Product,false);
             detailScroll.verticalNormalizedPosition=1;MeasureDetails();}
     }
@@ -65,11 +75,15 @@ public sealed class ForgeProductInventory : MonoBehaviour
         var viewport=gridScroll.viewport.rect.size;
         if(viewportSize!=viewport){viewportSize=viewport;Populate();}
     }
-    void MeasureDetails(){if(!detailText)return;Canvas.ForceUpdateCanvases();float h=detailText.preferredHeight+16;detailScroll.content.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical,h);}
+    void MeasureDetails(){if(!detailText)return;Canvas.ForceUpdateCanvases();float h=detailText.preferredHeight+16+(detailPreview&&detailPreview.gameObject.activeSelf?216:0);detailScroll.content.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical,h);}
     Cell CreateCell()
     {
         var button=Instantiate(cellTemplate,gridScroll.content);button.name="VisibleProductCell_"+cells.Count;
         var cell=new Cell{button=button,rect=(RectTransform)button.transform,order=button.transform.Find("Order").GetComponent<Text>(),name=button.transform.Find("Name").GetComponent<Text>(),info=button.transform.Find("Info").GetComponent<Text>(),blade=button.transform.Find("Blade").GetComponent<Image>()};
+        foreach(string part in new[]{"Blade","Guard","Grip"}){var old=button.transform.Find(part);if(old)old.gameObject.SetActive(false);}
+        var picture=new GameObject("Product3DPreview",typeof(RectTransform),typeof(RawImage));picture.layer=button.gameObject.layer;picture.transform.SetParent(button.transform,false);
+        cell.preview=picture.GetComponent<RawImage>();cell.preview.raycastTarget=false;
+        var pictureRect=cell.preview.rectTransform;pictureRect.anchorMin=pictureRect.anchorMax=new Vector2(.5f,1);pictureRect.pivot=new Vector2(.5f,1);pictureRect.anchoredPosition=new Vector2(0,-38);pictureRect.sizeDelta=new Vector2(54,54);
         cell.sell=Instantiate(sellButton,cell.rect);cell.sell.name="SellThisProduct";
         cell.sell.onClick=new Button.ButtonClickedEvent();
         cell.sell.onClick.AddListener(()=>{if(cell.id==selected)SellEntry(selectedEntry);});
@@ -111,7 +125,8 @@ public sealed class ForgeProductInventory : MonoBehaviour
             var entry=shop.Items[index];cell.rect.anchoredPosition=new Vector2((index%Columns)*(cellWidth+Gap),-(index/Columns)*RowHeight);cell.rect.sizeDelta=new Vector2(cellWidth,CellHeight);
             if(cell.id!=entry.Id){cell.id=entry.Id;cell.order.text="#"+entry.Order;cell.name.text=entry.Product.DisplayName;
                 cell.info.text=ForgeMaterialGuide.Find(entry.Product.Material).Name+" · 열 "+entry.Product.FinalHeat+"\n"+ForgeMaterialHud.FormatCount(ForgePricing.Quote(entry.Product).SalePrice)+"G";
-                cell.blade.color=entry.Product.Material==7?new Color(.5f,.75f,1):new Color(.8f,.85f,.9f);}
+                if(preview==null)preview=new ForgeProductPreview();
+                cell.texture=preview.Render(entry.Product,cell.texture);cell.preview.texture=cell.texture;}
             cell.selected=cell.id==selected;cell.sell.gameObject.SetActive(cell.selected);cell.sell.interactable=cell.selected;cell.button.GetComponent<Image>().color=cell.selected?new Color(.22f,.4f,.55f):new Color(.12f,.17f,.23f);
         }
     }

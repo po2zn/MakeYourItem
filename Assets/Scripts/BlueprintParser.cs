@@ -48,8 +48,16 @@ public sealed class BlueprintParser
         if(token.Kind!=BlueprintTokenKind.Name || token.Feature!=BlueprintFeature.None) throw new BlueprintException(token.Line,"이름이 필요합니다: "+token.Raw);
         try { return PythonIdentifier.ParseAssignment(token.Raw); } catch(Exception ex) { throw new BlueprintException(token.Line,ex.Message); }
     }
-    public BlueprintParser(string source,bool deferErrors=false)
-    { this.deferErrors=deferErrors;tokens=(deferErrors?BlueprintLexer.ScanDeferred(source):BlueprintLexer.Scan(source)).FindAll(t=>t.Kind!=BlueprintTokenKind.Comment); }
+    public BlueprintParser(string source,bool deferErrors=false,ForgeTechnology technology=null)
+    {
+        this.deferErrors=deferErrors;tokens=(deferErrors?BlueprintLexer.ScanDeferred(source):BlueprintLexer.Scan(source)).FindAll(t=>t.Kind!=BlueprintTokenKind.Comment);
+        // Check all branches before execution, including deferred sessions and imported modules.
+        if(technology!=null&&!technology.Owns(ForgeTechnology.EnglishResearch))foreach(var token in tokens){
+            if(Array.IndexOf(ForgeTechnology.ControlFeatures,token.Feature)<0)continue;
+            var alias=BlueprintAliases.Find(token.Feature);
+            if(token.Raw==alias.English)throw new BlueprintException(token.Line,"영어 예약어 '"+token.Raw+"'는 테크 트리의 '영어 예약어' 연구가 필요합니다. 대신 "+alias.Symbol+" 표기를 사용하세요.");
+        }
+    }
     public List<BlueprintStatement> Parse()
     {
         var body=new List<BlueprintStatement>(); Lines();
@@ -225,7 +233,8 @@ public sealed class BlueprintParser
     BlueprintExpr Atom()
     {
         var token=Take(); BlueprintExpr value;
-        bool callable=token.Kind==BlueprintTokenKind.Name || token.Kind==BlueprintTokenKind.Number;
+        bool callable=token.Kind==BlueprintTokenKind.Name || token.Kind==BlueprintTokenKind.Number ||
+            token.Feature!=BlueprintFeature.None&&BlueprintAliases.Find(token.Feature).Syntax==BlueprintSyntaxKind.Builtin;
         if(callable && Current.Raw=="(") {
             Take(); value=Node(BlueprintExprKind.Call,token); value.Feature=token.Feature;
             if(token.Kind==BlueprintTokenKind.Number && value.Feature==BlueprintFeature.None) {
