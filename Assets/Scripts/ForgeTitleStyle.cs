@@ -26,6 +26,27 @@ public static class ForgeTitleStyle
     {
         var prior=GUI.color;GUI.color=color;GUI.DrawTexture(rect,Texture2D.whiteTexture);GUI.color=prior;
     }
+    public static void Logo(Rect rect,GUIStyle basis)
+    {
+        const string title="Forge(777)";
+        var style=new GUIStyle(basis){wordWrap=false,fontStyle=FontStyle.Bold,fontSize=Mathf.Clamp(Mathf.RoundToInt(rect.width*.145f),24,96),padding=new RectOffset(),alignment=TextAnchor.MiddleCenter};
+        while(style.fontSize>12&&style.CalcSize(new GUIContent(title)).x>rect.width-12)style.fontSize--;
+        SetLogoColor(style,new Color(.025f,.035f,.05f,.95f));
+        var shadow=rect;shadow.position+=new Vector2(3,5);GUI.Label(shadow,title,style);
+        // A compact outline keeps the wordmark legible against the live workshop.
+        foreach(var offset in new[]{Vector2.left,Vector2.right,Vector2.up,Vector2.down}){
+            var edge=rect;edge.position+=offset*2;GUI.Label(edge,title,style);
+        }
+        SetLogoColor(style,new Color(1f,.91f,.72f));GUI.Label(rect,title,style);
+    }
+    static void SetLogoColor(GUIStyle style,Color color)
+    {
+        // Labels also use hover states: keep every layer of the logo unchanged.
+        foreach(var state in new[]{style.normal,style.hover,style.active,style.focused,
+            style.onNormal,style.onHover,style.onActive,style.onFocused}){
+            state.textColor=color;state.background=null;state.scaledBackgrounds=new Texture2D[0];
+        }
+    }
     public static void Window(Rect rect,bool header=true)
     {
         Fill(new Rect(rect.x+5,rect.y+7,rect.width,rect.height),new Color(0,0,0,.22f));

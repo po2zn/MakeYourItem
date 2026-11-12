@@ -39,7 +39,7 @@ public static class ForgeSyntax
                 string prefix=source.Substring(line,token.Start-line);
                 if(next<source.Length&&source[next]=='(')kind=Kind.Function;
                 else if(Regex.IsMatch(prefix,@"^\s*[^=]+\s*=\s*$")&&(next==source.Length||source[next]=='#'||source[next]=='\r'||source[next]=='\n'))kind=Kind.Material;
-                else if(Regex.IsMatch(prefix,@"(?:^|[^0-9])1\(\s*$")||Regex.IsMatch(prefix,@"(?:^|[^0-9])4\([^(),]*,\s*$"))kind=Kind.Material;
+                else if(Regex.IsMatch(prefix,@"(?:^|[^0-9])1\(\s*$")||Regex.IsMatch(prefix,@"(?:^|[^0-9])4\([^(),]*,\s*$")||Regex.IsMatch(prefix,@"(?<![\p{L}\p{N}_])(?:5|"+Regex.Escape(BlueprintAliases.Find(BlueprintFeature.Attach).English)+@")\s*\([^(),]*,\s*$"))kind=Kind.Material;
             }
             if(token.Feature==BlueprintFeature.Def)definitionNamePending=true;
             result.Add(new Token(token.Start,token.Length,kind));

@@ -19,7 +19,12 @@ public sealed class ForgeMaterialHud
     ForgeMaterialIcons artwork;
     bool artworkLoaded;
     GUIStyle numberStyle,tooltipStyle;
-    static readonly string[] descriptions={"", "검날의 바탕이 되는 금속입니다.", "손잡이와 화로 연료에 쓰이는 재료입니다.", "달군 작업물을 냉각하는 재료입니다.", "화로의 열을 높이는 연료입니다.", "검날을 도금하는 귀금속입니다.", "마력을 담는 수정입니다.", "별무늬를 품은 특수 금속입니다.", "서리 문양을 만드는 냉각 재료입니다.", "특수 손잡이에 쓰이는 뼈입니다."};
+    static readonly string[] descriptions={"재고를 소비하지 않는 냉각 재료입니다.", "검날과 손잡이를 만드는 금속입니다.", "손잡이 제작과 봉인에 쓰입니다.", "달군 검날을 식히는 재료입니다.", "화로의 열을 높이는 연료입니다.", "도금과 손잡이 제작에 쓰입니다.", "마력 충전과 룬 각인에 쓰입니다.", "별무늬 검날과 손잡이를 만드는 금속입니다.", "서리 문양을 만드는 냉각 재료입니다.", "정제해 특수 손잡이를 만드는 재료입니다."};
+    public static string HoverSummary(int material,long count)
+    {
+        var info=ForgeMaterialGuide.Find(material);if(info==null)return "";
+        return info.Name+" ("+material+")\n"+(material==0?"무제한": "보유 "+count.ToString("N0",CultureInfo.InvariantCulture)+"개")+"\n"+descriptions[material];
+    }
     static readonly string[] suffixes={"","K","M","B","T","Q"};
     public static string FormatCount(long count)
     {
@@ -77,7 +82,7 @@ public sealed class ForgeMaterialHud
             Rect icon=CellRect(index++,availableWidth,top);icon.width=IconSize;
             DrawIcon(icon,id);
             ForgeTextLayout.Label(new Rect(icon.xMax+6,icon.y,CellWidth-IconSize-10,IconSize),id==0?"무제한":FormatCount(count),numberStyle);
-            if(CellRect(index-1,availableWidth,top).Contains(Event.current.mousePosition))tooltip=ForgeMaterialGuide.Entries[id].Name+" · 재료 번호 "+id+"\n"+(id==0?"무제한 · 재고 소비 없음":count.ToString("N0",CultureInfo.InvariantCulture)+"개")+"\n"+(id==0?"작업대와 냉각에 사용할 수 있습니다.":descriptions[id]);
+            if(CellRect(index-1,availableWidth,top).Contains(Event.current.mousePosition))tooltip=HoverSummary(id,count);
         }
         if(tooltip!=null)ForgeTreeTooltip.Draw(Event.current.mousePosition,"재료 정보",tooltip,font);
     }
