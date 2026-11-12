@@ -66,13 +66,13 @@ public sealed class ForgeBlacksmiths
 
 public static class ForgeSmithLanguage
 {
-    public const string RunGuideBody="지정한 대장장이에게 제작 함수를 맡깁니다. 작업이 끝날 때까지 기다리지 않고 다음 줄로 넘어가므로 여러 대장장이가 동시에 일할 수 있습니다.\n\n번호 지정: 0번은 첫 대장장이, 1번은 두 번째, 2번은 세 번째입니다. 일반 코드창은 0번이 실행하므로 다른 대장장이에게 맡길 때는 1번부터 사용하세요. 90905()로 고용 인원을, 90906()으로 현재 실행자의 번호를 확인합니다.\n\n사용법: 90904(번호, 함수명, 추가 인자...). 90904(1, sword, 1)은 1번 대장장이에게 sword 함수를 맡기고, 그 함수의 material 매개변수에 재료 번호 1을 전달합니다. sword()처럼 호출하지 말고 함수 이름만 적으세요. 추가 인자의 수는 제작 함수의 매개변수 수와 같아야 합니다.\n\n준비: 이 명령 자체는 기본 제공입니다. 아래 예제는 대장장이 트리에서 2명 고용, 성장 트리에서 제어문 해금, 공용 재고에 철 1개와 나무 1개가 필요합니다. 제작 함수에서 사용하는 다른 공정도 각각 해금되어 있어야 합니다.\n\n반환값: 작업 접수에 성공하면 맡긴 대장장이 번호를 돌려줍니다. 이미 일하고 있으면 -1이며 작업이 예약되지는 않습니다. 고용하지 않은 번호를 지정하면 오류입니다. 반환된 번호는 완성된 검이 아니므로 !로 제출하지 마세요.";
-    public const string RunGuideNote="예제의 print 결과가 1이면 1번 대장장이가 작업을 접수한 것입니다. 완료 여부는 90907(1)로 확인하세요. 작업 중이면 1, 대기 중이면 0입니다. 접수 성공은 제작 완료를 뜻하지 않습니다.\n\n제작 함수의 마지막 << p는 만든 검을 반환하며, 이 검은 자동 제출됩니다. 호출한 코드창에서 별도로 !p를 쓸 필요가 없습니다. 작업물 없이 함수가 끝나면 반환에 의한 자동 제출도 없습니다.\n\n대장장이들은 공용 재료를 사용합니다. 여러 명에게 맡길 때는 총 소비량만큼 준비하세요. 각자 함수 안에서 1(재료 번호)로 작업물을 만들어야 하며, 이미 만든 검 자체를 다른 대장장이의 인자로 전달할 수 없습니다.\n\n3명을 고용했다면 같은 제작 함수로 90904(1, sword, 1)과 90904(2, sword, 1)을 호출해 두 명에게 각각 맡길 수 있습니다. 이미 작업 중인 번호가 -1을 반환했다면 나중에 대기 상태를 확인한 뒤 다시 호출하세요.";
+    public const string RunGuideBody="90904(번호, 함수명)\n고용한 대장장이에게 미리 만든 함수를 맡깁니다. 함수명 뒤에 괄호를 붙이지 마세요.\n\n90904(1, sword) → 1번(두 번째) 대장장이\n90904(2, sword) → 2번(세 번째) 대장장이\nsword() → 0번(첫 번째) 대장장이\n\n두 명을 함께 일시키려면 90904(1, sword)를 먼저 쓰고, 다음 줄에 sword()를 쓰세요. 0번은 코드창을 실행 중이므로 90904(0, sword)로 다시 맡길 수 없습니다.\n\n함수에 전달할 값이 있으면 뒤에 적습니다: 90904(1, sword, 1). 접수 성공 시 번호, 이미 작업 중이면 -1을 반환합니다.";
+    public const string RunGuideNote="";
     public static string Example(BlueprintFeature feature)
     {
         switch(feature){
             case BlueprintFeature.SmithGift:return "90901(0, 2)";
-            case BlueprintFeature.SmithRun:return "333 sword(material):\n    p = 1(material)\n    2(p)\n    3(p)\n    4(p, 0)\n    5(p, 2)\n    << p\nprint(90904(1, sword, 1))";
+            case BlueprintFeature.SmithRun:return "333 sword():\n    r = 1(1)\n    2(r)\n    3(r)\n    4(r, 0)\n    !r\n\n90904(1, sword) # 1번에게 맡기기\nsword() # 0번도 제작";
             case BlueprintFeature.SmithBusy:return "print(90907(0))";
             case BlueprintFeature.GiantRune:return "90910(1, 0, 0)";
             default:foreach(var a in Aliases)if(a.Id==feature)return "print("+a.Symbol+"())";return "";

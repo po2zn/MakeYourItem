@@ -93,7 +93,7 @@ public sealed partial class BlueprintRuntime
             case BlueprintStatementKind.Continue:return new Signal(Flow.Continue);
             case BlueprintStatementKind.Return:return new Signal(Flow.Return,s.Expr==null?null:Copy(await Eval(s.Expr,env)));
             case BlueprintStatementKind.Finish:
-                if(!currentModule.IsMain)Fail("가져온 코드창에서는 !로 제출할 수 없습니다. 작업물을 반환하고 실행한 창에서 제출하세요. 직접 실행 전용 코드는 if __name__ == \"__main__\": 안에 작성하세요.");
+                if(!currentModule.IsMain&&localNames==null)Fail("가져온 코드창의 최상위에서는 !로 제출할 수 없습니다. 사용자 함수 안에서 제출하거나 작업물을 반환하고 실행한 창에서 제출하세요. 직접 실행 전용 코드는 if __name__ == \"__main__\": 안에 작성하세요.");
                 var submitted=await Eval(s.Expr,env);currentLine=s.Token.Line;
                 var piece=submitted is int material?LoadMaterial(material):Piece(submitted);
                 EnsureLive(piece);
@@ -265,7 +265,7 @@ public sealed partial class BlueprintRuntime
     void Record(int process,ForgeMvp.Piece piece,int cost,int ironCost,string text,bool finished)
     {
         float duration=finished?0:.8f/Math.Max(1,context.Speed);productionSeconds+=duration;
-        result.steps.Add(new ForgeMvp.Step{line=currentLine,module=currentModule.IsMain?null:currentModule.Name,day=context.Day(),minute=(int)(clockHour()*60),warning=text.Contains("경고"),process=process,pieceId=piece.id,material=piece.material,materialCount=process==1&&piece.material!=0?1:0,heat=piece.heat,shaped=piece.shaped,traits=piece.traits,cost=cost,iron=ironCost,text=text,finished=finished,data=piece.data.Clone(),consumed=new Dictionary<int,int>(pendingMaterials),duration=duration,productionSeconds=productionSeconds});
+        result.steps.Add(new ForgeMvp.Step{line=currentLine,module=currentModule.IsMain?null:currentModule.Name,day=context.Day(),minute=(int)(clockHour()*60),warning=text.Contains("경고"),process=process,pieceId=piece.id,material=piece.material,materialCount=process==1&&piece.material!=0?1:0,heat=piece.heat,shaped=piece.shaped,traits=piece.traits,cost=cost,iron=ironCost,text=text,finished=finished,data=piece.data.Clone(),consumed=new Dictionary<int,int>(pendingMaterials),duration=duration,workSpeed=context.Speed,productionSeconds=productionSeconds});
         pendingMaterials.Clear();result.cost=ledger.CashCost;result.ironConsumed=ledger.IronConsumed;
     }
 }

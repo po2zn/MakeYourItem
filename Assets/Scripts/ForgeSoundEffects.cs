@@ -30,6 +30,8 @@ public sealed class ForgeSoundEffects : MonoBehaviour
     {
         if(clip)Instance.source.PlayOneShot(clip,Mathf.Clamp01(volume));
     }
+    public static void Click(){var lib=ForgeSfxLibrary.Instance;if(lib)Play(lib.ui,.6f);}
+    public static void PurchaseClick(){var lib=ForgeSfxLibrary.Instance;if(lib)Play(lib.click,.6f);}
     public static void Preview()
     {
         var player=Instance;

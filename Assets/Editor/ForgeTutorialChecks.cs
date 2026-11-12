@@ -7,6 +7,7 @@ public static class ForgeTutorialChecks
     {
         var lesson=new ForgeTutorialLesson();string message;
         Require(lesson.RemainingIron==10,"initial practice iron");
+        Require(!lesson.AdvanceSale(out message)&&lesson.Stage==0,"cannot sell before crafting");
         Require(!lesson.Submit("Material = 1",out message)&&lesson.Stage==0,"cannot skip material selection");
         for(int id=0;id<=9;id++)if(id!=1)Require(!lesson.SelectMaterial(id,out message)&&lesson.Stage==0,"incorrect material "+id);
         Require(lesson.SelectMaterial(1,out message)&&lesson.Stage==1,"iron selection");
@@ -23,7 +24,7 @@ public static class ForgeTutorialChecks
             Require(lesson.RemainingIron==expectedIron&&restored.RemainingIron==expectedIron,"practice stock checkpoint "+stage);
             Require(lesson.Evaluation.error==null,"runtime success "+stage);
         }
-        Require(lesson.Complete&&lesson.Evaluation.product.Kind==ForgeProductKind.Sword,"complete sword");
+        Require(lesson.Crafted&&!lesson.Complete&&lesson.Evaluation.product.Kind==ForgeProductKind.Sword,"complete sword");
         Require(lesson.Evaluation.product.IronConsumed==2,"blade and handle use two iron");
         Require(lesson.Evaluation.steps.Count==6,"only five processes and submission");
         for(int i=0;i<5;i++)Require(lesson.Evaluation.steps[i].process==i+1,"process sequence");
@@ -31,6 +32,15 @@ public static class ForgeTutorialChecks
         Require(ForgeTutorialLesson.Restore(5,"print(1)").Stage==0,"bad checkpoint reset");
         Require(ForgeTutorialLesson.Restore(1,null).Stage==1,"selected material checkpoint");
         Require(ForgeTutorialLesson.Restore(99,lesson.Code).Stage==0,"unknown checkpoint reset");
+        int price=ForgePricing.Quote(lesson.Evaluation.product).SalePrice;
+        Require(lesson.AdvanceSale(out message)&&lesson.Stage==9&&!lesson.Complete&&lesson.PracticeGold==0,"select before sale");
+        var selected=ForgeTutorialLesson.Restore(lesson.Stage,lesson.Code);
+        Require(selected.Stage==9&&selected.AdvanceSale(out message)&&selected.PracticeGold==price,"resume selected sale");
+        Require(lesson.AdvanceSale(out message)&&lesson.Complete&&lesson.PracticeGold==price,"sell once for quoted gold");
+        Require(!lesson.AdvanceSale(out message)&&lesson.PracticeGold==price,"no duplicate sale");
+        Require(ForgeTutorialLesson.Restore(10,lesson.Code).Complete&&ForgeTutorialLesson.Restore(10,lesson.Code).PracticeGold==price,"completed sale checkpoint");
+        Require(lesson.Previous()&&lesson.Stage==9&&lesson.PracticeGold==0,"rewind sale");
+        Require(lesson.Previous()&&lesson.Stage==8,"rewind selection");
         for(int target=7;target>=0;target--){
             Require(lesson.Previous()&&lesson.Stage==target,"previous stage "+target);
             Require(lesson.RemainingIron==(target<=2?10:target<=6?9:8),"rewind stock "+target);
@@ -49,7 +59,10 @@ public static class ForgeTutorialChecks
             if(stage>1)Require(!lesson.SubmitDocument(document.Replace("Material = 1","Material = 2"),out message)&&lesson.Stage==stage,"invalid edit does not change checkpoint");
             Require(lesson.SubmitDocument(document,out message)&&lesson.Code==document,"editable document stage "+stage);
         }
-        Require(lesson.Complete&&lesson.RemainingIron==8,"editor completion without duplicate resource use");
-        Console.WriteLine("PASS tutorial: material choice, variable, five processes, sword submission, mistakes/retries, checkpoint restore and duplicate prevention");
+        Require(lesson.Crafted&&!lesson.Complete&&lesson.RemainingIron==8,"editor completion without duplicate resource use");
+        Require(lesson.AdvanceSale(out message)&&lesson.AdvanceSale(out message)&&lesson.Complete,"document then sale then enter game");
+        for(int stage=2;stage<=6;stage++)Require(ForgeTutorialLesson.Instructions[stage].Contains("\n\n"),"blank line after function explanation "+stage);
+        Require(ForgeTutorialLesson.Instructions[2].Contains("숫자 언어 못 들어보셨나요?"),"numeric language dialogue");
+        Console.WriteLine("PASS tutorial: material choice, variable, five processes, sword submission, mistakes/retries, sale selection/payment, checkpoint restore, rewind and duplicate prevention");
     }
 }

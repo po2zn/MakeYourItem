@@ -17,6 +17,8 @@ public sealed partial class BlueprintRuntime
         readonly Func<Task> entry;
         public ForgeMvp.Evaluation Evaluation => evaluation;
         public bool DeferredErrors { get; }
+        public string MainModuleName { get; }
+        public float WorkSpeed => Math.Max(1,runtime?.context.Speed??1);
         public bool Completed { get; private set; }
         public bool Cancelled { get; private set; }
         public int NextLine { get; private set; }
@@ -28,7 +30,7 @@ public sealed partial class BlueprintRuntime
         internal Session(ForgeMvp.Evaluation failure){evaluation=failure;Completed=true;}
         internal Session(BlueprintRuntime runtime,bool deferredErrors,Func<Task> entry=null)
         {
-            this.runtime=runtime;evaluation=runtime.result;runtime.session=this;DeferredErrors=deferredErrors;this.entry=entry;
+            this.runtime=runtime;MainModuleName=runtime.currentModule.Name;evaluation=runtime.result;runtime.session=this;DeferredErrors=deferredErrors;this.entry=entry;
             execution=Run();
         }
         internal Task Pause(BlueprintToken token)

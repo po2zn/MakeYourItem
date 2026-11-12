@@ -37,6 +37,17 @@ public static class ForgeTextLayoutChecks
                 foreach(string text in new[]{"대장장이 현황","전체 보기","성장 트리","재료 상점","대장간"})check("header "+width,text,new Rect(0,0,unit,48),title);
             }
             foreach(var size in new[]{new Vector2Int(800,600),new Vector2Int(1280,720),new Vector2Int(1920,1080),new Vector2Int(3840,2160),new Vector2Int(640,480)}){
+                float tutorialWidth=Mathf.Min(460,(size.x-36)*.48f)-48;
+                foreach(string text in ForgeTutorialLesson.Instructions){
+                    float measured=ForgeTextLayout.Height(text,body,tutorialWidth);
+                    check("tutorial body "+size,text,new Rect(0,0,tutorialWidth,measured),body);
+                }
+                var lesson=new ForgeTutorialLesson();lesson.SelectMaterial(1,out _);
+                for(int stage=1;stage<=7;stage++)lesson.Submit(ForgeTutorialLesson.Hints[stage],out _);
+                do{
+                    string text=lesson.SaleInstructions;float measured=ForgeTextLayout.Height(text,body,tutorialWidth);
+                    check("tutorial sale "+size+" stage "+lesson.Stage,text,new Rect(0,0,tutorialWidth,measured),body);
+                }while(lesson.AdvanceSale(out _));
                 float width=Mathf.Min(840,Mathf.Max(1,size.x-68)),labelWidth=width*.28f,controlWidth=width-labelWidth;
                 foreach(string text in new[]{"전체 음량","배경음 (BGM)","효과음 (SFX)"})check("audio label "+size,text,new Rect(0,0,labelWidth-16,48),body);
                 foreach(string text in new[]{"0%","50%","100%"})check("audio percentage "+size,text,new Rect(0,0,64,48),body);

@@ -33,10 +33,11 @@ public sealed partial class BlueprintRuntime
             var copied=new List<object>();foreach(var value in arguments)copied.Add(child.Copy(value));
             return new Session(child,false,async()=>{
                 var returned=await child.Invoke(target,copied);
-                if(returned is ForgeMvp.Piece piece){
+                if(returned is ForgeMvp.Piece piece&&!child.submittedPieces.Contains(piece)){
                     child.EnsureLive(piece);piece.data.materials=(int[])child.usedMaterials.Clone();
-                    child.result.product=child.ledger.Complete(child.owner,piece.heat,piece.shaped,piece.traits,piece.material,piece.data,child.productionSeconds);
+                    child.result.product=child.ledger.CompleteNext(child.owner,piece.heat,piece.shaped,piece.traits,piece.material,piece.data,child.productionSeconds);
                     child.AddStep(0,piece,0,0,"대장장이 제작 함수 반환 · 제출",true);
+                    child.submittedPieces.Add(piece);Array.Clear(child.usedMaterials,0,child.usedMaterials.Length);
                 }
             });
         });}catch(ArgumentException error){Fail(error.Message);return -1;}

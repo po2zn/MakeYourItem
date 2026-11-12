@@ -62,7 +62,7 @@ public partial class ForgeMvp : MonoBehaviour
     {
         purchaseSucceeded=technology.TryPurchase(offer,ref gold,ref iron,ref materialStocks,busy||executionSession!=null,out purchaseMessage,quantity);
         if(purchaseSucceeded){
-            if(offer.SpeedLevel>0)craftSpeed=offer.SpeedLevel;
+            if(offer.SpeedLevel>0)craftSpeed=ForgeTechnology.SpeedMultiplier(offer.SpeedLevel);
             if(offer.Feature==BlueprintFeature.AutoSell){autoSell=true;purchaseMessage+=" · 자동판매 활성화";}
             SaveProgress();
         }
@@ -321,7 +321,7 @@ public partial class ForgeMvp : MonoBehaviour
     GameObject work;
     ForgeCraftMotion craftMotion;
     public class Piece { public ForgeItemData data=new ForgeItemData(); public int id; public int material=1; public int heat; public bool shaped; public ForgeTraits traits; }
-    public class Step { public int day,minute,absorbedPiece; public bool warning; public ForgeItemData data; public Dictionary<int,int> consumed; public float duration=.8f; public int setting, settingValue, refund; public double productionSeconds; public int line, cost, iron, heat, process, material, materialCount, pieceId; public bool shaped, finished, debugOutput; public ForgeTraits traits; public string text, module; }
+    public class Step { public int day,minute,absorbedPiece; public bool warning; public ForgeItemData data; public Dictionary<int,int> consumed; public float duration=.8f; public float workSpeed=1; public int setting, settingValue, refund; public double productionSeconds; public int line, cost, iron, heat, process, material, materialCount, pieceId; public bool shaped, finished, debugOutput; public ForgeTraits traits; public string text, module; }
     public class Evaluation { public List<Step> steps = new List<Step>(); public string error; public int cost, ironConsumed, errorLine; public string errorMessage, errorModule; public bool compileError; public ForgeProduct product; public bool skipped, debugOnly; public Dictionary<string, object> values = new Dictionary<string, object>(); }
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void Boot() { if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == "SampleScene" && FindAnyObjectByType<ForgeMvp>() == null) new GameObject("Forge MVP").AddComponent<ForgeMvp>(); }
@@ -1078,8 +1078,8 @@ public partial class ForgeMvp : MonoBehaviour
         if(focused && !imeEditing && ev.type==EventType.KeyDown && !ev.control && !ev.alt && !ev.command)
         {
             bool handled=false;
-            if(ev.keyCode==KeyCode.Tab)
-            { ApplyCodeEdit(BlueprintIndentation.Tab(source,editor.cursorIndex,editor.selectIndex,ev.shift),editor); handled=true; }
+            if(BlueprintIndentation.TryTabEvent(source,editor.cursorIndex,editor.selectIndex,ev.keyCode==KeyCode.Tab,ev.character,ev.shift,out var tabEdit))
+            { ApplyCodeEdit(tabEdit,editor); handled=true; }
             else if(ev.keyCode==KeyCode.Backspace && !ev.shift && BlueprintIndentation.Backspace(source,editor.cursorIndex,editor.selectIndex,out var edit))
             { ApplyCodeEdit(edit,editor); handled=true; }
             if(handled){followCaret=true;ev.Use();}

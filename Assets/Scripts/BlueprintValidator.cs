@@ -117,7 +117,6 @@ public sealed class BlueprintValidator
                 case BlueprintStatementKind.Return:
                     if(!function)Error(s.Token,"return은 함수 안에서만 사용할 수 있습니다.");if(s.Expr!=null)Expr(s.Expr,names,false);break;
                 case BlueprintStatementKind.Finish:
-                    if(function)Error(s.Token,"!는 사용자 함수 안에서는 사용할 수 없습니다. 작업물을 반환한 뒤 제출하세요.");
                     if(!Known(Expr(s.Expr,names,false),BlueprintType.Piece,BlueprintType.Int))Error(s.Token,"제출에는 작업물 또는 재료 번호가 필요합니다.");
                     hasFinish=true;ended=loops==0;break;
             }

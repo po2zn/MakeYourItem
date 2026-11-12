@@ -6,6 +6,7 @@ public sealed partial class ForgeGameUI
  CanvasGroup tutorialGroup;
  Image tutorialBlackout;
  bool tutorialStyled;
+ string tutorialLastHeading;
  Text tutorialHintText;
  static readonly Color TutorialHintGreen=new Color(.08f,.40f,.18f);
  public void ShowTutorialHint(string value,bool visible,bool available)
@@ -49,9 +50,15 @@ public sealed partial class ForgeGameUI
   if(tutorialBlackout.gameObject.activeSelf)tutorialBlackout.transform.SetAsLastSibling();
   if(tutorialGroup.gameObject.activeInHierarchy)FitTutorialText();
  }
+ public void ShowTutorialInstructions(ForgeTutorialLesson lesson)
+ {
+  texts["TutorialInstructions"].supportRichText=!lesson.Crafted;
+  Text("TutorialInstructions",lesson.Crafted?lesson.SaleInstructions:(lesson.Stage==0?"<size=28><b>"+ForgeTutorialLesson.Titles[0]+"</b></size>":ForgeTutorialLesson.Titles[lesson.Stage])+"\n\n"+lesson.InstructionBody);
+ }
  void StyleTutorial()
  {
   var tutorial=Node("Tutorial");
+  var welcome=texts["TutorialWelcomeText"];welcome.text=welcome.text.Replace("\n\n연습용 재료를 사용하므로 실제 재고는 줄지 않습니다.","").Replace("연습용 재료를 사용하므로 실제 재고는 줄지 않습니다.","");
   tutorialGroup.alpha=0;
   tutorial.GetComponent<Image>().color=Color.clear;
   // Match the existing guide's warm paper and dark ink; reuse authored button skins.
@@ -81,7 +88,7 @@ public sealed partial class ForgeGameUI
   texts["TutorialEditorTitle"].fontSize=20;
   inputs["TutorialInput"].textComponent.fontSize=20;
   var title=texts["TutorialEditorTitle"].rectTransform;title.offsetMax=new Vector2(-12,title.offsetMax.y);
-  Label("TutorialClose","나중에 계속하기");
+
   var existing=transform.Find("TutorialBlackout");
   var overlay=existing?existing.gameObject:new GameObject("TutorialBlackout",typeof(RectTransform),typeof(Image));
   overlay.layer=gameObject.layer;overlay.transform.SetParent(transform,false);
@@ -93,6 +100,8 @@ public sealed partial class ForgeGameUI
  }
  void FitTutorialText()
  {
+  if(tutorialLastHeading!=texts["TutorialHeading"].text){tutorialLastHeading=texts["TutorialHeading"].text;Node("TutorialScroll").GetComponent<ScrollRect>().verticalNormalizedPosition=1;}
+  bool changed=false;
   foreach(var text in tutorialGroup.GetComponentsInChildren<Text>(false)){
    if(text.GetComponentInParent<InputField>())continue;
    var button=text.GetComponentInParent<Button>();
@@ -102,7 +111,11 @@ public sealed partial class ForgeGameUI
    var settings=text.GetGenerationSettings(new Vector2(width,0));
    float height=text.cachedTextGeneratorForLayout.GetPreferredHeight(text.text,settings)/text.pixelsPerUnit;
    float wanted=Mathf.Max(button?54:24,height+(button?16:4));
-   if(Mathf.Abs(element.preferredHeight-wanted)>.5f)element.minHeight=element.preferredHeight=wanted;
+   if(Mathf.Abs(element.preferredHeight-wanted)>.5f){element.minHeight=element.preferredHeight=wanted;changed=true;}
   }
+  var actions=Node("TutorialActions");float rowHeight=54;
+  foreach(Transform child in actions)if(child.gameObject.activeSelf&&child.TryGetComponent<LayoutElement>(out var item))rowHeight=Mathf.Max(rowHeight,item.preferredHeight);
+  var row=actions.GetComponent<LayoutElement>();if(Mathf.Abs(row.preferredHeight-rowHeight)>.5f){row.minHeight=row.preferredHeight=rowHeight;changed=true;}
+  if(changed)LayoutRebuilder.ForceRebuildLayoutImmediate(Node("TutorialScroll").GetComponent<ScrollRect>().content);
  }
 }

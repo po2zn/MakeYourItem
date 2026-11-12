@@ -36,8 +36,10 @@ public sealed class ForgeTechnology
     {return new Offer("material-"+material,ForgePurchaseKind.MaterialUnlock,price,ForgeMaterialGuide.Find(material).Name+" 공급 해금","한 번 해금하면 재료 상점에서 필요한 수량을 계속 구매할 수 있습니다. 해금비에 재료는 포함되지 않습니다.",tier,lane,material,BlueprintFeature.None,parents);}
     static Offer Bundle(BlueprintFeature feature,BlueprintFeature companion,int price,int tier,int lane,string name,params string[] parents)
     {return new Offer("function-"+feature,ForgePurchaseKind.Function,price,name,"한 번 구매하면 두 함수의 숫자/영문 표기가 함께 해금됩니다.\n"+BlueprintAliases.Find(feature).Description+"\n"+BlueprintAliases.Find(companion).Description,tier,lane,0,feature,parents);}
-    static Offer Speed(int level,int price)=>new Offer("speed-"+level,ForgePurchaseKind.Function,price,"스피드 "+level+"단계 · "+level+"배",
-        (level==1?"기본 속도는 1배입니다. 1단계 구매로 222()/speed() 속도 제어와 다음 단계 구매를 엽니다.":"구매 즉시 "+level+"배로 설정됩니다. 222(1)부터 222("+level+")까지 사용할 수 있습니다.")
+    public static float SpeedMultiplier(int level)=>level<=0?1f:level==1?1.5f:level;
+    public float RestoreSpeed(float saved)=>MaxSpeedLevel==0?1f:Math.Max(1.5f,Math.Min(float.IsNaN(saved)?1.5f:saved,SpeedMultiplier(MaxSpeedLevel)));
+    static Offer Speed(int level,int price)=>new Offer("speed-"+level,ForgePurchaseKind.Function,price,"스피드 "+level+"단계 · "+SpeedMultiplier(level)+"배",
+        (level==1?"기본 속도는 1배입니다. 1단계 구매 즉시 1.5배로 설정됩니다. 222(1)도 1.5배이며 속도 제어와 다음 단계 구매를 엽니다.":"구매 즉시 "+level+"배로 설정됩니다. 222(1)부터 222("+level+")까지 사용할 수 있습니다.")
         +(level==5?" 최대 속도 단계입니다. 자동판매는 다음 노드를 별도로 구매해야 사용할 수 있습니다.":" 다음 단계는 이 단계를 구매한 뒤 해금할 수 있습니다."),
         level+3,6,0,BlueprintFeature.Speed,level==1?"function-Wrap":"speed-"+(level-1));
     public static readonly ReadOnlyCollection<Offer> Offers=Array.AsReadOnly(new[]{

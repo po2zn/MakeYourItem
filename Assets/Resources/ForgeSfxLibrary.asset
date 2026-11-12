@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8678e067800e44b0bc0f5dfc544ee944, type: 3}
+  m_Name: ForgeSfxLibrary
+  m_EditorClassIdentifier: 
+  click: {fileID: 8300000, guid: bcb12819d6c84aa4f9738e889670eeac, type: 3}
+  ui: {fileID: 8300000, guid: b3b37975874f87f47b76f61c5033f31a, type: 3}
+  place: {fileID: 8300000, guid: 23bb7eddcd7174d4f87079e9544514c3, type: 3}
+  coal: {fileID: 8300000, guid: 90933d13d8ccca546bc5f35411a2f0a8, type: 3}
+  walk: {fileID: 8300000, guid: 66ec85fe42f8595468ca33bab175a62a, type: 3}
+  hammer: {fileID: 8300000, guid: 44dcd436f21bfe54f8f70a583cbef18f, type: 3}
+  water: {fileID: 8300000, guid: 1a6b3e237f63e0a4ab836fcfc0a13d3a, type: 3}
+  air: {fileID: 8300000, guid: ea079b09829e0014585ed683c6ea9005, type: 3}

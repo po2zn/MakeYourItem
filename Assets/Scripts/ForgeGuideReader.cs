@@ -141,13 +141,25 @@ public sealed partial class ForgeGuideReader
         ForgeTextLayout.Label(new Rect(page.x+34,bottom,Mathf.Max(1,page.width-68),28),matches.Count==0?"0 / 0":(position+1)+" / "+matches.Count,pageStyle);
     }
     int VisibleSectionCount {get{int count=0;foreach(string value in Sections)if(SectionVisible(value))count++;return count;}}
+    public bool BookmarkContains(Rect rail,Vector2 point)
+    {
+        if(!rail.Contains(point))return false;
+        float contentHeight=Mathf.Max(0,VisibleSectionCount*BookmarkStep-(BookmarkStep-BookmarkHeight));
+        float scroll=Mathf.Clamp(leftTabScroll.y,0,Mathf.Max(0,contentHeight-rail.height));
+        float y=point.y-rail.y+scroll;
+        return y>=0&&y<contentHeight&&y%BookmarkStep<BookmarkHeight;
+    }
     void DrawBookmarks(Rect rail)
     {
         if(bookmarkTexture==null)bookmarkTexture=Resources.Load<Texture2D>("GuideBookmark");
         float width=rail.width;
+        float contentHeight=Mathf.Max(0,VisibleSectionCount*BookmarkStep-(BookmarkStep-BookmarkHeight));
+        rail.height=Mathf.Min(rail.height,contentHeight);
+        leftTabScroll.y=Mathf.Clamp(leftTabScroll.y,0,Mathf.Max(0,contentHeight-rail.height));
+        bool hitBookmark=BookmarkContains(rail,Event.current.mousePosition);
         GUIStyle scrollBackground=GUI.skin.scrollView;
         GUI.skin.scrollView=GUIStyle.none;
-        leftTabScroll=GUI.BeginScrollView(rail,leftTabScroll,new Rect(0,0,width,Sections.Length*BookmarkStep),false,false,GUIStyle.none,GUIStyle.none);
+        leftTabScroll=GUI.BeginScrollView(rail,leftTabScroll,new Rect(0,0,width,contentHeight),false,false,GUIStyle.none,GUIStyle.none);
         GUI.skin.scrollView=scrollBackground;
         int row=0;
         for(int i=0;i<Sections.Length;i++){
@@ -169,7 +181,7 @@ public sealed partial class ForgeGuideReader
             GUI.color=old;
             ForgeTextLayout.Label(new Rect(tab.x+10,tab.y,tab.width-14,tab.height),Tabs[i],tabStyle);
         }
-        GUI.EndScrollView();
+        GUI.EndScrollView(hitBookmark);
     }
     void DrawMaterials(Rect page)
     {
@@ -318,7 +330,7 @@ public sealed partial class ForgeGuideReader
         string note=VisibleProse(entry.NoteFor(englishUnlocked));
         float noteH=note.Length==0?0:SubsectionHeight("주의할 점",note,width);
         string research=VisibleProse(entry.ResearchFor(englishUnlocked));
-        if(entry.Feature==BlueprintFeature.Speed)research="구매한 최대 속도: "+technology.MaxSpeedLevel+"배. 1부터 이 단계까지 설정할 수 있습니다.";
+        if(entry.Feature==BlueprintFeature.Speed)research="구매한 최대 속도: "+ForgeTechnology.SpeedMultiplier(technology.MaxSpeedLevel)+"배. 222(1)은 1.5배이며 구매한 단계까지 설정할 수 있습니다.";
         float researchH=entry.ShowResearch?SubsectionHeight("연구 및 준비",research,width):0;
         float total=sectionH+titleH+bodyH+researchH+codeHeight+expectedH+noteH+170;
         detailScroll=BeginScroll(view,detailScroll,new Rect(0,0,width,Mathf.Max(view.height,total)));

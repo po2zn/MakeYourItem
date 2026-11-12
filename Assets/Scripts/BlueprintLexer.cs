@@ -105,7 +105,6 @@ public static class BlueprintLexer
             if(first && token.Kind!=BlueprintTokenKind.Comment) {
                 int indent=0;
                 for(int pos=lineStart;pos<token.Start;pos++) {
-                    if(source[pos]=='\t' && blocks && !tolerant) throw new BlueprintException(token.Line,"탭 대신 공백4칸을 사용하세요.");
                     indent+=source[pos]=='\t'?4:1;
                 }
                 if(!blocks) indent=0;

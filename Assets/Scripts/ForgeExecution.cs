@@ -16,10 +16,18 @@ public partial class ForgeMvp
 
     bool ExecutionSourceChanged()
     {
-        if(codeWindows.Count!=executionSources.Count)return true;
-        foreach(var window in codeWindows)
-            if(!executionSources.TryGetValue(window.id,out var saved)||saved.Name!=window.name||saved.Text!=window.text)return true;
-        return false;
+        // Other windows are editable; imports use the sources captured at execution start.
+        if(executionOwner==null||!codeWindows.Contains(executionOwner))return true;
+        return !executionSources.TryGetValue(executionOwner.id,out var saved)||saved.Name!=executionOwner.name||saved.Text!=executionOwner.text;
+    }
+    CodeWindow FindExecutionWindow(string module)
+    {
+        if(module==null)return executionOwner;
+        foreach(var window in codeWindows){
+            if(!executionSources.TryGetValue(window.id,out var saved))continue;
+            try{if(PythonIdentifier.Parse(saved.Name)==module)return window;}catch{}
+        }
+        return null;
     }
     void Execute(bool singleStep)
     {
@@ -27,7 +35,7 @@ public partial class ForgeMvp
         codeWindows[activeWindow].text=source;
         if(executionSession!=null&&ExecutionSourceChanged()){
             StopExecution(false);reportError=false;
-            report+="\n코드창 내용이나 이름이 변경되어 실행을 중단했습니다. 다시 누르면 처음부터 새로 실행합니다. 이미 소비한 비용은 유지됩니다.";
+            report+="\n실행 중인 코드창의 내용이나 이름이 변경되었거나 창이 삭제되어 실행을 중단했습니다. 다시 누르면 처음부터 새로 실행합니다. 이미 소비한 비용은 유지됩니다.";
             return;
         }
         if(executionSession==null){
@@ -59,7 +67,7 @@ public partial class ForgeMvp
     {
         busy=true;var session=executionSession;
         do {
-            if(ExecutionSourceChanged()){StopExecution(false);report+="\n코드창이 변경되어 실행을 중단했습니다. 다음 실행은 처음부터 시작합니다.";busy=false;yield break;}
+            if(ExecutionSourceChanged()){StopExecution(false);report+="\n실행 중인 코드창이 변경되거나 삭제되어 실행을 중단했습니다. 다음 실행은 처음부터 시작합니다.";busy=false;yield break;}
             UpdateExecutionLocation();
             var advance=session.Advance();
             while(!advance.IsCompleted)yield return null;
@@ -74,7 +82,7 @@ public partial class ForgeMvp
                     AppendDebug(step.text);continue;
                 }
                 if(step.process==-1){yield return new WaitForSeconds(step.duration);continue;}
-                if(step.process==-2){if(step.setting==1)craftSpeed=step.settingValue;else autoSell=step.settingValue==1;continue;}
+                if(step.process==-2){if(step.setting==1)craftSpeed=ForgeTechnology.SpeedMultiplier(step.settingValue);else autoSell=step.settingValue==1;continue;}
                 if(!SpendSmithStep(step,executionLedger)){
                     reportError=true;report+="자금 또는 해당 재료 부족";AppendDebug(report);StopExecution(false);if(craftMotion)craftMotion.ReactToCodeError();busy=false;yield break;
                 }
@@ -106,11 +114,7 @@ public partial class ForgeMvp
     }
     void ShowExecutionError(Evaluation evaluation)
     {
-        CodeWindow target=executionOwner;
-        if(evaluation.errorModule!=null){
-            target=null;
-            foreach(var window in codeWindows){try{if(PythonIdentifier.Parse(window.name)==evaluation.errorModule){target=window;break;}}catch{}}
-        }
+        CodeWindow target=FindExecutionWindow(evaluation.errorModule);
         if(target==null||!executionSources.TryGetValue(target.id,out var snapshot)||snapshot.Text!=target.text)return;
         target.diagnosticCaption="실행 중 코드 오류";
         target.diagnostic=new ForgeCompileDiagnostic(snapshot.Text,evaluation.errorLine,evaluation.errorMessage);
@@ -127,14 +131,10 @@ public partial class ForgeMvp
     {
         foreach(var window in codeWindows){window.executionLine=0;window.revealExecution=false;}
         if(executionSession==null||line==0&&executionSession.Completed)return;
-        CodeWindow target=executionOwner;
         if(line==0){line=executionSession.NextLine;module=executionSession.NextModule;}
-        if(module!=null){
-            target=null;
-            foreach(var window in codeWindows){try{if(PythonIdentifier.Parse(window.name)==module){target=window;break;}}catch{}}
-        }
-        if(target==null)return;
-        target.executionLine=line;target.executionSource=executionSources[target.id].Text;target.revealExecution=true;
+        CodeWindow target=FindExecutionWindow(module);
+        if(target==null||!executionSources.TryGetValue(target.id,out var snapshot)||snapshot.Text!=target.text)return;
+        target.executionLine=line;target.executionSource=snapshot.Text;target.revealExecution=true;
         // Also reveal the marker in a visible, non-focused module window.
         target.scroll.y=Mathf.Max(0,(target.executionLine-3)*(codeStyle==null?22:codeStyle.lineHeight));
         if(hierarchyGame&&hierarchyGame.Bound)hierarchyGame.Refresh();

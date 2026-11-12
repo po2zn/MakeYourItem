@@ -6,9 +6,10 @@ using UnityEngine;
 public sealed class ForgeCraftMotion : MonoBehaviour
 {
     ForgeWorkshopVisuals workshop;
+    ForgeActionAudio fallbackAudio;
     uint motionGeneration;
     public bool UsesWorkshopAssets => workshop != null;
-    public void CancelCurrentAction(){motionGeneration++;ActiveProcess=0;if(workshop)workshop.Cancel();else{if(fallbackCoal)fallbackCoal.SetActive(false);if(arm){arm.localRotation=Quaternion.identity;var tool=arm.Find("Hammer");if(tool)tool.gameObject.SetActive(true);}}}
+    public void CancelCurrentAction(){motionGeneration++;if(fallbackAudio)fallbackAudio.Stop();ActiveProcess=0;if(workshop)workshop.Cancel();else{if(fallbackCoal)fallbackCoal.SetActive(false);if(arm){arm.localRotation=Quaternion.identity;var tool=arm.Find("Hammer");if(tool)tool.gameObject.SetActive(true);}}}
     public void ReactToCodeError(){CancelCurrentAction();if(workshop)workshop.ReactToCodeError();}
     void OnDisable(){CancelCurrentAction();}
     readonly Dictionary<int, GameObject> pieces = new Dictionary<int, GameObject>();
@@ -46,6 +47,7 @@ public sealed class ForgeCraftMotion : MonoBehaviour
         initial.SetActive(false);
         var assets=Resources.Load<ForgeWorkshopAssets>("BlacksmithWorkshopAssets");
         if(assets&&assets.Ready){workshop=gameObject.AddComponent<ForgeWorkshopVisuals>();workshop.Initialize(assets);return;}
+        fallbackAudio=gameObject.AddComponent<ForgeActionAudio>();
         smith = new GameObject("Blacksmith").transform;
         smith.SetParent(transform, false);
         smith.localPosition = new Vector3(1.2f, 0, 0);
@@ -100,7 +102,9 @@ public sealed class ForgeCraftMotion : MonoBehaviour
         try{
             while(elapsed<duration&&generation==motionGeneration){
                 float t=Mathf.Clamp01(elapsed/duration),move=Mathf.SmoothStep(0,1,Mathf.InverseLerp(0,.35f,t));
+                Vector3 old=smith.localPosition;
                 smith.localPosition=Vector3.Lerp(start,end,move)+Vector3.up*(Mathf.Sin(t*Mathf.PI*8)*.025f*(1-move));
+                fallbackAudio.Frame(t,(smith.localPosition-old).sqrMagnitude>.000001f);
                 float reach=Mathf.Sin(Mathf.InverseLerp(.35f,.7f,t)*Mathf.PI);
                 float stoke=t>.76f?Mathf.Sin(Mathf.InverseLerp(.76f,1,t)*Mathf.PI*4):0;
                 arm.localRotation=Quaternion.Euler(0,0,-25*reach-12*stoke);
@@ -109,8 +113,8 @@ public sealed class ForgeCraftMotion : MonoBehaviour
                 else{if(!tossed){released=fallbackCoal.transform.position;tossed=true;}float toss=Mathf.InverseLerp(.64f,.76f,t);fallbackCoal.transform.position=Vector3.Lerp(released,transform.TransformPoint(furnace),toss)+Vector3.up*(Mathf.Sin(toss*Mathf.PI)*.15f);}
                 elapsed+=Time.deltaTime;yield return null;
             }
-            if(generation==motionGeneration){smith.localPosition=end;CompletedActions++;}
-        }finally{if(generation==motionGeneration){fallbackCoal.SetActive(false);arm.localRotation=Quaternion.identity;if(tool)tool.gameObject.SetActive(true);ActiveProcess=0;}}
+            if(generation==motionGeneration){fallbackAudio.Finish();smith.localPosition=end;CompletedActions++;}
+        }finally{if(generation==motionGeneration){fallbackAudio.AbortIfActive();fallbackCoal.SetActive(false);arm.localRotation=Quaternion.identity;if(tool)tool.gameObject.SetActive(true);ActiveProcess=0;}}
     }
     public IEnumerator Play(ForgeMvp.Step step)
     {
@@ -129,6 +133,7 @@ public sealed class ForgeCraftMotion : MonoBehaviour
             ActiveProcess=0;yield break;
         }
         ActiveProcess = step.process;
+        fallbackAudio.Begin(step);
         if(step.process==8){yield return StokeFallback(step);yield break;}
         if(!pieces.TryGetValue(step.pieceId, out var work))
         {
@@ -149,14 +154,17 @@ public sealed class ForgeCraftMotion : MonoBehaviour
         {
             float t = Mathf.Clamp01(elapsed/duration);
             float move = Mathf.SmoothStep(0,1,Mathf.Min(1,t*2));
+            Vector3 old=smith.localPosition;
             smith.localPosition = Vector3.Lerp(smithStart,smithEnd,move) + Vector3.up*(Mathf.Sin(t*Mathf.PI*4)*.035f);
+            fallbackAudio.Frame(t,(smith.localPosition-old).sqrMagnitude>.000001f);
             work.transform.localPosition = Vector3.Lerp(start,destination,move);
-            float swing = step.process==3 ? Mathf.Sin(Mathf.Clamp01((t-.5f)*2)*Mathf.PI*4)*55 : Mathf.Sin(t*Mathf.PI)*20;
+            float swing = step.process==3 ? Mathf.Sin(Mathf.Clamp01((t-.4f)/.6f)*Mathf.PI*4)*55 : Mathf.Sin(t*Mathf.PI)*20;
             arm.localRotation = Quaternion.Euler(0,0,swing);
             work.GetComponent<Renderer>().material.color = Color.Lerp(from,to,t);
             elapsed += Time.deltaTime;
             yield return null;
         }
+        fallbackAudio.Finish();
         smith.localPosition=smithEnd;
         arm.localRotation=Quaternion.identity;
         work.transform.localPosition=destination;

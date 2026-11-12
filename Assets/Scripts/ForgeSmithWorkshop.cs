@@ -6,7 +6,7 @@ using UnityEngine;
 public partial class ForgeMvp
 {
     ForgeBlacksmiths blacksmiths=new ForgeBlacksmiths();
-    sealed class SmithJob { public BlueprintRuntime.Session session; public ForgeProductionLedger ledger=new ForgeProductionLedger(); public int cursor; public Coroutine coroutine; }
+    sealed class SmithJob { public BlueprintRuntime.Session session; public ForgeProductionLedger ledger=new ForgeProductionLedger(); public int cursor; public Coroutine coroutine; public int ownerId,line;public string module;public readonly Dictionary<int,WindowSnapshot> sources=new Dictionary<int,WindowSnapshot>(); }
     readonly Dictionary<int,SmithJob> smithJobs=new Dictionary<int,SmithJob>();
     readonly List<ForgeCraftMotion> smithMotions=new List<ForgeCraftMotion>();
     readonly List<GameObject> giantRuneViews=new List<GameObject>();
@@ -56,7 +56,7 @@ public partial class ForgeMvp
     Dictionary<int,long> SmithMaterials(){var values=new Dictionary<int,long>();foreach(var s in materialStocks??Array.Empty<ForgeMaterialStock>())if(s!=null&&s.unlocked)values[s.material]=s.count;return values;}
     ForgeRunContext SmithContext(int id)=>new ForgeRunContext{
         Day=()=>DayCycle.Day,Seconds=()=>Time.time,Seed=worldSeed,Speed=craftSpeed,
-        SmithCall=(feature,args)=>SmithCall(id,feature,args),StartSmith=StartSmithJob,
+        SmithCall=(feature,args)=>SmithCall(id,feature,args),StartSmith=(target,create)=>StartSmithJob(target,create,id),
         RefreshResources=session=>session.SetResources(gold,iron,SmithMaterials())
     };
     int SmithInt(object value){if(!(value is int))throw new ArgumentException("정수 인자가 필요합니다.");return (int)value;}
@@ -96,11 +96,14 @@ public partial class ForgeMvp
         }
         throw new ArgumentException("지원하지 않는 대장장이 명령입니다.");
     }
-    int StartSmithJob(int id,Func<ForgeRunContext,BlueprintRuntime.Session> create)
+    int StartSmithJob(int id,Func<ForgeRunContext,BlueprintRuntime.Session> create,int caller)
     {
         UpdateSmiths();
         CheckSmith(id);if(SmithBusy(id))return -1;
-        var job=new SmithJob();smithJobs.Add(id,job);
+        var job=new SmithJob();
+        if(smithJobs.TryGetValue(caller,out var parent)){job.ownerId=parent.ownerId;foreach(var pair in parent.sources)job.sources[pair.Key]=pair.Value;}
+        else{job.ownerId=executionOwner!=null?executionOwner.id:-1;foreach(var pair in executionSources)job.sources[pair.Key]=pair.Value;}
+        smithJobs.Add(id,job);
         try{job.session=create(SmithContext(id));}catch{smithJobs.Remove(id);throw;}
         smithMotions[id].BeginRun();job.coroutine=StartCoroutine(RunSmith(id,job));return id;
     }
@@ -110,15 +113,16 @@ public partial class ForgeMvp
         yield return null;
         try{
             while(smithJobs.TryGetValue(id,out var active)&&active==job&&!job.session.Cancelled){
+                job.line=job.session.NextLine;job.module=job.session.NextModule;
                 var advance=job.session.Advance();while(!advance.IsCompleted)yield return null;
                 if(job.session.Cancelled)yield break;
                 if(advance.IsFaulted){AppendDebug("대장장이 "+id+": "+advance.Exception.GetBaseException().Message);smithMotions[id].ReactToCodeError();yield break;}
                 var evaluation=job.session.Evaluation;
                 while(job.cursor<evaluation.steps.Count){
-                    var step=evaluation.steps[job.cursor++];
+                    var step=evaluation.steps[job.cursor++];job.line=step.line;job.module=step.module;
                     if(step.debugOutput){AppendDebug("대장장이 "+id+" · "+step.text);continue;}
                     if(step.process==-1){yield return new WaitForSeconds(step.duration);continue;}
-                    if(step.process==-2){if(step.setting==1)craftSpeed=step.settingValue;else autoSell=step.settingValue==1;continue;}
+                    if(step.process==-2){if(step.setting==1)craftSpeed=ForgeTechnology.SpeedMultiplier(step.settingValue);else autoSell=step.settingValue==1;continue;}
                     if(!SpendSmithStep(step,job.ledger)){AppendDebug("대장장이 "+id+": 공용 재료 부족으로 중단");smithMotions[id].ReactToCodeError();yield break;}
                     yield return smithMotions[id].Play(step);
                     if(job.session.Cancelled)yield break;
@@ -131,6 +135,27 @@ public partial class ForgeMvp
         }finally{job.session.Dispose();if(smithJobs.TryGetValue(id,out var active)&&active==job)smithJobs.Remove(id);SaveProgress();}
     }
     void StopSmithJobs(){foreach(var id in smithJobs.Keys)if(id<smithMotions.Count&&smithMotions[id])smithMotions[id].CancelCurrentAction();foreach(var job in new List<SmithJob>(smithJobs.Values)){job.session?.Dispose();if(job.coroutine!=null)StopCoroutine(job.coroutine);}smithJobs.Clear();}
+    public bool GameCodeHasJobs(int windowId){
+        if(executionSession!=null&&executionOwner!=null&&executionOwner.id==windowId)return true;
+        foreach(var job in smithJobs.Values)if(job.ownerId==windowId)return true;
+        return false;
+    }
+    void StopCodeExecution(int windowId){
+        if(executionSession!=null&&executionOwner!=null&&executionOwner.id==windowId)StopExecution(true);
+        var ids=new List<int>();foreach(var pair in smithJobs)if(pair.Value.ownerId==windowId)ids.Add(pair.Key);
+        foreach(int id in ids){var job=smithJobs[id];smithJobs.Remove(id);job.session.Dispose();if(job.coroutine!=null)StopCoroutine(job.coroutine);if(id<smithMotions.Count&&smithMotions[id])smithMotions[id].CancelCurrentAction();}
+        SaveProgress();
+    }
+    public void GameWorkerLines(int windowId,List<int> lines){
+        lines.Clear();var window=codeWindows.Find(w=>w.id==windowId);if(window==null)return;
+        foreach(var job in smithJobs.Values){
+            if(job.line<=0||!job.sources.TryGetValue(windowId,out var saved)||saved.Text!=window.text)continue;
+            string module=job.module??job.session.MainModuleName;
+            bool match=module=="__main__"?windowId==job.ownerId:false;
+            if(module!="__main__")try{match=PythonIdentifier.Parse(saved.Name)==module;}catch{}
+            if(match&&!lines.Contains(job.line))lines.Add(job.line);
+        }
+    }
     bool SpendSmithStep(Step step,ForgeProductionLedger ledger)
     {
         var needed=new Dictionary<int,int>();

@@ -49,7 +49,7 @@ public sealed class ForgeCodeInput:InputField,IScrollHandler
  public override void OnUpdateSelected(BaseEventData data){if(!isFocused)return;if(composing||compositionFrame==Time.frameCount){base.OnUpdateSelected(data);return;}while(Event.PopEvent(keyEvent)){
  if(keyEvent.rawType==EventType.KeyDown){if(FinishOnEscape(keyEvent))break;if(MoveLineBoundary(keyEvent))continue;var before=new Snapshot{text=text,caret=selectionFocusPosition,anchor=selectionAnchorPosition};bool undoKey=keyEvent.control&&keyEvent.keyCode==KeyCode.Z;
  if(undoKey){if(undo.Count>0){var s=undo[undo.Count-1];undo.RemoveAt(undo.Count-1);text=s.text;selectionFocusPosition=s.caret;selectionAnchorPosition=s.anchor;}}
- else if(keyEvent.keyCode==KeyCode.Tab&&!keyEvent.control)Apply(BlueprintIndentation.Tab(text,selectionFocusPosition,selectionAnchorPosition,keyEvent.shift));
+ else if(!keyEvent.control&&!keyEvent.alt&&!keyEvent.command&&BlueprintIndentation.TryTabEvent(text,selectionFocusPosition,selectionAnchorPosition,keyEvent.keyCode==KeyCode.Tab,keyEvent.character,keyEvent.shift,out var tabEdit)){if(!readOnly)Apply(tabEdit);}
  else if(keyEvent.keyCode==KeyCode.Backspace&&!keyEvent.control&&BlueprintIndentation.Backspace(text,selectionFocusPosition,selectionAnchorPosition,out var edit))Apply(edit);
  else {if(KeyPressed(keyEvent)==EditState.Finish){DeactivateInputField();break;}if(BlueprintIndentation.IndentNativeNewline(before.text,text,before.caret,before.anchor,out var newline))Apply(newline);}
  if(text!=before.text&&!undoKey){undo.Add(before);if(undo.Count>256)undo.RemoveAt(0);}UpdateLabel();}

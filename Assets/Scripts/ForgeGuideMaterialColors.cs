@@ -28,10 +28,10 @@ public sealed class ForgeGuideMaterialColors : BaseMeshEffect
  {
   if(!IsActive())return;
   var action=GetComponentInParent<ForgeUIAction>();
-  bool white=action&&action.action=="guide-section:재료";
+  if(action&&action.action!=null&&action.action.StartsWith("guide-section:"))return;
   bool black=name=="GuideHeading"||(action&&action.action!=null&&action.action.StartsWith("guide-material:"));
-  if(white||black){
-   Color32 color=white?Color.white:Color.black;
+  if(black){
+   Color32 color=Color.black;
    for(int i=0;i<mesh.currentVertCount;i++){
     var vertex=new UIVertex();mesh.PopulateUIVertex(ref vertex,i);
     color.a=vertex.color.a;vertex.color=color;mesh.SetUIVertex(vertex,i);

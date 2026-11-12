@@ -12,8 +12,9 @@ public partial class ForgeMvp
         smithTooltip=new GUIStyle(GUI.skin.box){font=codeStyle.font,fontSize=22,alignment=TextAnchor.MiddleLeft,wordWrap=true,padding=new RectOffset(12,12,8,8)};
         smithTooltip.normal.textColor=Color.white;smithTooltip.hover=smithTooltip.normal;
     }
+    float SmithWorkSpeed(int id)=>smithJobs.TryGetValue(id,out var job)?job.session.WorkSpeed:id==0&&executionSession!=null?executionSession.WorkSpeed:Math.Max(1,craftSpeed);
     string SmithInfo(int id)=>"대장장이 #"+id+(blacksmiths.Burning(id,SmithHours)?" · 불타는 대장장이":"")+
-        "\nx: "+ForgeBlacksmiths.X(id)+"   y: "+ForgeBlacksmiths.Y(id)+"\n호감도: "+blacksmiths.smiths[id].favor+"\n상태: "+(SmithBusy(id)?"작업 중":"대기 중")+
+        "\nx: "+ForgeBlacksmiths.X(id)+"   y: "+ForgeBlacksmiths.Y(id)+"\n호감도: "+blacksmiths.smiths[id].favor+"\n상태: "+(SmithBusy(id)?"작업 중":"대기 중")+"\n작업 속도: "+SmithWorkSpeed(id).ToString("0.##")+"배"+
         (blacksmiths.Burning(id,SmithHours)?"\n불타는 대장장이 · 대성공 확률 50%\n남은 시간: "+Math.Ceiling(Math.Max(0,blacksmiths.burningUntil-SmithHours)*60)+"분 (게임 시간)":"");
     public string SmithHoverInfo(Vector2 screenPoint)=>SmithHoverInfo(screenPoint,out _);
     public string SmithHoverInfo(Vector2 screenPoint,out bool isBurning)

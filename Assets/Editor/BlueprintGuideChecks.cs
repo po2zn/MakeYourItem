@@ -41,7 +41,7 @@ public static class BlueprintGuideChecks {
  string treeGuide=BlueprintResearchGuide.Overview(true);
  foreach(var offer in ForgeTechnology.Offers)Require(treeGuide.Contains(offer.Kind==ForgePurchaseKind.Material?ForgeMaterialGuide.Find(offer.Material).Heading:offer.Title),"missing current tree offer "+offer.Id);
  Require(entries.Single(e=>e.Feature==BlueprintFeature.AutoSell).ResearchFor(false).Contains("자동판매 노드를 별도로 구매"),"auto-sell purchase metadata");
- Require(entries.Single(e=>e.Feature==BlueprintFeature.SmithRun).ResearchFor(false).Contains(ForgeBlacksmiths.HireCosts[0]+" 다이아"),"parallel example hire prerequisite");
+ Require(!entries.Single(e=>e.Feature==BlueprintFeature.SmithRun).ShowResearch&&entries.Single(e=>e.Feature==BlueprintFeature.SmithRun).ResearchFor(false)==""&&entries.Single(e=>e.Feature==BlueprintFeature.SmithRun).NoteFor(false)=="","smith run guide shows usage without research or extra notes");
  var master=EvaluateGuide(entries.Single(e=>e.Id=="masterwork-example").Example);
  Require(master.error==null&&master.product.Data.materials[7]==1&&master.product.Data.materials[5]==1&&master.product.Data.materials[9]==1&&master.product.Data.materials[3]==2&&master.product.Data.materials[6]==4,"masterwork example stock requirements");
  log.AppendLine("PASS current tree offer coverage, research metadata, speed reward, smith hiring and masterwork materials");

@@ -30,7 +30,7 @@ public sealed class ForgeTreePanel : MonoBehaviour
     static readonly Color Owned=new Color(.12f,.34f,.24f),Locked=new Color(.12f,.15f,.19f),Available=new Color(.16f,.23f,.32f);
     public void Bind(ForgeMvp game)
     {
-        owner=game;if(bound)return;bound=true;
+        owner=game;if(bound)return;bound=true;ForgeSfxButton.Bind(this);
         foreach(var text in GetComponentsInChildren<Text>(true))ForgeGoldGlyph.Attach(text);
         heading.raycastTarget=true;
         var currency=heading.GetComponent<ForgeCurrencyHover>()??heading.gameObject.AddComponent<ForgeCurrencyHover>();

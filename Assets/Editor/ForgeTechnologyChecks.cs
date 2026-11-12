@@ -184,6 +184,13 @@ public static class ForgeTechnologyChecks
             Require(!tech.TryPurchase(offer,ref gold,ref iron,ref stocks,false,out var error)&&tech.MaxSpeedLevel==level-1,"unaffordable speed atomic");gold=balance;
             Require(tech.TryPurchase(offer,ref gold,ref iron,ref stocks,false,out var message)&&gold==balance-offer.Price,message);
             Require(tech.MaxSpeedLevel==level&&!tech.Owns(BlueprintFeature.AutoSell),"speed does not grant auto sell");
+            float multiplier=level==1?1.5f:level;
+            var timed=ForgeMvp.Evaluate("222("+level+")\np=1(1)",technology:tech);
+            Require(timed.error==null&&Math.Abs(timed.steps.Last().duration-.8f/multiplier)<.0001f,"stage duration matches actual multiplier");
+            Require(tech.RestoreSpeed(1)==1.5f&&tech.RestoreSpeed(multiplier)==multiplier&&tech.RestoreSpeed(5)==multiplier,"saved speed migration and cap");
+            using(var speedSession=BlueprintRuntime.StartSession("222(1)\np=1(1)",0,1,technology:tech)){
+                speedSession.Advance().GetAwaiter().GetResult();Require(speedSession.WorkSpeed==1.5f,"first stage hover reports 1.5x");
+            }
             Require(ForgeMvp.Evaluate("222("+level+")\nspeed(1)",technology:tech).error==null,"owned speed works");
             if(level<5){
                 var failed=ForgeMvp.Evaluate("n="+(level+1)+"\n222(n)\nprint(1)",technology:tech);

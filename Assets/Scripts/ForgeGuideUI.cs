@@ -127,7 +127,7 @@ public static class ForgeTextLayout
     public static void Label(Rect rect,string text,GUIStyle style=null)=>Label(rect,new GUIContent(text),style);
     public static void Label(Rect rect,GUIContent text,GUIStyle style=null)=>ForgeGoldGUI.Label(rect,text,Fit(rect,text,style??GUI.skin.label));
     public static bool Button(Rect rect,string text,GUIStyle style=null)=>Button(rect,new GUIContent(text),style);
-    public static bool Button(Rect rect,GUIContent text,GUIStyle style=null)=>ForgeGoldGUI.Button(rect,text,Fit(rect,text,style??GUI.skin.button));
+    public static bool Button(Rect rect,GUIContent text,GUIStyle style=null){bool clicked=ForgeGoldGUI.Button(rect,text,Fit(rect,text,style??GUI.skin.button));if(clicked)ForgeSoundEffects.Click();return clicked;}
     public static void LayoutLabel(string text,GUIStyle source=null,params GUILayoutOption[] options)
     {
         var style=new GUIStyle(source??GUI.skin.label){wordWrap=true,fixedHeight=0};

@@ -80,7 +80,7 @@ public partial class ForgeMvp : ISerializationCallbackReceiver
             gold=saved.gold;iron=saved.iron;worldSeed=saved.seed;diamonds=saved.diamonds;totalSales=saved.sales;tutorialStage=saved.tutorial;earnedGold=saved.earned;
             lesson=ForgeTutorialLesson.Restore(saved.introStage,saved.introCode);
             craftSpeed=Mathf.Clamp(saved.speed,1,5);autoSell=saved.autoSell;materialStocks=saved.stocks??Array.Empty<ForgeMaterialStock>();technology.Restore(saved.features,saved.technologyNodes,saved.stocks);campaignComplete=saved.campaignComplete;endingSeen=saved.endingSeen;
-            craftSpeed=Mathf.Clamp(craftSpeed,1,Math.Max(1,technology.MaxSpeedLevel));
+            craftSpeed=technology.RestoreSpeed(craftSpeed);
             bool legacySpeed=saved.technologyNodes==null?Array.Exists(saved.features??Array.Empty<BlueprintFeature>(),f=>f==BlueprintFeature.Speed||f==BlueprintFeature.AutoSell):Array.Exists(saved.technologyNodes,id=>id=="function-Speed");
             autoSell=technology.Owns(BlueprintFeature.AutoSell)&&(saved.autoSell||legacySpeed);
             DayCycle.Clock.Restore(saved.day,saved.hour);
@@ -200,7 +200,7 @@ public partial class ForgeMvp : ISerializationCallbackReceiver
         ForgeTextLayout.LayoutLabel("공방 기록 · Day "+DayCycle.Day+" · "+((int)DayCycle.CurrentHour).ToString("00")+":"+((int)(DayCycle.CurrentHour*60)%60).ToString("00"));
         ForgeTextLayout.LayoutLabel("골드 "+gold+"G · 다이아몬드 "+diamonds+"D · 판매 "+totalSales+"개 · 누적 판매액 "+earnedGold+"G");
         ForgeTextLayout.LayoutLabel("가속 "+craftSpeed+"배 · 자동판매 "+(autoSell?"켜짐":"꺼짐"));
-        ForgeTextLayout.LayoutLabel(lesson.Complete?"첫 검 만들기 튜토리얼 완료":"첫 검 만들기 · "+(lesson.Stage+1)+" / 8 단계");
+        ForgeTextLayout.LayoutLabel(lesson.Heading);
         bool tutorialEnabled=GUI.enabled;GUI.enabled=tutorialEnabled&&!busy&&executionSession==null;
         if(GUILayout.Button(lesson.Complete?"검 제작 튜토리얼 다시 보기":"검 제작 튜토리얼 시작 / 이어하기"))OpenTutorial();
         GUI.enabled=tutorialEnabled;
@@ -287,7 +287,7 @@ public partial class ForgeMvp
     void EnterSavedSlot(int slot)
     {
         activeSaveSlot=slot;
-        if(LoadProgress()){showTitle=false;DayCycle.Paused=false;titleMessage="";}
+        if(LoadProgress()){showTitle=false;DayCycle.Paused=false;titleMessage="";if(lesson.Crafted&&!lesson.Complete)OpenTutorial();}
         else {titleMessage=saveMessage;activeSaveSlot=0;}
         if(Event.current!=null)ClearUIFocus();
     }

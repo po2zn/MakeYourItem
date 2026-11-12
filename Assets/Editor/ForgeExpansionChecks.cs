@@ -9,6 +9,26 @@ public static class ForgeExpansionChecks
  static void Require(bool ok,string message){if(!ok)throw new Exception(message);}
  static ForgeMvp.Evaluation Good(string code,Dictionary<int,long> stocks=null,ForgeRunContext context=null){var e=ForgeMvp.Evaluate(code,0,10,materialStocks:stocks,context:context);Require(e.error==null,e.error);return e;}
  public static string Run(){int count=0;var log=new StringBuilder();Action<string,Action> check=(name,test)=>{test();count++;log.AppendLine("PASS "+name);};
+ check("seal guide examples quote their stated rewards and material costs",()=>{
+  foreach(var feature in new[]{BlueprintFeature.Wrap,BlueprintFeature.Unwrap,BlueprintFeature.SealCount})foreach(bool english in new[]{false,true}){
+   var guide=BlueprintGuide.Entries.Single(x=>x.Feature==feature);var e=Good(guide.ExampleFor(english));
+   int layers=feature==BlueprintFeature.SealCount?2:3;int materialCost=0;
+   foreach(var offer in ForgeTechnology.Offers.Where(x=>x.Kind==ForgePurchaseKind.Material))materialCost+=offer.Price*e.product.Data.materials[offer.Material];
+   Require(e.product.Data.seals.Count==0&&e.product.Data.sealBonus==layers&&ForgePricing.Quote(e.product).SalePrice==28+layers*140,"guide reward");
+   Require(materialCost==(layers==2?7:17),"guide material cost");
+  }
+  Require(ForgePricing.Quote(Good(Cold+"201(p,2)\n!p").product).SalePrice==0,"unreleased seals are unfinished and worth zero");
+ });
+ check("reported work speed follows each execution context and actual durations",()=>{
+  var first=new ForgeRunContext{Speed=2};var second=new ForgeRunContext{Speed=5};
+  using(var a=BlueprintRuntime.StartSession("222(3)\np=1(1)",0,1,context:first))
+  using(var b=BlueprintRuntime.StartSession("p=1(1)",0,1,context:second)){
+   Require(a.WorkSpeed==2&&b.WorkSpeed==5,"independent initial speeds");
+   a.Advance().GetAwaiter().GetResult();Require(a.WorkSpeed==3&&b.WorkSpeed==5,"per-smith setting");
+   a.Advance().GetAwaiter().GetResult();b.Advance().GetAwaiter().GetResult();
+   Require(Math.Abs(a.Evaluation.steps.Last().duration-.8f/a.WorkSpeed)<.0001&&Math.Abs(b.Evaluation.steps.Last().duration-.8f/b.WorkSpeed)<.0001,"displayed speed agrees with action durations");
+  }
+ });
  check("hot and cold water, stock depletion and price",()=>{
   var inventory=new Dictionary<int,long>{{3,1},{2,1}};
   var e=Good(Blade+"4(p,3)\n5(p,2)\n!p",inventory);

@@ -10,7 +10,7 @@ public sealed class ForgeWorkshopVisuals : MonoBehaviour
     readonly Dictionary<int,PieceView> pieces=new Dictionary<int,PieceView>();
     readonly Dictionary<Transform,Quaternion> rest=new Dictionary<Transform,Quaternion>();
     readonly List<Material> owned=new List<Material>();
-    ForgeWorkshopAssets assets;
+    ForgeWorkshopAssets assets;ForgeActionAudio actionAudio;
     Transform smith,leftArm,leftFore,leftHand,leftSocket,rightArm,rightFore,rightHand,rightSocket,leftLeg,rightLeg;
     Transform heatTarget,strikeTarget,waterTarget,hammer,polishingStone;
     Transform leftKnee,rightKnee,leftFoot,rightFoot,headBone,spine,tongs;
@@ -38,7 +38,7 @@ public sealed class ForgeWorkshopVisuals : MonoBehaviour
     GameObject Spawn(GameObject prefab,string name,Vector3 position){var g=Instantiate(prefab,transform);g.name=name;g.transform.localPosition=position;return g;}
     public void Initialize(ForgeWorkshopAssets set)
     {
-        assets=set;
+        assets=set;actionAudio=gameObject.AddComponent<ForgeActionAudio>();
         if(set.floor)Spawn(set.floor,"Workshop floor",Vector3.zero);
         smith=Spawn(set.blacksmith,"Blacksmith",new Vector3(1.2f,0,0)).transform;
         smith.localRotation=Quaternion.Euler(0,155,0);
@@ -123,7 +123,7 @@ public sealed class ForgeWorkshopVisuals : MonoBehaviour
         heldPiece=null;
     }
     public void ReactToCodeError(){if(idle)idle.ReactToCodeError();}
-    public void Cancel(){HideFurnaceTools();if(luckySparkles)luckySparkles.Hide();if(idle)idle.CancelErrorReaction();epoch++;acting=false;LastProcess=0;ReleaseHeldPiece();ResetPose();if(coolingVapor)coolingVapor.Clear();if(hammer)hammer.gameObject.SetActive(true);if(tongs)tongs.gameObject.SetActive(false);if(polishingStone)polishingStone.gameObject.SetActive(false);}
+    public void Cancel(){if(actionAudio&&acting)actionAudio.Stop();HideFurnaceTools();if(luckySparkles)luckySparkles.Hide();if(idle)idle.CancelErrorReaction();epoch++;acting=false;LastProcess=0;ReleaseHeldPiece();ResetPose();if(coolingVapor)coolingVapor.Clear();if(hammer)hammer.gameObject.SetActive(true);if(tongs)tongs.gameObject.SetActive(false);if(polishingStone)polishingStone.gameObject.SetActive(false);}
     void OnDisable(){Cancel();}
     void OnDestroy(){foreach(var m in owned)if(m)Destroy(m);}
     static Color Metal(int material)=>material==5?new Color(.72f,.81f,.9f):material==7?new Color(.3f,.35f,.65f):material==9?Color.white:new Color(.48f,.52f,.56f);
@@ -193,6 +193,7 @@ public sealed class ForgeWorkshopVisuals : MonoBehaviour
                 float t=Mathf.Clamp01(elapsed/duration);
                 float move=Mathf.SmoothStep(0,1,Mathf.InverseLerp(0,.34f,t));
                 ResetPose();Vector3 old=smith.position;smith.position=ForgePoseSolver.Along(route,move);traveled+=Vector3.Distance(old,smith.position);
+                actionAudio.Frame(t,(smith.position-old).sqrMagnitude>.000001f);
                 Vector3 direction=ForgePoseSolver.Along(route,Mathf.Min(1,move+.02f))-smith.position;
                 Quaternion walking=direction.sqrMagnitude>.00001f?Quaternion.LookRotation(direction):Quaternion.LookRotation(facing);
                 smith.rotation=Quaternion.Slerp(initialFacing,walking,Mathf.Clamp01(t/.12f));
@@ -226,9 +227,9 @@ public sealed class ForgeWorkshopVisuals : MonoBehaviour
                 furnaceGlow=Mathf.Lerp(initialGlow,step.heat/1200f,Mathf.SmoothStep(0,1,Mathf.InverseLerp(.70f,1,t)));
                 elapsed+=Time.deltaTime;yield return null;
             }
-            if(run==epoch)furnaceGlow=step.heat/1200f;
+            if(run==epoch){actionAudio.Finish();furnaceGlow=step.heat/1200f;}
         }finally{
-            if(run==epoch){HideFurnaceTools();acting=false;ResetPose();if(hammer)hammer.gameObject.SetActive(true);}
+            if(run==epoch){actionAudio.AbortIfActive();HideFurnaceTools();acting=false;ResetPose();if(hammer)hammer.gameObject.SetActive(true);}
         }
     }
     void RemoveSubmittedPiece(int id)
@@ -245,7 +246,7 @@ public sealed class ForgeWorkshopVisuals : MonoBehaviour
     {
         if(step.debugOutput||step.process<0)yield break;
         if(step.finished){RemoveSubmittedPiece(step.pieceId);yield break;}
-        int run=epoch;acting=true;
+        int run=epoch;acting=true;actionAudio.Begin(step);
         if(step.process==2)furnaceGlow=step.heat/1200f;
         if(heldPiece!=null&&(!pieces.TryGetValue(step.pieceId,out var nextPiece)||nextPiece!=heldPiece))ReleaseHeldPiece();
         heldPiece=null;LastProcess=step.process;
@@ -257,7 +258,7 @@ public sealed class ForgeWorkshopVisuals : MonoBehaviour
             p.material=new Material(p.blade.sharedMaterial);p.blade.sharedMaterial=p.material;owned.Add(p.material);pieces.Add(step.pieceId,p);
             var handle=Find(p.root.transform,"Grip").GetComponent<Renderer>();p.handleMaterial=new Material(handle.sharedMaterial);handle.sharedMaterial=p.handleMaterial;owned.Add(p.handleMaterial);
         }
-        if(step.data!=null&&(step.data.destroyed||step.data.recovered)){p.root.SetActive(false);acting=false;yield break;}
+        if(step.data!=null&&(step.data.destroyed||step.data.recovered)){p.root.SetActive(false);actionAudio.Stop();acting=false;yield break;}
         p.root.SetActive(true);
         // A billet is the saved blade mesh compressed along its length; no runtime mesh generation.
         bool shaped=step.shaped;
@@ -299,6 +300,7 @@ public sealed class ForgeWorkshopVisuals : MonoBehaviour
                 float t=Mathf.Clamp01(elapsed/duration),move=Mathf.SmoothStep(0,1,Mathf.Clamp01(t/.4f));
                 ResetPose();var oldPosition=smith.position;smith.position=ForgePoseSolver.Along(route,move);
                 traveled+=Vector3.Distance(oldPosition,smith.position);
+                actionAudio.Frame(t,(smith.position-oldPosition).sqrMagnitude>.000001f);
                 Vector3 travelDirection=ForgePoseSolver.Along(route,Mathf.Min(1,move+.02f))-smith.position;
                 Quaternion travelRotation=travelDirection.sqrMagnitude>.00001f?Quaternion.LookRotation(travelDirection):Quaternion.LookRotation(facing);
                 smith.rotation=Quaternion.Slerp(startFacing,travelRotation,Mathf.Clamp01(t/.12f));
@@ -370,10 +372,11 @@ public sealed class ForgeWorkshopVisuals : MonoBehaviour
                 elapsed+=Time.deltaTime;yield return null;
             }
             if(run==epoch){
+                actionAudio.Finish();
                 if(cooling){heldPiece=p;p.root.transform.position=leftSocket.position;}
                 else{p.root.transform.position=grip;p.root.transform.rotation=pose;}
                 Appearance(p,step,step.heat);Details(p,step);
             }
-        }finally{if(run==epoch){if(luckySparkles)luckySparkles.Hide();acting=false;if(heldPiece==null)ResetPose();if(hammer)hammer.gameObject.SetActive(heldPiece==null);if(tongs)tongs.gameObject.SetActive(false);if(polishingStone)polishingStone.gameObject.SetActive(false);}}
+        }finally{if(run==epoch){actionAudio.AbortIfActive();if(luckySparkles)luckySparkles.Hide();acting=false;if(heldPiece==null)ResetPose();if(hammer)hammer.gameObject.SetActive(heldPiece==null);if(tongs)tongs.gameObject.SetActive(false);if(polishingStone)polishingStone.gameObject.SetActive(false);}}
     }
 }

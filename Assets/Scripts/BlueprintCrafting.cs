@@ -54,7 +54,7 @@ public sealed partial class BlueprintRuntime
             int temperature=Int(args[0]);if(temperature<100||temperature>1200)Fail("화로 온도는 100~1200°C의 정수입니다.");
             Consume(4);furnaceTemperature=temperature;
             float fuelDuration=2.4f/Math.Max(1,context.Speed);productionSeconds+=fuelDuration;
-            result.steps.Add(new ForgeMvp.Step{line=currentLine,module=currentModule.IsMain?null:currentModule.Name,day=context.Day(),minute=(int)(clockHour()*60),process=8,heat=temperature,text="화로 설정 · "+temperature+"°C · 석탄 1개",consumed=new Dictionary<int,int>(pendingMaterials),duration=fuelDuration,productionSeconds=productionSeconds});
+            result.steps.Add(new ForgeMvp.Step{line=currentLine,module=currentModule.IsMain?null:currentModule.Name,day=context.Day(),minute=(int)(clockHour()*60),process=8,heat=temperature,text="화로 설정 · "+temperature+"°C · 석탄 1개",consumed=new Dictionary<int,int>(pendingMaterials),duration=fuelDuration,workSpeed=context.Speed,productionSeconds=productionSeconds});
             pendingMaterials.Clear();return null;
         case BlueprintFeature.Wait:
             int wait=Int(args[0]);if(wait<0||wait>30)Fail("대기는 0~30초입니다.");float duration=wait/Math.Max(1,context.Speed);productionSeconds+=duration;
@@ -63,8 +63,8 @@ public sealed partial class BlueprintRuntime
             int setting=Int(args[0]);if(feature==BlueprintFeature.Speed?(setting<1||setting>5):(setting<0||setting>1))Fail("가속은 1~5, 자동판매는 0 또는 1입니다.");
             if(feature==BlueprintFeature.Speed&&moduleTechnology!=null&&setting>moduleTechnology.MaxSpeedLevel)
                 Fail("테크 트리에서 스피드 "+setting+"단계를 먼저 구매하세요. 현재 해금: "+moduleTechnology.MaxSpeedLevel+"단계");
-            if(feature==BlueprintFeature.Speed)context.Speed=setting;
-            result.steps.Add(new ForgeMvp.Step{line=currentLine,module=currentModule.IsMain?null:currentModule.Name,process=-2,setting=feature==BlueprintFeature.Speed?1:2,settingValue=setting,duration=0,text=feature==BlueprintFeature.Speed?"가속 "+setting+"배":"자동판매 "+(setting==1?"켜짐":"꺼짐")});return null;
+            if(feature==BlueprintFeature.Speed)context.Speed=ForgeTechnology.SpeedMultiplier(setting);
+            result.steps.Add(new ForgeMvp.Step{line=currentLine,module=currentModule.IsMain?null:currentModule.Name,process=-2,setting=feature==BlueprintFeature.Speed?1:2,settingValue=setting,duration=0,text=feature==BlueprintFeature.Speed?"가속 "+ForgeTechnology.SpeedMultiplier(setting)+"배":"자동판매 "+(setting==1?"켜짐":"꺼짐")});return null;
         }
         int absorbed=0;
         var p=Piece(args[feature==BlueprintFeature.Lucky?1:0]);

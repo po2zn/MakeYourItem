@@ -105,7 +105,7 @@ public partial class ForgeMvp
         GUILayout.Space(28);
         ForgeTextLayout.LayoutLabel("첫 목표는 검 한 자루",tutorialTitleStyle);
         GUILayout.Space(10);
-        ForgeTextLayout.LayoutLabel("튜토리얼에서는 재료와 변수부터 시작해 검날과 손잡이를 직접 만듭니다. 연습용 재료를 사용하므로 실제 골드나 재고가 줄지 않습니다. 틀려도 다시 시도하거나 이전 단계로 돌아갈 수 있습니다.",tutorialBodyStyle);
+        ForgeTextLayout.LayoutLabel("튜토리얼에서는 재료와 변수부터 시작해 검날과 손잡이를 직접 만듭니다. 틀려도 다시 시도하거나 이전 단계로 돌아갈 수 있습니다.",tutorialBodyStyle);
         GUILayout.Space(12);
         GUILayout.EndScrollView();GUILayout.EndArea();
         bool enabled=GUI.enabled;GUI.enabled=enabled&&!tutorialAnimating;
@@ -144,6 +144,7 @@ public partial class ForgeMvp
     }
     void SubmitTutorial()
     {
+        if(lesson.Crafted){if(lesson.AdvanceSale(out tutorialFeedback)){tutorialScroll=Vector2.zero;ClearUIFocus();SaveProgress();}return;}
         int previous=lesson.Evaluation==null?0:lesson.Evaluation.steps.Count;
         tutorialSuccessAt=-100;
         if(!lesson.SubmitDocument(tutorialInput,out tutorialFeedback))return;
@@ -212,27 +213,28 @@ public partial class ForgeMvp
         GUILayout.BeginArea(new Rect(panel.x+inset,panel.y+24,contentWidth,Mathf.Max(1,panel.height-48-footerHeight)));
         // Keep wheel scrolling without the oversized, always-visible drag bar.
         tutorialScroll=GUILayout.BeginScrollView(tutorialScroll,false,false,GUIStyle.none,GUIStyle.none);
-        ForgeTextLayout.LayoutLabel("첫 검 만들기 · "+Mathf.Min(lesson.Stage+1,8)+" / 8",tutorialTitleStyle);
+        ForgeTextLayout.LayoutLabel(lesson.Heading,tutorialTitleStyle);
         GUILayout.Space(8);
         ForgeTextLayout.LayoutLabel("연습 공방 · 실제 재고 소비 없음",tutorialBodyStyle);
         GUILayout.Space(16);
         Rect bar=GUILayoutUtility.GetRect(1,6,GUILayout.ExpandWidth(true));
-        GUI.color=TutorialTint(new Color(.25f,.8f,.65f));GUI.DrawTexture(new Rect(bar.x,bar.y,bar.width*lesson.Stage/8f,6),Texture2D.whiteTexture);GUI.color=old;
+        GUI.color=TutorialTint(new Color(.25f,.8f,.65f));GUI.DrawTexture(new Rect(bar.x,bar.y,bar.width*Mathf.Min(lesson.Stage,8)/8f,6),Texture2D.whiteTexture);GUI.color=old;
         GUILayout.Space(28);
         bool enabled=GUI.enabled;GUI.enabled=enabled&&!tutorialAnimating;
-        if(lesson.Complete){
-            ForgeTextLayout.LayoutLabel("첫 번째 검을 완성했습니다!",tutorialTitleStyle);
+        if(lesson.Crafted){
+            ForgeTextLayout.LayoutLabel(lesson.Complete?"판매까지 완료했습니다!":"완성한 검을 판매해 봅시다",tutorialTitleStyle);
             GUILayout.Space(12);
-            ForgeTextLayout.LayoutLabel("직접 작성한 도면입니다. 철 2개로 검날과 손잡이를 만들었습니다. 공방 기록에서 언제든 다시 연습할 수 있습니다.",tutorialBodyStyle);
+            ForgeTextLayout.LayoutLabel(lesson.SaleInstructions,tutorialBodyStyle);
+            if(!lesson.Complete&&GUILayout.Button(lesson.SaleAction,tutorialPrimaryStyle,GUILayout.MinHeight(60)))SubmitTutorial();
             GUILayout.Space(20);
             GUILayout.Space(24);
             if(GUILayout.Button("도면 복사",tutorialPrimaryStyle,GUILayout.MinHeight(60)))GUIUtility.systemCopyBuffer=lesson.Code;
             GUILayout.Space(12);
             if(GUILayout.Button("처음부터 다시 연습",tutorialButtonStyle,GUILayout.MinHeight(54))){lesson=new ForgeTutorialLesson();tutorialInput="";tutorialSuccessAt=-100;showTutorialWelcome=true;tutorialWelcomeScroll=Vector2.zero;tutorialFeedback="재료부터 다시 골라 보세요.";craftMotion.BeginRun();SaveProgress();}
         }else{
-            ForgeTextLayout.LayoutLabel(ForgeTutorialLesson.Titles[lesson.Stage],tutorialTitleStyle);
+            ForgeTextLayout.LayoutLabel(ForgeTutorialLesson.Titles[lesson.Stage],lesson.Stage==0?new GUIStyle(tutorialTitleStyle){fontSize=28,fontStyle=FontStyle.Bold}:tutorialTitleStyle);
             GUILayout.Space(12);
-            ForgeTextLayout.LayoutLabel(ForgeTutorialLesson.Instructions[lesson.Stage],tutorialBodyStyle);
+            ForgeTextLayout.LayoutLabel(lesson.InstructionBody,new GUIStyle(tutorialBodyStyle){richText=true});
             GUILayout.Space(24);
             if(lesson.Stage==0){
                 ForgeTextLayout.LayoutLabel("코드 미리보기 · Material = 1\n철의 번호를 Material이라는 이름에 담습니다.",tutorialBodyStyle);
@@ -267,9 +269,9 @@ public partial class ForgeMvp
         GUI.enabled=enabled&&!tutorialAnimating&&lesson.Stage>0;
         if(ForgeTextLayout.Button(new Rect(footer.x,footer.y+24+noteHeight,footer.width,54),"← 이전 단계 다시 배우기",tutorialButtonStyle))PreviousTutorial();
         GUI.enabled=enabled&&!tutorialAnimating;
-        if(ForgeTextLayout.Button(new Rect(footer.x,footer.y+90+noteHeight,footer.width,54),lesson.Complete?"대장간으로 돌아가기":"여기까지 하고 나중에 계속",tutorialButtonStyle))CloseTutorial();
+        if(ForgeTextLayout.Button(new Rect(footer.x,footer.y+90+noteHeight,footer.width,54),lesson.Complete?"본게임 입장":"여기까지 하고 나중에 계속",tutorialButtonStyle))CloseTutorial();
         GUI.enabled=enabled;
-        DrawTutorialEditor(panelTop);
+        if(!lesson.Crafted)DrawTutorialEditor(panelTop);
     }
     void DrawTutorialEditor(float top)
     {

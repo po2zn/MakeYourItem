@@ -33,7 +33,7 @@ public sealed class ForgeBookWindow : IForgeWindow
     public bool Contains(Vector2 mouse)
     {
         return new Rect(Rect.x-4,Rect.y,Rect.width+8,Rect.height+4).Contains(mouse)
-            || !collapsed && reader.ShowBookmarks && BookmarkRail.Contains(mouse);
+            || !collapsed && reader.ShowBookmarks && reader.BookmarkContains(BookmarkRail,mouse);
     }
     Rect BookmarkRail => ForgeGuideReader.BookmarkRail(new Rect(Rect.x+10,Rect.y+ForgeGuideUI.HeaderHeight+10,Rect.width-20,Mathf.Max(1,Rect.height-ForgeGuideUI.HeaderHeight-20)));
     public void CancelDrag()
@@ -42,7 +42,7 @@ public sealed class ForgeBookWindow : IForgeWindow
     }
     int ResizeEdge(Vector2 mouse)
     {
-        if(collapsed||reader.ShowBookmarks&&BookmarkRail.Contains(mouse))return -1;
+        if(collapsed||reader.ShowBookmarks&&reader.BookmarkContains(BookmarkRail,mouse))return -1;
         return ForgeWindowGeometry.HitResize(this,Rect,mouse);
     }
     public int CursorDirection(Vector2 mouse)
@@ -53,7 +53,7 @@ public sealed class ForgeBookWindow : IForgeWindow
     {
         if(!open){CancelDrag();return;}
         var ev=Event.current;
-        interaction.Handle(this,"GuideBookWindowDrag".GetHashCode(),new Rect(Rect.x,Rect.y,Rect.width-ForgeGuideUI.HeaderControlsWidth,ForgeGuideUI.HeaderHeight),Dragging||!reader.ShowBookmarks||!BookmarkRail.Contains(ev.mousePosition));
+        interaction.Handle(this,"GuideBookWindowDrag".GetHashCode(),new Rect(Rect.x,Rect.y,Rect.width-ForgeGuideUI.HeaderControlsWidth,ForgeGuideUI.HeaderHeight),Dragging||!reader.ShowBookmarks||!reader.BookmarkContains(BookmarkRail,ev.mousePosition));
         bool wasCollapsed=collapsed;
         ForgeGuideUI.DrawBook(Rect,ref open,ref collapsed,font,fontSize,reader,englishGuideUnlocked);
         if(wasCollapsed!=collapsed){

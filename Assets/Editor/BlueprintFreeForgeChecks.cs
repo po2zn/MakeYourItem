@@ -11,6 +11,42 @@ public static class BlueprintFreeForgeChecks
     {
         int count=0;var log=new StringBuilder();
         Action<string,Action> check=(name,test)=>{test();count++;log.AppendLine("PASS "+name);};
+        check("user function submits and returns control to caller",()=>{
+            foreach(var declaration in new[]{"333","def"}){
+                var r=Good(declaration+" forge():\n    res=1(1)\n    2(res)\n    3(res)\n    4(res,0)\n    !res\na=forge()\nforge()\nprint(9)");
+                Require(r.steps.Count(x=>x.finished)==2&&r.ironConsumed==2&&r.values["a"]==null&&r.steps.Last().debugOutput,"caller continues and submits twice");
+            }
+        });
+        check("function loop submissions match single stepping and reject reused pieces",()=>{
+            const string code="333 forge():\n    123(i in [1,2]):\n        p=1(1)\n        !p\n    print(7)\nforge()\nprint(8)";
+            var whole=Good(code);
+            using(var session=BlueprintRuntime.StartSession(code,100,10,deferErrors:true)){
+                for(int i=0;i<60&&!session.Completed;i++)session.Advance().GetAwaiter().GetResult();
+                Require(session.Completed&&session.Evaluation.error==null&&session.Evaluation.steps.Count==whole.steps.Count&&whole.steps.Count(x=>x.finished)==2,"step and continuous parity");
+            }
+            var bad=ForgeMvp.Evaluate("333 submit(p):\n    !p\np=1(1)\nsubmit(p)\n!p",100,10);
+            Require(bad.error!=null&&!bad.compileError&&bad.steps.Count(x=>x.finished)==1,"duplicate identity rejected");
+        });
+        check("imported functions submit but module initialization remains guarded",()=>{
+            var modules=new System.Collections.Generic.Dictionary<string,string>{{"smith","333 forge():\n    p=1(1)\n    !p"},{"bad","p=1(1)\n!p"}};
+            var r=ForgeMvp.Evaluate("import smith\nsmith.forge()\nprint(3)",100,10,modules:modules);
+            Require(r.error==null&&r.steps.Count(x=>x.finished)==1&&r.steps.Single(x=>x.finished).module=="smith"&&r.steps.Last().debugOutput,"imported submission receipt");
+            var bad=ForgeMvp.Evaluate("333 f():\n    import bad\nf()",100,10,modules:modules);
+            Require(bad.error!=null&&bad.errorModule=="bad"&&!bad.steps.Any(x=>x.finished),"nested import cannot bypass top-level guard");
+        });
+        check("worker explicit submissions do not duplicate automatic return",()=>{
+            foreach(string body in new[]{"    p=1(1)\n    !p","    123(i in [1,2]):\n        p=1(1)\n        !p\n    << p","    123(i in [1]):\n        p=1(1)\n        !p\n    q=1(1)\n    << q"}){
+                BlueprintRuntime.Session child=null;
+                var context=new ForgeRunContext{StartSmith=(id,create)=>{child=create(new ForgeRunContext());return id;}};
+                var r=ForgeMvp.Evaluate("333 forge():\n"+body+"\n90904(1,forge)",100,10,context:context);
+                Require(r.error==null&&child!=null,"dispatch");
+                using(child){for(int i=0;i<60&&!child.Completed;i++)child.Advance().GetAwaiter().GetResult();
+                    int expected=body.Contains("123")?2:1;
+                    Require(child.Completed&&child.Evaluation.error==null&&child.Evaluation.steps.Count(x=>x.finished)==expected,"no duplicate auto submission");
+                    Require(child.Evaluation.product.IronConsumed==1,"per-product ledger after explicit and automatic submission");
+                }
+            }
+        });
         check("raw iron submission consumes one iron and pays zero",()=>{
             var r=Good("res = 1\n!res");Require(r.cost==0&&r.ironConsumed==1&&r.product.Material==1&&ForgePricing.Quote(r.product).SalePrice==0,"raw receipt");
             var shop=new ForgeShop();int gold=100,id=shop.Add(r.product);Require(shop.TrySell(id,ref gold,out var sold)&&gold==100&&!shop.TrySell(id,ref gold,out sold),"zero sale once");

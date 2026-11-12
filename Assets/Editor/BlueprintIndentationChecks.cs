@@ -6,6 +6,56 @@ public static class BlueprintIndentationChecks
     public static string Run()
     {
         int count=0;var log=new StringBuilder();Action<string,Action> check=(name,test)=>{test();count++;log.AppendLine("PASS "+name);};
+        check("split Shift Tab key and character preserve selected code",()=>{
+            foreach(string source in new[]{"    first()\n        second()","\tfirst()\r\n\t\tsecond()","first()\nsecond()"})foreach(bool reverse in new[]{false,true}){
+                string text=source;int cursor=reverse?text.Length:0,anchor=reverse?0:text.Length;
+                for(int repeat=0;repeat<3;repeat++){
+                    Require(BlueprintIndentation.TryTabEvent(text,cursor,anchor,true,'\0',true,out var key),"key consumed");
+                    Require(BlueprintIndentation.TryTabEvent(key.Text,key.Cursor,key.Selection,false,'\t',false,out var character),"separate character consumed even without shift");
+                    Require(character.Text==key.Text&&character.Cursor==key.Cursor&&character.Selection==key.Selection,"second event is a no-op");
+                    Require(character.Text.Contains("first()")&&character.Text.Contains("second()"),"selected letters survive");
+                    text=character.Text;cursor=character.Cursor;anchor=character.Selection;
+                }
+                Require(text==source.Replace("    ","").Replace("\t",""),"all text retained at zero indentation");
+            }
+        });
+        check("Tab event variants indent once and leave normal typing native",()=>{
+            const string source="a()\nb()";
+            Require(BlueprintIndentation.TryTabEvent(source,0,source.Length,true,'\t',false,out var key),"combined key and character");
+            Require(key.Text=="    a()\n    b()","single indent");
+            Require(BlueprintIndentation.TryTabEvent(key.Text,key.Cursor,key.Selection,false,'\t',false,out var after)&&after.Text==key.Text,"no double indent or replacement");
+            Require(!BlueprintIndentation.TryTabEvent(source,0,source.Length,false,'x',false,out _),"ordinary typing still reaches native editor");
+        });
+        check("literal tabs and four spaces execute identically including stepping",()=>{
+            foreach(var header in new[]{"333 make():","def make():"}){
+                string tabbed=header+"\n\tres=1(1)\n\t2(res)\n\t3(res)\n\t4(res,0)\n\t!res\nmake()";
+                var a=ForgeMvp.Evaluate(tabbed);var b=ForgeMvp.Evaluate(tabbed.Replace("\t","    "));
+                Require(a.error==null&&b.error==null&&a.steps.Count==b.steps.Count&&ForgePricing.Quote(a.product).SalePrice==28,"tabbed function");
+                using(var session=BlueprintRuntime.StartSession(tabbed,100,10,deferErrors:true)){
+                    for(int i=0;i<40&&!session.Completed;i++)session.Advance().GetAwaiter().GetResult();
+                    Require(session.Completed&&session.Evaluation.error==null&&session.Evaluation.steps.Count==a.steps.Count,"tabbed stepping");
+                }
+            }
+            var mixed=ForgeMvp.Evaluate("1?(True):\n\tprint(1)\n    print(2)\n\t1?(True):\n    \tprint(3)");
+            Require(mixed.error==null&&mixed.steps.Count==3,"mixed equivalent levels");
+        });
+        check("selected tab and space lines outdent together in either direction",()=>{
+            string input="\tfirst\r\n    second\r\n\t\tthird\r\nlast";
+            int end=input.IndexOf("last",StringComparison.Ordinal);
+            foreach(bool reverse in new[]{false,true}){
+                var e=BlueprintIndentation.Tab(input,reverse?end:0,reverse?0:end,true);
+                Require(e.Text=="first\r\nsecond\r\n    third\r\nlast","all selected lines move left and next line stays");
+                Require((e.Cursor>e.Selection)==reverse,"selection direction preserved");
+                e=BlueprintIndentation.Tab(e.Text,e.Cursor,e.Selection,true);
+                Require(e.Text=="first\r\nsecond\r\nthird\r\nlast","repeated shift tab retains block selection");
+            }
+            var partial=BlueprintIndentation.Tab(" \t  x",5,5,true);Require(partial.Text=="    x","mixed indentation previous level");
+        });
+        check("Enter and Backspace honor tab indentation width",()=>{
+            string line="\t1?(True):";Require(BlueprintIndentation.Enter(line,line.Length,line.Length).Text==line+"\n        ","nested enter");
+            Require(BlueprintIndentation.Backspace("\t\tx",2,2,out var e)&&e.Text=="    x","tab backspace");
+            Require(BlueprintIndentation.Tab("\tx",1,1,false).Text=="\t    x","tab visual column");
+        });
         check("all English and numeric block headers indent four spaces",()=>{
             foreach(string h in new[]{"def():","def warm(p):","333 warm(p):","333 answer():","if True:","1?(True):","elif True:","01?(True):","else:","0?:","while True:","888(True):","for x in [1]:","123(x in [1]):"}){
                 var e=BlueprintIndentation.Enter(h,h.Length,h.Length);Require(e.Text==h+"\n    "&&e.Cursor==e.Text.Length&&e.Selection==e.Cursor,h);
