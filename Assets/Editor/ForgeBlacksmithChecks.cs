@@ -47,7 +47,7 @@ public static class ForgeBlacksmithChecks
     {
         var children=new List<BlueprintRuntime.Session>();
         var context=new ForgeRunContext{StartSmith=(id,create)=>{children.Add(create(new ForgeRunContext()));return id;}};
-        string source="333 sword(n):\n    p=1(n)\n    2(p,7)\n    3(p)\n    4(p,0)\n    5(p,2)\n    << p\na=90904(1,sword,1)\nb=90904(2,sword,1)";
+        string source="333 sword(n):\n    p=1(n)\n    2(p)\n    3(p)\n    4(p,0)\n    5(p,2)\n    << p\na=90904(1,sword,1)\nb=90904(2,sword,1)";
         using(var main=BlueprintRuntime.StartSession(source,1000,10,materialStocks:new Dictionary<int,long>{{2,10}},context:context)){
             Require(!main.Evaluation.compileError,main.Evaluation.error);
             for(int i=0;i<100&&!main.Completed;i++)main.Advance().GetAwaiter().GetResult();
@@ -120,7 +120,7 @@ public static class ForgeBlacksmithChecks
         Call(host,"UpdateSmiths");
         var tech=(ForgeTechnology)Get(host,"technology");tech.Restore(new[]{BlueprintFeature.Def,BlueprintFeature.Rune});
         var context=(ForgeRunContext)Call(host,"SmithContext",0);
-        string code="333 sword():\n    p=1(1)\n    2(p,7)\n    3(p)\n    4(p,0)\n    5(p,2)\n    << p\na=90904(1,sword)\nb=90904(2,sword)\nc=90904(1,sword)";
+        string code="333 sword():\n    p=1(1)\n    2(p)\n    3(p)\n    4(p,0)\n    5(p,2)\n    << p\na=90904(1,sword)\nb=90904(2,sword)\nc=90904(1,sword)";
         var main=BlueprintRuntime.StartSession(code,1000,20,materialStocks:new Dictionary<int,long>{{2,20}},technology:tech,context:context);
         while(!main.Completed){var task=main.Advance();while(!task.IsCompleted)yield return null;}
         if(main.Evaluation.error!=null){PlayResult="FAIL: "+main.Evaluation.error;main.Dispose();UnityEngine.Object.Destroy(root);yield break;}

@@ -88,7 +88,8 @@ public static class ForgePricing
     public static Dictionary<string,int> Bonuses(ForgeProduct product)
     {
         var result=new Dictionary<string,int>();if(product.Kind==ForgeProductKind.Unfinished)return result;var d=product.Data;
-        if(d.hardness>=7)result["담금질 경도 7"]=19;
+        if(d.hardness>=7)result["담금질 경도 7"]=ForgeBalance.QuenchBonus;
+        if(d.hardness>=7&&d.perfectQuench)result["적정 온도 담금질"]=ForgeBalance.PerfectQuenchBonus;
         if(d.handle>0)result["손잡이"]=d.handle==9?ForgeBalance.DragonHandleBonus:22;
         if(d.polished)result["연마"]=ForgeBalance.PolishBonus;
         if(d.plated)result["은도금"]=ForgeBalance.PlateBonus;

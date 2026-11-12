@@ -23,7 +23,7 @@ public static class ForgeMultilingualCommentChecks{
  bool bg=Application.runInBackground;Application.runInBackground=true;var report=new StringBuilder();int failures=0;
  try{
  var go=UnityEngine.Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/UI/ForgeCodeWindow.prefab"),root.transform);go.SetActive(true);ForgeLegacyUIFont.Apply(go.transform);var view=go.GetComponent<ForgeCodeView>();var input=view.editor;var label=input.textComponent;view.rect.anchorMin=view.rect.anchorMax=view.rect.pivot=new Vector2(0,1);view.rect.anchoredPosition=new Vector2(30,-40);view.rect.sizeDelta=new Vector2(340,220);view.body.gameObject.SetActive(true);input.onValueChanged=new InputField.OnChangeEvent();input.caretBlinkRate=0;ForgeCodeColors.Apply(label);input.text="";input.ActivateInputField();await Task.Delay(200);input.caretPosition=0;
- string expected=string.Join("\n",Enumerable.Repeat("m = 1(1)\n2(m, 7)\n3(m)\n4(m, 0)\n5(m, 1)\n!m",3));input.text=expected;await Task.Delay(150);
+ string expected=string.Join("\n",Enumerable.Repeat("m = 1(1)\n2(m)\n3(m)\n4(m, 0)\n5(m, 1)\n!m",3));input.text=expected;await Task.Delay(150);
  for(int row=0;row<Lines.Length;row++){
   int position=0;for(int n=0;n<=row;n++){int end=expected.IndexOf('\n',position);if(n==row){position=end<0?expected.Length:end;break;}position=end+1;}
  input.caretPosition=position;input.ForceLabelUpdate();await Task.Delay(100);Canvas.ForceUpdateCanvases();

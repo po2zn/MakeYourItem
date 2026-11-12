@@ -1,0 +1,30 @@
+Furnace temperature update verification
+
+Rules
+- 8(temperature): consumes one coal, sets the current execution's furnace to 100..1200 C. No workpiece is created or heated.
+- Default furnace: 900 C per runtime. Parallel smith runtimes are isolated.
+- 2(piece): heats to the furnace temperature; old second argument is rejected with migration guidance.
+- 100(piece): current temperature. 100(blade, 1): fixed random ideal, 850..1100 inclusive, available after first heating.
+- Heating resets hardness/perfect-quench and the latest hammer marker.
+- Hammer at >=850 C followed by water quenching at that temperature: +19G.
+- Exact ideal temperature: additional +81G, total +100G. No stacking.
+- Star pattern now uses 900 C; frost uses 100..900 C; crystal resonance uses 100-degree steps from 100..900 C.
+
+Passed
+- Unity 6000.4.5f1 Roslyn compilation of runtime and Editor assemblies.
+- Furnace checks: 8 groups, including 300 seeded ideal-temperature cases, inclusive range endpoints, distinct workpieces, failed-input atomicity, material receipts, exact/near-miss pricing, no stacking, reheat reset, sequential/stepped parity, English/numeric aliases, guide examples, parallel smith isolation.
+- Economy 14; free crafting 12; language 24; stepping 13; deferred errors 15; expansions 12.
+- Guide: all 77 examples, numeric/English parity, unlock metadata and research-section suppression for 8().
+- Tutorial, technology tree, campaign (560 sales), diagnostics, variables 12, recursion 12, print 13, indentation 13, imports 21.
+- git diff --check.
+
+Limitations
+- These are actual interpreter runs in a .NET host using the compiled Unity project assemblies; they are not Play Mode or rendered UI tests.
+- No connected Unity Pipeline editor was available. Actual visual checks at 800x600, 1280x720, 1920x1080, 3840x2160 and minimum resizable guide dimensions remain unperformed; Unity font/layout metrics also require the Editor.
+- Unity-native JSON serialization and the full blacksmith UI/save suite could not run in the .NET host. Item snapshot/Clone persistence was covered.
+- Existing unrelated compiler warning: ForgeSmithIdle.cs obsolete GetInstanceID.
+
+Migration
+- Bundled runtime examples, tutorial and test blueprints use 2(piece).
+- Player-authored saved blueprints are not rewritten; replace 2(piece, oldHeat) with 2(piece) and use 8(temperature) when adjustment is needed.
+- Existing completed-item fields and save IDs remain intact. New temperature/bonus fields are serialized with ForgeItemData.

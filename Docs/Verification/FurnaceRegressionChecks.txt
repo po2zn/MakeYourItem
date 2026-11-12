@@ -1,0 +1,265 @@
+PASS bulk purchase: quantities, totals, exact/insufficient gold, atomic rejection and overflow guards
+PASS bundles: shared purchase, both spellings, parent gates, duplicate rejection, partial-save migration and roundtrip
+PASS speed levels: sequential/atomic purchases, cap, imports, stepping, separate auto sell purchase, guide gating, save roundtrips and migration
+PASS research: independent branches, prerequisites, existing prices, execution and save roundtrip
+PASS control root: basic processes, locked English/symbol controls, stepping/import gates, common prerequisite and save compatibility
+PASS tree: unique DAG, all-parent gates, atomicity, stock/permits, both spellings, legacy migration and roundtrip
+PASS all 10 materials, static/dynamic validation, identity, inventory isolation and depletion
+PASS guide start
+PASS guide variables
+PASS guide notation
+PASS guide 1
+PASS guide 2
+PASS guide 3
+PASS guide 4
+PASS guide extension-5
+PASS guide finish
+PASS guide if
+PASS guide elif
+PASS guide else
+PASS guide while
+PASS guide for
+PASS guide break
+PASS guide continue
+PASS guide def
+PASS guide recursion
+PASS guide import
+PASS guide return
+PASS guide heat
+PASS guide abs
+PASS guide len
+PASS guide min
+PASS guide max
+PASS guide random
+PASS guide set
+PASS guide print
+PASS guide list
+PASS guide dict
+PASS guide tuple
+PASS guide membership
+PASS guide operators
+PASS guide stages
+PASS guide choose
+PASS guide errors
+PASS guide extension-6
+PASS guide extension-7
+PASS guide extension-8
+PASS guide extension-9
+PASS guide extension-10
+PASS guide extension-102
+PASS guide extension-777
+PASS guide extension-777?
+PASS guide extension-222
+PASS guide extension-225
+PASS guide extension-666
+PASS guide extension-667
+PASS guide extension-404
+PASS guide extension-201
+PASS guide extension-202
+PASS guide extension-203
+PASS guide extension-211
+PASS guide extension-212
+PASS guide extension-213
+PASS guide extension-214
+PASS guide extension-215
+PASS guide extension-301
+PASS guide extension-302
+PASS guide extension-303
+PASS guide extension-401
+PASS guide extension-402
+PASS guide extension-400
+PASS guide extension-501
+PASS guide is-day
+PASS guide night-time
+PASS guide clock-minutes
+PASS guide masterwork-example
+PASS guide extension-smith-90909
+PASS guide extension-smith-90901
+PASS guide extension-smith-90902
+PASS guide extension-smith-90903
+PASS guide extension-smith-90904
+PASS guide extension-smith-90905
+PASS guide extension-smith-90906
+PASS guide extension-smith-90907
+PASS guide extension-smith-90910
+PASS current tree offer coverage, research metadata, speed reward, smith hiring and masterwork materials
+PASS numeric-only examples, equal execution, hidden English, unlock restoration and search
+PASS guide unlocks: basic crafting, locked features, bundles, materials, smith research, speed reward, all 77 entries, overview and prose.
+TOTAL guide 77 examples passed; registry, economy, no-candidate and search passed
+
+PASS original staged while blueprint completes unchanged
+PASS English and numeric staged loops agree
+PASS selected if branch binding survives outside block
+PASS for body and iteration variable survive outside loop
+PASS unexecuted paths do not read undefined variables
+PASS missing branch binding fails at actual read line
+PASS zero iteration loop creates no binding
+PASS read before later assignment still fails
+PASS failed read retains only prior successful production cost
+PASS runtime variable types follow reassignment inside loop
+PASS function block bindings remain local and calls are isolated
+PASS syntax and undefined function checks remain compile errors
+TOTAL variables 12 passed
+
+PASS print-only supports literal, variable, empty and escaped strings
+PASS branches loops and user functions print only executed paths
+PASS print receipts preserve craft order and economics
+PASS print accepts zero and multiple typed arguments
+PASS collections use readable Python delimiters
+PASS function parameters and return values print dynamically
+PASS failed argument preserves earlier messages without partial output
+PASS workpiece output snapshots state without production effects
+PASS combined arguments obey character cap atomically
+PASS prints and crafting run without submission
+PASS cold strike permits later prints and zero-value submission
+PASS print is yellow with tooltip; strings and comments stay opaque
+PASS bounded output and buffer clearing
+TOTAL print 13 passed
+
+PASS all English and numeric block headers indent four spaces
+PASS nested block and ordinary line preserve indentation
+PASS comments strings and dictionary colons do not open blocks
+PASS Enter replaces selection and preserves right-side source
+PASS CRLF and Korean source offsets retained
+PASS Tab inserts spaces to next four-column stop
+PASS selected lines indent and outdent with reverse selection
+PASS Shift Tab affects line indentation only
+PASS Backspace removes one indent step but leaves normal text native
+PASS automatically indented function produces valid crafting source
+PASS split Return key and character input produces one newline
+PASS repeated Enter follows blank final line without doubling
+PASS CRLF native newline and already visible caret retain state
+TOTAL indentation 13 passed
+
+PASS All builtins/control entries have unique stable IDs and complete metadata
+PASS all builtin aliases share result and source remains intact
+PASS function/for/if/else/break/return aliases produce identical craft
+PASS no suitable candidate skips with zero cost
+PASS nested loops scope break/continue and function return
+PASS literal and opaque text contexts; whole identifiers
+PASS longest compound tokens distinguish completion/comparisons
+PASS tolerant highlighting exposes exact raw spans without markup
+PASS UTF8 roundtrip preserves zero padding, symbols, CRLF and Korean
+PASS flat integer collections, copy semantics and membership
+PASS compile errors have original line and no receipts
+PASS runtime errors retain prior cost and precise source line
+PASS while budget stops without registering finished item
+PASS bad runtime arguments fail and English/numeric errors match
+PASS deterministic inclusive random and full integer range
+PASS function processes share ledger and Piece identity
+PASS contextual tooltip distinguishes heat targets and random bounds
+PASS source file save/read preserves raw tokens and executable meaning
+PASS call-depth, collection and dynamic parameter limits
+PASS elif aliases select only first true branch and preserve fallback
+PASS elif token, purple span, tooltip and opaque text
+PASS orphan, after-else and malformed elif report original line
+PASS function calls yellow, control keywords purple
+PASS named numeric definitions match def; legacy headers rejected
+TOTAL language 24 passed
+
+PASS diagnostic checks: original line, CRLF span, optional completion, empty source, runtime distinction (5 cases)
+PASS basic: iron 1 / cost 0 / base 28 / bonus 0 / profit 28
+PASS extra successful heat: cost 0 / same state / sale 28 / profit 28
+PASS preview versus committed ledger and balances
+PASS preview is isolated from existing shop and caller balances
+PASS hot submission: zero value, cost remains 0
+PASS unshaped submission: zero value
+PASS cold strike executes without shaping
+PASS zero gold: all forging processes succeed
+PASS no iron: no money or material consumed
+PASS compile failure: whole run has zero cost
+PASS sell same ID repeatedly: pay exactly 28 once
+PASS select second product: retain first cost and identity
+PASS failed spend changes neither ledger nor balances
+PASS immutable record is unaffected by later ledger spending
+TOTAL 14 passed
+
+
+PASS campaign route: 560 sales, revenue 274970G, balance 2048G; final value 1149G
+basic: sale 69G / materials 9G / net 60G
+silver: sale 179G / materials 29G / net 150G
+star: sale 281G / materials 64G / net 217G
+charged: sale 431G / materials 94G / net 337G
+dragon: sale 909G / materials 142G / net 767G
+final: sale 1149G / materials 232G / net 917G
+PASS original staged while blueprint completes unchanged
+PASS English and numeric staged loops agree
+PASS selected if branch binding survives outside block
+PASS for body and iteration variable survive outside loop
+PASS unexecuted paths do not read undefined variables
+PASS missing branch binding fails at actual read line
+PASS zero iteration loop creates no binding
+PASS read before later assignment still fails
+PASS failed read retains only prior successful production cost
+PASS runtime variable types follow reassignment inside loop
+PASS function block bindings remain local and calls are isolated
+PASS syntax and undefined function checks remain compile errors
+TOTAL variables 12 passed
+
+PASS direct recursion and numeric aliases
+PASS mutual recursion
+PASS locals and caller source restored while unwinding
+PASS unused recursive and long call graphs compile
+PASS 32 active frames succeed; 33 fail at runtime
+PASS unbounded recursion preserves prior costs and stops
+PASS recursive forging emits every successful action once
+PASS imported recursive functions retain globals and aliases
+PASS cross module mutual recursion uses lazy imports
+PASS recursive module errors preserve module and original line
+PASS branching recursion shares command budget
+PASS arithmetic overflow remains a controlled recursive error
+TOTAL recursion 12 passed
+
+PASS print-only supports literal, variable, empty and escaped strings
+PASS branches loops and user functions print only executed paths
+PASS print receipts preserve craft order and economics
+PASS print accepts zero and multiple typed arguments
+PASS collections use readable Python delimiters
+PASS function parameters and return values print dynamically
+PASS failed argument preserves earlier messages without partial output
+PASS workpiece output snapshots state without production effects
+PASS combined arguments obey character cap atomically
+PASS prints and crafting run without submission
+PASS cold strike permits later prints and zero-value submission
+PASS print is yellow with tooltip; strings and comments stay opaque
+PASS bounded output and buffer clearing
+TOTAL print 13 passed
+
+PASS all English and numeric block headers indent four spaces
+PASS nested block and ordinary line preserve indentation
+PASS comments strings and dictionary colons do not open blocks
+PASS Enter replaces selection and preserves right-side source
+PASS CRLF and Korean source offsets retained
+PASS Tab inserts spaces to next four-column stop
+PASS selected lines indent and outdent with reverse selection
+PASS Shift Tab affects line indentation only
+PASS Backspace removes one indent step but leaves normal text native
+PASS automatically indented function produces valid crafting source
+PASS split Return key and character input produces one newline
+PASS repeated Enter follows blank final line without doubling
+PASS CRLF native newline and already visible caret retain state
+TOTAL indentation 13 passed
+
+PASS import module, qualified call and craft receipts
+PASS module and function aliases match Python forms
+PASS comma imports and parenthesized from imports
+PASS module globals stay with defining module and helpers
+PASS module initialization cached across repeated and diamond imports
+PASS fresh runs see updated sources without retaining module cache
+PASS import initialization and function effects share budgets
+PASS from import binds only requested names
+PASS wildcard imports public names and excludes underscore
+PASS conditional and function local imports execute lazily
+PASS import module main guard and __name__
+PASS imported module submission gives source-aware error
+PASS function references and re-export keep defining globals
+PASS missing module member and wrong arity remain controlled errors
+PASS imported syntax errors identify module and exact source line
+PASS imported runtime and overflow errors keep source through callers
+PASS cyclic imports and ambiguous names fail clearly
+PASS Unicode titles normalize consistently
+PASS module resource and command limits cannot reset via imports
+PASS technology ownership applies inside imported modules
+PASS import syntax and qualified names highlight without changing source
+TOTAL import 21 passed
+

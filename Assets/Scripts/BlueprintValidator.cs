@@ -143,9 +143,10 @@ public sealed class BlueprintValidator
             if(deferErrors&&technology!=null&&ForgeTechnology.RequiresPurchase(e.Feature)&&!technology.Owns(e.Feature))Error(e.Token,"테크 트리에서 먼저 구매해야 하는 기능입니다: "+BlueprintAliases.Find(e.Feature).Symbol+"()");
             if(e.Callee!=null){Expr(e.Callee,names,false);return BlueprintType.Unknown;}
             int arity;
-            if(e.Process>0)arity=e.Process==1||e.Process==3?1:2;
+            if(e.Process>0)arity=e.Process==4?2:1;
             else if(e.Feature!=BlueprintFeature.None)arity=BlueprintAliases.Find(e.Feature).Arity;
             else {if(dynamicNames.Contains(e.Name)||hasStarImport)return BlueprintType.Unknown;if(!program.Functions.TryGetValue(e.Name,out var f)) {Error(e.Token,"정의되지 않은 함수 "+e.Name);return BlueprintType.Unknown;} arity=f.Parameters.Count;}
+            if(e.Process==2&&args.Count!=1)Error(e.Token,"가열 인자는 작업물 1개입니다. 2(작업물)로 사용하고 화로 온도는 8(온도)로 설정하세요.");
             if(arity>=0&&args.Count!=arity)Error(e.Token,(e.Feature!=BlueprintFeature.None?BlueprintAliases.Find(e.Feature).English:e.Process>0?e.Process.ToString():e.Name)+"에 필요한 인자 수: "+arity);
             if(e.Process>0){
                 if(!Known(args[0],e.Process==1?BlueprintType.Int:BlueprintType.Piece))Error(e.Token,e.Process==1?"재료 번호는 정수여야 합니다.":"첫 인자는 작업물이어야 합니다.");
@@ -164,7 +165,11 @@ public sealed class BlueprintValidator
                     if(args.Count==1 && (!Known(args[0],BlueprintType.Int) || e.Args[0].Kind==BlueprintExprKind.Literal && !Equals(e.Args[0].Value,60)))Error(e.Token,"시각 조회의 인자는 정수 60이어야 합니다.");
                     return BlueprintType.Int;
                 case BlueprintFeature.Print:return BlueprintType.None;
-                case BlueprintFeature.Heat:if(!Known(args[0],BlueprintType.Piece))Error(e.Token,"heat에는 작업물이 필요합니다.");return BlueprintType.Int;
+                case BlueprintFeature.Heat:
+                    if(args.Count<1||args.Count>2)Error(e.Token,"100(작업물) 또는 100(검날, 1)로 사용하세요.");
+                    if(!Known(args[0],BlueprintType.Piece))Error(e.Token,"온도 조회에는 작업물이 필요합니다.");
+                    if(args.Count==2&&(!Known(args[1],BlueprintType.Int)||e.Args[1].Kind==BlueprintExprKind.Literal&&!Equals(e.Args[1].Value,1)))Error(e.Token,"적정 온도 조회의 두 번째 인자는 1입니다.");
+                    return BlueprintType.Int;
                 case BlueprintFeature.Abs:case BlueprintFeature.Random:foreach(var a in args)if(!Known(a,BlueprintType.Int))Error(e.Token,"정수 인자가 필요합니다.");return BlueprintType.Int;
                 case BlueprintFeature.Len:if(!Known(args[0],BlueprintType.List,BlueprintType.Tuple,BlueprintType.Set,BlueprintType.Dict))Error(e.Token,"len에는 컬렉션이 필요합니다.");return BlueprintType.Int;
                 case BlueprintFeature.Min:case BlueprintFeature.Max:if(!Known(args[0],BlueprintType.List,BlueprintType.Tuple))Error(e.Token,"min/max에는 정수 리스트 또는 튜플이 필요합니다.");return BlueprintType.Int;

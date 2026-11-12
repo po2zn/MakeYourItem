@@ -69,7 +69,7 @@ public partial class ForgeMvp
         if(displaySizes.Count==0)RefreshDisplaySizes();
         var ev=Event.current;
         if(ev.type==EventType.KeyDown&&ev.keyCode==KeyCode.Escape){
-            if(settingsDropdown!=0)settingsDropdown=0;else titlePage=0;
+            if(settingsDropdown!=0)settingsDropdown=0;else {ForgeAudioSettings.Save();titlePage=0;}
             ev.Use();
         }
         EventType savedEvent=ev.type;
@@ -77,12 +77,16 @@ public partial class ForgeMvp
         if(popupOpen&&(ev.isMouse||ev.isKey||ev.type==EventType.ScrollWheel))ev.type=EventType.Ignore;
         ForgeTitleStyle.Fill(new Rect(0,0,Screen.width,Screen.height),new Color(.04f,.07f,.11f,.35f));
         float width=Mathf.Min(840,Mathf.Max(1,Screen.width-68));
-        float x=(Screen.width-20-width)/2,y=Mathf.Max(16,(Screen.height-680)/2);
-        settingsPageScroll=GUI.BeginScrollView(new Rect(0,0,Screen.width,Screen.height),settingsPageScroll,new Rect(0,0,Screen.width-20,Mathf.Max(Screen.height,y+836)));
-        ForgeTitleStyle.Window(new Rect(x-16,y-8,width+32,824),false);
+        float x=(Screen.width-20-width)/2;
+        float labelWidth=width*.28f,controlX=x+labelWidth,controlWidth=width-labelWidth;
+        const string audioHelp="변경 즉시 적용 · 자동 저장 · 0%는 음소거\n전체 음량은 BGM과 효과음 모두에 적용됩니다.";
+        float audioHelpHeight=ForgeTextLayout.Height(audioHelp,settingsRowLabel,controlWidth);
+        float panelHeight=952+Mathf.Max(44,audioHelpHeight);
+        float y=Mathf.Max(16,(Screen.height-panelHeight)/2);
+        settingsPageScroll=GUI.BeginScrollView(new Rect(0,0,Screen.width,Screen.height),settingsPageScroll,new Rect(0,0,Screen.width-20,Mathf.Max(Screen.height,y+panelHeight+12)));
+        ForgeTitleStyle.Window(new Rect(x-16,y-8,width+32,panelHeight),false);
         ForgeTextLayout.Label(new Rect(x,y,width,58),"Settings · 설정",settingsTitle);
         ForgeTextLayout.Label(new Rect(x,y+64,width,30),"게임 환경을 원하는 방식으로 설정하세요.",settingsText);
-        float labelWidth=width*.28f,controlX=x+labelWidth,controlWidth=width-labelWidth;
         y+=120;
         ForgeTextLayout.Label(new Rect(x,y,labelWidth-16,48),"언어",settingsRowLabel);
         if(ForgeTextLayout.Button(new Rect(controlX,y,controlWidth,48),languageLabels[selectedLanguage]+"  ▾",settingsOption))OpenSettingsDropdown(1,new Rect(controlX,y,controlWidth,48),selectedLanguage);
@@ -95,11 +99,18 @@ public partial class ForgeMvp
         ForgeTextLayout.Label(new Rect(x,y,labelWidth-16,48),"화면 모드",settingsRowLabel);
         if(ForgeTextLayout.Button(new Rect(controlX,y,controlWidth,48),(Screen.fullScreen?"전체 화면":"창 모드")+"  ▾",settingsOption))OpenSettingsDropdown(3,new Rect(controlX,y,controlWidth,48),Screen.fullScreen?0:1);
         y+=72;
-        ForgeTextLayout.Label(new Rect(x,y,labelWidth-16,48),"전체 음량",settingsRowLabel);
-        ForgeTextLayout.Label(new Rect(controlX+controlWidth-64,y,64,48),Mathf.RoundToInt(masterVolume*100)+"%",settingsRowLabel);
-        float volume=GUI.HorizontalSlider(new Rect(controlX,y+16,Mathf.Max(1,controlWidth-80),24),masterVolume,0,1,settingsSlider,settingsSliderThumb);
-        if(!Mathf.Approximately(volume,masterVolume)){masterVolume=volume;AudioListener.volume=volume;PlayerPrefs.SetFloat("MakeYourItem.Settings.Volume",volume);PlayerPrefs.Save();}
-        y+=72;
+        float master=DrawVolumeRow(x,y,labelWidth,controlWidth,"전체 음량",ForgeAudioSettings.Master);
+        y+=64;
+        float music=DrawVolumeRow(x,y,labelWidth,controlWidth,"배경음 (BGM)",ForgeAudioSettings.Music);
+        y+=64;
+        float sfx=DrawVolumeRow(x,y,labelWidth,controlWidth,"효과음 (SFX)",ForgeAudioSettings.Sfx);
+        if(!Mathf.Approximately(master,ForgeAudioSettings.Master)||!Mathf.Approximately(music,ForgeAudioSettings.Music)||!Mathf.Approximately(sfx,ForgeAudioSettings.Sfx))
+            ForgeAudioSettings.SetVolumes(master,music,sfx);
+        y+=56;
+        if(ForgeTextLayout.Button(new Rect(controlX,y,Mathf.Min(180,controlWidth),40),"효과음 미리 듣기",SettingsButton))ForgeSoundEffects.Preview();
+        y+=48;
+        ForgeTextLayout.Label(new Rect(controlX,y,controlWidth,audioHelpHeight),audioHelp,settingsRowLabel);
+        y+=Mathf.Max(44,audioHelpHeight)+16;
         ForgeTextLayout.Label(new Rect(x,y,labelWidth-16,48),"코드 색상",settingsRowLabel);
         if(ForgeTextLayout.Button(new Rect(controlX,y,controlWidth,48),ForgeCodeColors.PaletteNames[ForgeCodeColors.Palette]+"  ▾",settingsOption))OpenSettingsDropdown(4,new Rect(controlX,y,controlWidth,48),ForgeCodeColors.Palette);
         var kinds=new[]{ForgeSyntax.Kind.Material,ForgeSyntax.Kind.Function,ForgeSyntax.Kind.Reserved,ForgeSyntax.Kind.Comment};
@@ -109,7 +120,7 @@ public partial class ForgeMvp
             ForgeTextLayout.Label(new Rect(controlX+(i%2)*controlWidth/2,y+52+(i/2)*30,controlWidth/2-8,28),samples[i],preview);
         }
         y+=156;
-        if(ForgeTextLayout.Button(new Rect(x,y,140,48),"뒤로",SettingsButton)){titlePage=0;settingsDropdown=0;}
+        if(ForgeTextLayout.Button(new Rect(x,y,140,48),"뒤로",SettingsButton)){ForgeAudioSettings.Save();titlePage=0;settingsDropdown=0;}
         if(ForgeTextLayout.Button(new Rect(x+width-220,y,220,48),"해상도 적용",SettingsButton)){
             size=displaySizes[selectedDisplaySize];Screen.SetResolution(size.x,size.y,Screen.fullScreen);
             PlayerPrefs.SetInt(WidthSetting,size.x);PlayerPrefs.SetInt(HeightSetting,size.y);PlayerPrefs.Save();
@@ -119,6 +130,14 @@ public partial class ForgeMvp
         GUI.EndScrollView();
         if(popupOpen)ev.type=savedEvent;
         if(settingsDropdown!=0)DrawSettingsDropdown();
+    }
+    float DrawVolumeRow(float x,float y,float labelWidth,float controlWidth,string label,float volume)
+    {
+        float controlX=x+labelWidth;
+        ForgeTextLayout.Label(new Rect(x,y,labelWidth-16,48),label,settingsRowLabel);
+        ForgeTextLayout.Label(new Rect(controlX+controlWidth-64,y,64,48),Mathf.RoundToInt(volume*100)+"%",settingsRowLabel);
+        float next=GUI.HorizontalSlider(new Rect(controlX,y+16,Mathf.Max(1,controlWidth-80),24),volume,0,1,settingsSlider,settingsSliderThumb);
+        return Mathf.Round(next*100)/100f;
     }
     void OpenSettingsDropdown(int kind,Rect anchor,int selected)
     {anchor.y-=settingsPageScroll.y;settingsDropdown=kind;settingsDropdownAnchor=anchor;settingsDropdownScroll=new Vector2(0,Mathf.Max(0,selected-2)*44);ClearUIFocus();}

@@ -5,12 +5,12 @@ using System.Collections.Generic;
 public static class ForgeCampaignChecks
 {
     static void Require(bool ok,string message){if(!ok)throw new Exception(message);}
-    const string Base="p=1(1)\n2(p,7)\n3(p)\n4(p,3)\n5(p,2)\n!p";
-    const string Plated="p=1(1)\n2(p,7)\n3(p)\n4(p,3)\n6(p)\n7(p)\n5(p,2)\n!p";
-    const string Star="p=1(7)\n2(p,7)\n3(p)\n4(p,3)\n6(p)\n7(p)\n5(p,2)\n!p";
-    const string Charged="p=1(7)\n2(p,7)\n3(p)\n4(p,3)\n6(p)\n7(p)\n5(p,2)\n9(p,1)\n9(p,1)\n9(p,1)\n!p";
-    const string Dragon="p=1(7)\n2(p,7)\n3(p)\n4(p,3)\n6(p)\n7(p)\nb=1(9)\n10(b,p,100,13)\n5(p,b)\n9(p,1)\n9(p,1)\n9(p,1)\n!p";
-    public const string Final="p=1(7)\n2(p,7)\n3(p)\n4(p,3)\n6(p)\n7(p)\nb=1(9)\n10(b,p,100,13)\n5(p,b)\n9(p,1)\n9(p,1)\n9(p,1)\nfor r in [7,8,9]:\n    211(p,r)\n!p";
+    const string Base="p=1(1)\n2(p)\n3(p)\n4(p,3)\n5(p,2)\n!p";
+    const string Plated="p=1(1)\n2(p)\n3(p)\n4(p,3)\n6(p)\n7(p)\n5(p,2)\n!p";
+    const string Star="p=1(7)\n2(p)\n3(p)\n4(p,3)\n6(p)\n7(p)\n5(p,2)\n!p";
+    const string Charged="p=1(7)\n2(p)\n3(p)\n4(p,3)\n6(p)\n7(p)\n5(p,2)\n9(p,1)\n9(p,1)\n9(p,1)\n!p";
+    const string Dragon="p=1(7)\n2(p)\n3(p)\n4(p,3)\n6(p)\n7(p)\nb=1(9)\n10(b,p,100,13)\n5(p,b)\n9(p,1)\n9(p,1)\n9(p,1)\n!p";
+    public const string Final="p=1(7)\n2(p)\n3(p)\n4(p,3)\n6(p)\n7(p)\nb=1(9)\n10(b,p,100,13)\n5(p,b)\n9(p,1)\n9(p,1)\n9(p,1)\n123(r in [7,8,9]):\n    211(p,r)\n!p";
     sealed class Run
     {
         public readonly ForgeTechnology Tech=new ForgeTechnology();

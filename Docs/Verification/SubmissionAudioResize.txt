@@ -1,0 +1,17 @@
+Submission, BGM and guide resize fixes — 2026-11-12
+
+Causes and implementation:
+- Finished receipts previously entered the ordinary animation path and retained the submitted workpiece. Both workshop and fallback paths now remove the matching piece only; hide immediately before deferred destruction. Workshop materials are released.
+- Player background execution was disabled. BGM Awake now enables Application.runInBackground (ProjectSettings file could not be written). The playlist no longer treats a temporary source interruption as track completion; playback clock/sample tracking resumes the same clip. Application pause time is excluded.
+- Generic window handles lacked ForgeResizeArrow. Existing handles receive the graphic during Bind; rebuilt UI also gets it. Graphic does not intercept raycasts; tooltip identifies the guide.
+
+Validation performed:
+- Runtime and editor assemblies compiled with installed Unity references. Existing GetInstanceID deprecation warning only.
+- Furnace, economy, language, stepping, deferred errors, expansion, tutorial, guide, technology, campaign, variables, recursion, print, indentation and import offline regression runners passed.
+- git diff --check passed.
+- Added Play Mode submission assertions for targeted removal, same-frame hiding, cancellation, repeated submission and multiple pieces; compiled but NOT executed.
+
+Limitations:
+- No Unity Editor Pipeline connection. Real playback/minimize/restore listening and actual UI rendering/dragging not verified.
+- Required visual checks at 800x600, 1280x720, 1920x1080, 3840x2160, minimum guide window size and numeric/English variants remain unverified in-engine. Arrow remains inside the existing 22x22 bottom-right handle; no text layout dimensions changed.
+- Closing and relaunching the executable is distinct from minimizing/restoring it; cross-launch song-position persistence is not implemented.

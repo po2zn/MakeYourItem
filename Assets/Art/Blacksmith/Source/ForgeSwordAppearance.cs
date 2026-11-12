@@ -35,7 +35,7 @@ public sealed class ForgeSwordAppearance : MonoBehaviour
         if(d.cursed)Paint(Part("Guard").GetComponent<Renderer>(),new Color(.3f,.08f,.4f),.65f,.2f);
         if(d.luckyDay>0)Paint(Part("Pommel").GetComponent<Renderer>(),new Color(1,.7f,.18f),.7f,.15f);
         if(paintBlade){
-            Color cold=BladeColor(material,d);float hot=Mathf.Clamp01(heat/9f);
+            Color cold=BladeColor(material,d);float hot=Mathf.Clamp01(heat/1200f);
             Paint(blade.GetComponent<Renderer>(),Color.Lerp(cold,new Color(1,.22f,.025f),hot*.6f),d.polished?.72f:.35f);
             var block=new MaterialPropertyBlock();blade.GetComponent<Renderer>().GetPropertyBlock(block);block.SetColor("_EmissionColor",new Color(1,.16f,.015f)*hot*2.5f);blade.GetComponent<Renderer>().SetPropertyBlock(block);
         }

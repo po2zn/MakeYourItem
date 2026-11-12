@@ -1,0 +1,8 @@
+Coal + furnace bundle
+
+Single research node function-Fuel: 2400G; requires temperature research. Unlocks coal supply and 8() together. Coal stock is still 8G per piece; research grants no stock. Old material-4 and function-Fuel purchase IDs map to the same node, with no additional charge.
+
+8() research section now has empty backing prose in both numeric/English variants and is hidden in both guide renderers. Serialized old coal card and its incoming/outgoing lines are inactive; function-Fuel title updated. Rebuilding UI generates only the combined node.
+
+PASS: runtime/editor compilation, bundle purchase/atomicity/stock/duplicate/migration tests, 77 guide examples, existing furnace and crafting regressions, campaign, serialized prefab structure checks, git diff --check.
+NOT RUN: rendered visual checks at 800x600, 1280x720, 1920x1080, 3840x2160 and minimum guide window dimensions; Unity font metrics. No connected editor available in this session. The existing wrapped/fitted card title and measured scrollable tooltip layout are retained.

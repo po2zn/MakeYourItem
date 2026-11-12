@@ -20,7 +20,7 @@ public static class BlacksmithIntegrationChecks
         try{
             foreach(int coolant in new[]{0,3,8}){
                 motion.BeginRun();await Task.Delay(40);
-                var e=ForgeMvp.Evaluate("p = 1(1)\n2(p, 7)\n3(p)\n4(p, "+coolant+")",100,10,materialStocks:new Dictionary<int,long>{{3,10},{8,10}});Require(e.error==null,e.error);
+                var e=ForgeMvp.Evaluate("p = 1(1)\n2(p)\n3(p)\n4(p, "+coolant+")",100,10,materialStocks:new Dictionary<int,long>{{3,10},{8,10}});Require(e.error==null,e.error);
                 foreach(var step in e.steps.Take(3)){step.duration=.08f;await Animate(motion,step);}
                 var work=root.GetComponentsInChildren<Transform>().First(t=>t.name.StartsWith("Workpiece "));
                 var tip=work.Find("Tip");var water=root.GetComponentsInChildren<Transform>().First(t=>t.name=="QuenchTarget");
@@ -59,7 +59,7 @@ public static class BlacksmithIntegrationChecks
             // Deterministic ordinary success: exclude the game's daily 50% great-success refund from this stock assertion.
             var smiths=(ForgeBlacksmiths)Get("blacksmiths");smiths.Tick(main.DayCycle.Day,(main.DayCycle.Day-1)*24d+main.DayCycle.CurrentHour);smiths.burningUntil=0;smiths.randomState=123;
             var stocks=(ForgeMaterialStock[])Get("materialStocks");stocks.First(s=>s.material==3).count=2;
-            Set("source","p = 1(1)\n2(p, 7)\n3(p)\n4(p, 3)\n!p");
+            Set("source","p = 1(1)\n2(p)\n3(p)\n4(p, 3)\n!p");
             Call("Execute",false);
             float start=Time.realtimeSinceStartup;bool observedHeat=false,observedStrike=false,observedQuench=false;
             while((bool)Get("busy")||Get("executionSession")!=null){
@@ -109,7 +109,7 @@ public static class BlacksmithIntegrationChecks
         var camera=new GameObject("IntegrationCamera").AddComponent<Camera>();camera.transform.position=new Vector3(35,3.8f,-5);camera.transform.LookAt(new Vector3(32.1f,.8f,1));camera.orthographic=true;camera.orthographicSize=2.5f;camera.clearFlags=CameraClearFlags.SolidColor;camera.backgroundColor=new Color(.17f,.19f,.22f);
         var light=new GameObject("IntegrationLight").AddComponent<Light>();light.type=LightType.Directional;light.intensity=1.4f;light.transform.rotation=Quaternion.Euler(45,-30,0);
         try{
-            var evaluation=ForgeMvp.Evaluate("p = 1(1)\n2(p, 7)\n3(p)\n4(p, 3)\n!p",100,10,materialStocks:new Dictionary<int,long>{{3,10}});
+            var evaluation=ForgeMvp.Evaluate("p = 1(1)\n2(p)\n3(p)\n4(p, 3)\n!p",100,10,materialStocks:new Dictionary<int,long>{{3,10}});
             Require(evaluation.error==null,evaluation.error);motion.BeginRun();int actions=0;
             foreach(var step in evaluation.steps){step.duration=.9f;bool captured=false;float armMotion=0;var hand=root.GetComponentsInChildren<Transform>().First(t=>t.name=="RightHandSocket");var first=hand.position;
                 await Animate(motion,step,t=>{
@@ -127,7 +127,7 @@ public static class BlacksmithIntegrationChecks
             Require(evaluation.product!=null&&evaluation.product.Shaped,"Interpreter product missing");
             // The second smith has its own station coordinates and piece identity.
             motion.BeginRun();await Task.Delay(40);Require(root.GetComponent<ForgeWorkshopVisuals>().PieceCount==0,"Clear retained pieces");
-            var two=ForgeMvp.Evaluate("a = 1(1)\nb = 1(1)\n2(a, 7)\n4(b, 0)");Require(two.error==null,two.error);
+            var two=ForgeMvp.Evaluate("a = 1(1)\nb = 1(1)\n2(a)\n4(b, 0)");Require(two.error==null,two.error);
             foreach(var step in two.steps){step.duration=.08f;await Animate(motion,step);}
             Require(root.GetComponent<ForgeWorkshopVisuals>().PieceCount==2,"Piece identity was merged");report+="PASS independent offset station, two workpieces and air cooling\n";
             var cancelStep=new ForgeMvp.Step{pieceId=1,process=2,heat=7,duration=2};var enumerator=root.GetComponent<ForgeWorkshopVisuals>().Play(cancelStep);Require(enumerator.MoveNext(),"Cancellation setup");root.GetComponent<ForgeWorkshopVisuals>().Cancel();Require(!enumerator.MoveNext(),"Cancellation left animation running");report+="PASS cancellation\n";

@@ -28,7 +28,7 @@ public static class BlueprintDeferredChecks
             using(var s=Start("p = 1(1)\nprint('broken\nprint('after')")){Step(s);Require(s.NextLine==2&&s.Evaluation.error==null,"prefix");Step(s);Require(s.Completed&&s.Evaluation.errorLine==2&&s.Evaluation.cost==0,"quote error");}
         });
         check("invalid indentation stops at unreadable boundary after prior lines",()=>{
-            using(var s=Start("p = 1(1)\nif True:\n  2(p, 7)")){Step(s);Require(s.Evaluation.cost==0&&s.NextLine==2,"before header");Step(s);Require(s.NextLine==3&&s.Evaluation.error==null,"header entered");Step(s);Require(s.Completed&&s.Evaluation.errorLine==3&&s.Evaluation.cost==0,"indent error");}
+            using(var s=Start("p = 1(1)\nif True:\n  2(p)")){Step(s);Require(s.Evaluation.cost==0&&s.NextLine==2,"before header");Step(s);Require(s.NextLine==3&&s.Evaluation.error==null,"header entered");Step(s);Require(s.Completed&&s.Evaluation.errorLine==3&&s.Evaluation.cost==0,"indent error");}
         });
         check("valid statements inside a block run before its malformed line",()=>{
             using(var s=Start("if True:\n    p = 1(1)\n    2(p, 7\nprint('after')")){Step(s);Step(s);Require(s.NextLine==3&&s.Evaluation.cost==0&&s.Evaluation.error==null,"body prefix");Step(s);Require(s.Completed&&s.Evaluation.errorLine==3,"body error");}

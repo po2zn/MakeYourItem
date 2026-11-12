@@ -26,12 +26,15 @@ public sealed partial class BlueprintRuntime
         if(coolant!=0&&coolant!=3&&coolant!=8)Fail("냉각 재료는 공기(0), 물(3), 서리수(8)입니다.");
         Consume(coolant);
         int before=p.heat;
-        if(p.material==7&&p.shaped&&before==7)p.data.star=true;
-        if(coolant==3&&p.shaped&&before>=6)p.data.hardness=7;
-        if(coolant==8){if(Math.Abs(before-4)<=3)p.data.frost=true;else p.data.cracked=true;}
+        if(p.material==7&&p.shaped&&before==ForgeBalance.DefaultFurnaceTemperature)p.data.star=true;
+        if(coolant==3&&p.shaped&&before>=ForgeBalance.MinimumForgeTemperature&&p.data.lastHammerTemperature==before){
+            p.data.hardness=7;
+            p.data.perfectQuench=p.data.idealTemperature>0&&before==p.data.idealTemperature;
+        }
+        if(coolant==8){if(before>=100&&before<=900)p.data.frost=true;else p.data.cracked=true;}
         if(p.data.magic)p.data.magicGrade=(int)Strength(p);
         p.heat=0;if(coolant==0)p.traits|=ForgeTraits.AirCooled;else p.traits&=~ForgeTraits.AirCooled;
-        Action(4,p,ForgeMaterialGuide.Find(coolant).Name+" 냉각 · 열 "+before+" → 0 · 경도 "+p.data.hardness+(coolant==3&&before<6?" · 경고: 담금질 효과 없음":""));
+        Action(4,p,ForgeMaterialGuide.Find(coolant).Name+" 냉각 · "+before+"°C → 0 · 경도 "+p.data.hardness+(coolant==3&&p.data.hardness<7?" · 경고: 가열 후 850°C 이상에서 타격해야 담금질됩니다.":p.data.perfectQuench?" · 정밀 담금질 +100G":""));
     }
     int RuneNumber(object value){int n=Int(value);if(n<1||n>9)Fail("룬 번호는 1~9입니다.");return n;}
     object Extended(BlueprintFeature feature,List<object> args)
@@ -47,6 +50,12 @@ public sealed partial class BlueprintRuntime
         case BlueprintFeature.RuneList:return new List<int>{1,2,3,4,5,6,7,8,9};
         case BlueprintFeature.RuneFamily:return (RuneNumber(args[0])-1)%3+1;
         case BlueprintFeature.RuneGrade:return (RuneNumber(args[0])-1)/3+1;
+        case BlueprintFeature.Fuel:
+            int temperature=Int(args[0]);if(temperature<100||temperature>1200)Fail("화로 온도는 100~1200°C의 정수입니다.");
+            Consume(4);furnaceTemperature=temperature;
+            float fuelDuration=2.4f/Math.Max(1,context.Speed);productionSeconds+=fuelDuration;
+            result.steps.Add(new ForgeMvp.Step{line=currentLine,module=currentModule.IsMain?null:currentModule.Name,day=context.Day(),minute=(int)(clockHour()*60),process=8,heat=temperature,text="화로 설정 · "+temperature+"°C · 석탄 1개",consumed=new Dictionary<int,int>(pendingMaterials),duration=fuelDuration,productionSeconds=productionSeconds});
+            pendingMaterials.Clear();return null;
         case BlueprintFeature.Wait:
             int wait=Int(args[0]);if(wait<0||wait>30)Fail("대기는 0~30초입니다.");float duration=wait/Math.Max(1,context.Speed);productionSeconds+=duration;
             result.steps.Add(new ForgeMvp.Step{line=currentLine,module=currentModule.IsMain?null:currentModule.Name,process=-1,duration=duration,productionSeconds=productionSeconds,text="대기 "+duration+"초"});return null;
@@ -78,8 +87,6 @@ public sealed partial class BlueprintRuntime
             Action(5,p,absorbed>0&&d.activated?"공명 수정 부품 장착":"손잡이 제작 · "+ForgeMaterialGuide.Find(d.handle).Name+" · 0G");result.steps[result.steps.Count-1].absorbedPiece=absorbed;break;
         case BlueprintFeature.Polish:ColdBlade(p);d.polished=true;Action(6,p,"검날 연마 완료");break;
         case BlueprintFeature.Plate:ColdBlade(p);if(d.plated)Fail("이미 도금되었습니다.");Consume(5);if(d.polished)d.plated=true;Action(7,p,d.polished?"은도금 완료":"경고: 연마하지 않아 은이 얼룩짐 · 보너스 없음");break;
-        case BlueprintFeature.Fuel:
-            int target=Int(args[1]);if(target<1||target>9)Fail("목표 열은 1~9입니다.");Consume(4);p.heat+=2;if(p.heat>=target+2)d.cracked=true;p.heat=Math.Min(9,p.heat);Action(2,p,"석탄 가열 · 열 "+p.heat+(d.cracked?" · 과열 균열":""));break;
         case BlueprintFeature.Charge:
             ColdBlade(p);if(d.handle==0)Fail("손잡이가 필요합니다.");int power=Int(args[1]);if(power<1||power>3)Fail("주입 세기는 1~3입니다.");if(d.charge>=3)Fail("이미 충전 완료되었습니다.");if(d.charge==0)Consume(6);if(power!=1)d.cracked=true;else d.charge++;Action(9,p,"마력 주입 · "+d.charge+"/3"+(power!=1?" · 강한 주입으로 균열":""));break;
         case BlueprintFeature.Refine:
@@ -107,7 +114,7 @@ public sealed partial class BlueprintRuntime
         case BlueprintFeature.Magic:if(d.magic)Fail("이미 마력 단조가 활성화되었습니다.");Consume(6);d.magic=true;Action(401,p,"마력 단조 활성화");break;
         case BlueprintFeature.Strength:return (int)Strength(p);
         case BlueprintFeature.Resonate:
-            if(p.material!=6)Fail("수정 작업물이 필요합니다.");if(d.resonanceTarget<0)d.resonanceTarget=(int)(((uint)context.Seed+(uint)p.id*17)%9)+1;
+            if(p.material!=6)Fail("수정 작업물이 필요합니다.");if(d.resonanceTarget<0)d.resonanceTarget=((int)(((uint)context.Seed+(uint)p.id*17)%9)+1)*100;
             int comparison=p.heat.CompareTo(d.resonanceTarget);if(comparison==0)d.activated=true;Action(501,p,"공명 검사 · "+comparison);return comparison;
         default:Fail("확장 공정이 없습니다.");break;
         }

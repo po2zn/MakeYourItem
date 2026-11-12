@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 public static class BlueprintImportChecks
 {
-    public const string Smith = "TARGET = 7\ndef forge(material):\n    blade = 1(material)\n    2(blade, TARGET)\n    3(blade)\n    4(blade, 0)\n    return blade";
+    public const string Smith = "TARGET = 7\ndef forge(material):\n    blade = 1(material)\n    2(blade)\n    3(blade)\n    4(blade, 0)\n    return blade";
     static void Require(bool condition,string message){if(!condition)throw new Exception(message);}
     static Dictionary<string,string> Sources()=>new Dictionary<string,string>{{"smith",Smith}};
     static ForgeMvp.Evaluation Good(string source,IReadOnlyDictionary<string,string> modules=null)
@@ -89,7 +89,7 @@ public static class BlueprintImportChecks
             r=ForgeMvp.Evaluate("import m",modules:new Dictionary<string,string>{{"m","while True:\n    x = 1"}});Require(r.errorMessage.Contains("10000")&&r.errorModule=="m","command limit");
         });
         check("technology ownership applies inside imported modules",()=>{
-            var r=ForgeMvp.Evaluate("import m",technology:new ForgeTechnology(),modules:new Dictionary<string,string>{{"m","x = random(1, 2)"}});Require(r.error!=null&&r.errorModule=="m"&&r.errorMessage.Contains("구매"),"technology");
+            var tech=new ForgeTechnology();tech.Restore(Array.Empty<BlueprintFeature>(),new[]{ForgeTechnology.AutomationRoot,ForgeTechnology.ImportResearch});var r=ForgeMvp.Evaluate("import m",technology:tech,modules:new Dictionary<string,string>{{"m","x = random(1, 2)"}});Require(r.error!=null&&r.errorModule=="m"&&r.errorMessage.Contains("구매"),"technology");
         });
         check("import syntax and qualified names highlight without changing source",()=>{
             var tokens=ForgeSyntax.Scan("from smith import forge as make\nimport smith\nsmith.forge(1)");Require(tokens.Count(t=>t.kind==ForgeSyntax.Kind.Reserved)==4&&tokens.Any(t=>t.kind==ForgeSyntax.Kind.Function),"highlight");

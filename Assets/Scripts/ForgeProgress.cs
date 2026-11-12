@@ -221,12 +221,13 @@ public partial class ForgeMvp : ISerializationCallbackReceiver
     static string DiscoveryRule(string name)
     {
         switch(name){
-            case "담금질 경도 7":return "열 6 이상인 성형 검날을 물(3)로 냉각";
+            case "적정 온도 담금질":return "검별 적정 온도에 정확히 맞춰 가열·타격한 뒤 물로 냉각";
+            case "담금질 경도 7":return "850°C 이상에서 가열·타격한 검날을 물(3)로 냉각";
             case "손잡이":return "성형하고 식힌 검날에 철·나무·은·별철로 손잡이 제작, 또는 정제 용뼈 장착";
             case "연마":return "식힌 성형 검날을 연마하여 판매 가치 향상";
             case "은도금":return "검날을 식힌 뒤 연마하고 은도금";
-            case "별무늬":return "성형한 별철 검날이 열 7일 때 냉각";
-            case "서리 문양":return "검날의 열과 서리수의 열 4의 차이가 3 이하";
+            case "별무늬":return "성형한 별철 검날을 900°C에서 냉각";
+            case "서리 문양":return "100~900°C의 검날을 서리수로 냉각";
             case "마력 전도":return "손잡이에 약한 마력(1)을 3회 주입";
             case "용의 맥동":return "용뼈 손잡이와 충전된 수정 조합";
             case "공명 수정":return "숨은 열을 찾아 활성화한 수정을 식혀 장착";
@@ -262,7 +263,6 @@ public partial class ForgeMvp
     int titlePage,confirmSlot;
     string titleMessage="";
     Vector2 titleScroll;
-    float masterVolume=1;
     GUIStyle menuTitle,menuText,menuButton;
     void InitializeTitle()
     {
@@ -270,8 +270,7 @@ public partial class ForgeMvp
         if(PlayerPrefs.HasKey(LegacySaveKey)&&!PlayerPrefs.HasKey(SlotKey(1))){
             PlayerPrefs.SetString(SlotKey(1),PlayerPrefs.GetString(LegacySaveKey));PlayerPrefs.Save();
         }
-        masterVolume=Mathf.Clamp01(PlayerPrefs.GetFloat("MakeYourItem.Settings.Volume",1));
-        AudioListener.volume=masterVolume;
+        ForgeAudioSettings.Load();
         if(PlayerPrefs.HasKey("MakeYourItem.Settings.Fullscreen"))Screen.fullScreen=PlayerPrefs.GetInt("MakeYourItem.Settings.Fullscreen")==1;
         InitializeDisplaySettings();
         showTitle=true;titlePage=0;progressLoaded=false;activeSaveSlot=0;DayCycle.Paused=true;RefreshTitleDisplay();

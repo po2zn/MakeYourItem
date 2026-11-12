@@ -16,6 +16,8 @@ public static class ForgeTechnologyChecks
     }
     public static void Main()
     {
+        CheckLivePurchases();
+        CheckCoalBundle();
         CheckBulkPurchase();
         CheckBundles();
         CheckSpeedLevels();
@@ -37,16 +39,16 @@ public static class ForgeTechnologyChecks
         Require(tech.TryPurchase(ForgeTechnology.Find(ForgeTechnology.AutomationRoot),ref gold,ref iron,ref stocks,false,out message),message);
         var heat=ForgeTechnology.Find("function-Heat");
         Require(ForgeMvp.Evaluate("p=1(1)\nprint(100(p))",technology:tech).compileError,"locked numeric function");
-        Require(!tech.TryPurchase(heat,ref gold,ref iron,ref stocks,true,out message),"busy");
+        Require(tech.BlockReason(heat,gold,iron,stocks,true)==null,"research available while crafting");
         gold=heat.Price-1;
         Require(!tech.TryPurchase(heat,ref gold,ref iron,ref stocks,false,out message)&&gold==heat.Price-1,"insufficient funds");
         gold=heat.Price;
-        Require(tech.TryPurchase(heat,ref gold,ref iron,ref stocks,false,out message)&&gold==0,"exact funds");
+        Require(tech.TryPurchase(heat,ref gold,ref iron,ref stocks,true,out message)&&gold==0,"exact funds");
         gold=100000000;
         Require(!tech.TryPurchase(heat,ref gold,ref iron,ref stocks,false,out message)&&gold==100000000,"duplicate");
         Require(ForgeMvp.Evaluate("p=1(1)\nprint(heat(p),100(p))",technology:tech).error==null,"both spellings");
         var fuel=ForgeTechnology.Find("function-Fuel");
-        Require(!tech.TryPurchase(fuel,ref gold,ref iron,ref stocks,false,out message),"all parents required not any");
+        Require(tech.TryPurchase(fuel,ref gold,ref iron,ref stocks,false,out message)&&tech.MaterialAvailable(4)&&tech.Owns(BlueprintFeature.Fuel),"coal and furnace unlock together");
         Require(!tech.TryPurchase(new ForgeTechnology.Offer(1,0),ref gold,ref iron,ref stocks,false,out message),"unknown offer");
         BuyAllNodes(tech,ref gold,ref iron,ref stocks);
         foreach(var offer in ForgeTechnology.Offers.Where(o=>o.Kind==ForgePurchaseKind.Material)){
@@ -68,12 +70,51 @@ public static class ForgeTechnologyChecks
         Console.WriteLine("PASS tree: unique DAG, all-parent gates, atomicity, stock/permits, both spellings, legacy migration and roundtrip");
         BlueprintMaterialChecks.Main();
     }
+    static void CheckLivePurchases()
+    {
+        var tech=new ForgeTechnology();tech.Restore(Array.Empty<BlueprintFeature>(),new[]{ForgeTechnology.AutomationRoot});
+        int gold=100000,iron=0;ForgeMaterialStock[] stocks=null;
+        var context=new ForgeRunContext{RefreshResources=session=>session.SetResources(gold,iron,new System.Collections.Generic.Dictionary<int,long>())};
+        using(var session=BlueprintRuntime.StartSession("print(0)\np=1(1)\nprint(1)",gold,iron,technology:tech,deferErrors:true,context:context)){
+            session.Advance().GetAwaiter().GetResult();
+            Require(tech.TryPurchase(ForgeTechnology.Find("stock-1"),ref gold,ref iron,ref stocks,true,out var message,2),message);
+            int afterBuy=gold;session.Advance().GetAwaiter().GetResult();
+            Require(session.Evaluation.error==null&&session.Evaluation.steps.Last().iron==1,"live purchased iron usable on next statement");iron--;
+            Require(tech.TryPurchase(ForgeTechnology.Find("function-Heat"),ref gold,ref iron,ref stocks,true,out message),message);
+            session.Advance().GetAwaiter().GetResult();
+            Require(session.Completed&&session.Evaluation.error==null&&tech.Owns(BlueprintFeature.Heat)&&iron==1&&gold==afterBuy-ForgeTechnology.Find("function-Heat").Price,"research purchase preserves running work and balances: "+session.Evaluation.error+" completed="+session.Completed+" iron="+iron+" gold="+gold);
+            int before=gold;Require(!tech.TryPurchase(ForgeTechnology.Find("function-Heat"),ref gold,ref iron,ref stocks,true,out message)&&gold==before,"duplicate remains atomic during production");
+        }
+        Console.WriteLine("PASS live purchases: material refill, research during execution, balances, duplicate prevention");
+    }
+    static void CheckCoalBundle()
+    {
+        var bundle=ForgeTechnology.Find("function-Fuel");
+        Require(bundle==ForgeTechnology.Find("material-4")&&bundle.Price==2400,"single coal bundle identity and price");
+        Require(!ForgeTechnology.Offers.Any(o=>o.Id=="material-4"),"no separate coal research sale");
+        var tech=new ForgeTechnology();int gold=2400,iron=0;ForgeMaterialStock[] stocks=null;
+        Require(!tech.TryPurchase(bundle,ref gold,ref iron,ref stocks,false,out _)&&gold==2400&&stocks==null,"locked bundle atomic");
+        tech.Restore(Array.Empty<BlueprintFeature>(),new[]{ForgeTechnology.AutomationRoot});gold=2399;
+        Require(!tech.TryPurchase(bundle,ref gold,ref iron,ref stocks,false,out _)&&!tech.MaterialAvailable(4)&&!tech.Owns(BlueprintFeature.Fuel)&&stocks==null,"insufficient bundle funds atomic");
+        gold=2400;Require(tech.TryPurchase(bundle,ref gold,ref iron,ref stocks,false,out _)&&gold==0,"single bundle charge");
+        Require(tech.MaterialAvailable(4)&&tech.Owns(BlueprintFeature.Fuel)&&stocks.Single(s=>s.material==4).unlocked&&stocks.Single(s=>s.material==4).count==0,"both unlock without granting stock");
+        gold=16;Require(tech.TryPurchase(ForgeTechnology.Find("stock-4"),ref gold,ref iron,ref stocks,false,out _,2)&&gold==0&&stocks.Single(s=>s.material==4).count==2,"coal remains repeatable stock purchase");
+        gold=5000;Require(!tech.TryPurchase(bundle,ref gold,ref iron,ref stocks,false,out _)&&gold==5000,"no double purchase");
+        foreach(var ids in new[]{new[]{"material-4"},new[]{"function-Fuel"},new[]{"material-4","function-Fuel"}}){
+            var old=new ForgeTechnology();old.Restore(Array.Empty<BlueprintFeature>(),ids);
+            Require(old.MaterialAvailable(4)&&old.Owns(BlueprintFeature.Fuel)&&old.ExportNodes().Count(id=>id=="function-Fuel")==1&&!old.ExportNodes().Contains("material-4"),"legacy bundle migration");
+            var restored=new ForgeTechnology();restored.Restore(old.Export(),old.ExportNodes());Require(restored.MaterialAvailable(4)&&restored.Owns(BlueprintFeature.Fuel),"bundle save roundtrip");
+        }
+        var fuelGuide=BlueprintGuide.Entries.Single(e=>e.Feature==BlueprintFeature.Fuel);
+        Require(!fuelGuide.ShowResearch&&fuelGuide.ResearchFor(false)==""&&fuelGuide.ResearchFor(true)=="","fuel research prose removed in both variants");
+        Console.WriteLine("PASS coal bundle: one purchase, both unlocks, atomicity, stock purchase, migration, guide suppression");
+    }
     static void CheckControlRoot()
     {
         var tech=new ForgeTechnology();int gold=100,iron=10;ForgeMaterialStock[] stocks=null;
         var root=ForgeTechnology.Find(ForgeTechnology.AutomationRoot);
         Require(!tech.TryPurchase(root,ref gold,ref iron,ref stocks,false,out var message)&&gold==100,"initial funds require manual crafting first");
-        Require(ForgeMvp.Evaluate("p=1(1)\n2(p,7)\n3(p)\n4(p,0)\n5(p,2)\n!p",technology:tech).error==null,"basic five processes remain free");
+        Require(ForgeMvp.Evaluate("p=1(1)\n2(p)\n3(p)\n4(p,0)\n5(p,2)\n!p",technology:tech).error==null,"basic five processes remain free");
         string[] samples={
             "if True:\n    print(1)\nelif False:\n    print(2)\nelse:\n    print(3)",
             "1?(True):\n    print(1)\n01?(False):\n    print(2)\n0?:\n    print(3)",
@@ -96,7 +137,10 @@ public static class ForgeTechnologyChecks
         gold=root.Price;Require(tech.TryPurchase(root,ref gold,ref iron,ref stocks,false,out message)&&gold==0,message);
         Require(ForgeTechnology.ControlFeatures.All(tech.Owns),"all nine control forms unlocked");
         Require(!tech.Owns(ForgeTechnology.EnglishResearch),"Control root must not grant English");
-        gold=1000;
+        gold=100000;
+        Require(!tech.TryPurchase(ForgeTechnology.Find(ForgeTechnology.EnglishResearch),ref gold,ref iron,ref stocks,true,out message),"English requires Max");
+        foreach(var id in new[]{"function-Abs","function-Min","function-Max"})Require(tech.TryPurchase(ForgeTechnology.Find(id),ref gold,ref iron,ref stocks,true,out message),message);
+        Require(ForgeTechnology.Find(ForgeTechnology.EnglishResearch).Parents.SequenceEqual(new[]{"function-Max"}),"English follows Max");
         Require(tech.TryPurchase(ForgeTechnology.Find(ForgeTechnology.EnglishResearch),ref gold,ref iron,ref stocks,false,out message),message);
         Require(tech.TryPurchase(ForgeTechnology.Find(ForgeTechnology.ImportResearch),ref gold,ref iron,ref stocks,false,out message),message);
         foreach(var source in samples)Require(ForgeMvp.Evaluate(source,technology:tech).error==null,"unlocked controls execute");
@@ -184,7 +228,7 @@ public static class ForgeTechnologyChecks
         Require(tech.Owns(BlueprintFeature.IsDay)&&tech.Owns(BlueprintFeature.NightTime),"both time functions owned");
         Require(ForgeMvp.Evaluate("print(12(),24(),24(60),is_day(),night_time())",technology:tech).error==null,"all time spellings");
         Require(tech.Owns(BlueprintFeature.Lucky)&&tech.Owns(BlueprintFeature.LuckyCode),"both luck functions owned");
-        string blade="p=1(1)\n2(p,7)\n3(p)\n4(p,0)\n5(p,2)\n";
+        string blade="p=1(1)\n2(p)\n3(p)\n4(p,0)\n5(p,2)\n";
         foreach(string call in new[]{"777(777?(),p)","lucky(lucky_code(),p)"})Require(ForgeMvp.Evaluate(blade+"p="+call+"\n!p",technology:tech).error==null,"luck bundle execution");
         before=gold;
         Require(!tech.TryPurchase(ForgeTechnology.Find("function-LuckyCode"),ref gold,ref iron,ref stocks,false,out message)&&gold==before,"companion cannot be purchased twice");

@@ -79,7 +79,7 @@ public sealed class ForgeTreePanel : MonoBehaviour
             if(card.smithId>=0){owned=owner.HierarchySmithOwned(card.smithId);locked=card.smithId>1&&card.smithId<=5&&!owner.HierarchySmithOwned(card.smithId-1);int cost=owner.HierarchySmithPrice(card.smithId);
                 state=owned?"구매 완료":locked?"선행 구매 필요":owner.HierarchyDiamonds<cost?"다이아 부족":"구매 가능";price=owned?"완료":ForgeMaterialHud.FormatCount(cost)+"D";}
             else if(card.offer!=null){var offer=card.offer;owned=owner.HierarchyTechnology.Owns(offer);locked=owner.HierarchyTechnology.MissingPrerequisites(offer)!=null;
-                state=offer.Kind==ForgePurchaseKind.Material?"재고 "+owner.HierarchyStock(offer):owned?"구매 완료":locked?"선행 구매 필요":owner.HierarchyBusy?"제작 중":owner.HierarchyGold<offer.Price?"골드 부족":"구매 가능";
+                state=offer.Kind==ForgePurchaseKind.Material?"재고 "+owner.HierarchyStock(offer):owned?"구매 완료":locked?"선행 구매 필요":owner.HierarchyGold<offer.Price?"골드 부족":"구매 가능";
                 price=owned?"완료":ForgeMaterialHud.FormatCount(offer.Price)+(offer.Kind==ForgePurchaseKind.Material?"G/개":"G");}
             else continue;
             card.surface.color=owned?Owned:locked?Locked:Available;card.state.text=state;card.price.text=price;

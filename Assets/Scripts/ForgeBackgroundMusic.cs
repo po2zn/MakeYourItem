@@ -7,6 +7,20 @@ public sealed class ForgeBackgroundMusic : MonoBehaviour
 {
     static ForgeBackgroundMusic instance;
     [SerializeField] AudioClip[] playlist;
+    AudioSource musicSource;
+    float authoredVolume;
+    bool applicationPaused;
+    double pauseStarted,suspendedDspTime;
+    double PlaybackClock=>AudioSettings.dspTime-suspendedDspTime-(applicationPaused?AudioSettings.dspTime-pauseStarted:0);
+    void OnApplicationPause(bool paused){
+        if(paused==applicationPaused)return;
+        if(paused)pauseStarted=AudioSettings.dspTime;
+        else suspendedDspTime+=System.Math.Max(0,AudioSettings.dspTime-pauseStarted);
+        applicationPaused=paused;
+    }
+    void OnEnable(){ForgeAudioSettings.Changed+=ApplyVolume;ApplyVolume();}
+    void OnDisable(){ForgeAudioSettings.Changed-=ApplyVolume;}
+    void ApplyVolume(){if(musicSource)musicSource.volume=authoredVolume*ForgeAudioSettings.Music;}
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void ResetInstance(){instance=null;}
 
@@ -24,7 +38,9 @@ public sealed class ForgeBackgroundMusic : MonoBehaviour
     {
         if(instance&&instance!=this){Destroy(gameObject);return;}
         instance=this;DontDestroyOnLoad(gameObject);
+        Application.runInBackground=true;
         var source=GetComponent<AudioSource>();
+        musicSource=source;authoredVolume=source.volume;ApplyVolume();
         source.playOnAwake=false;source.loop=false;source.spatialBlend=0;
     }
 
@@ -44,8 +60,21 @@ public sealed class ForgeBackgroundMusic : MonoBehaviour
                 yield return new WaitForSecondsRealtime(1);continue;
             }
             source.clip=clip;source.Play();
+            int resumeSample=0;
+            double expectedEnd=PlaybackClock+clip.length;
             yield return null;
-            while(source.isPlaying||AudioListener.pause)yield return null;
+            while(true){
+                if(applicationPaused||AudioListener.pause){yield return null;continue;}
+                if(source.isPlaying){
+                    resumeSample=source.timeSamples;
+                    expectedEnd=PlaybackClock+(clip.samples-resumeSample)/(double)clip.frequency;
+                    yield return null;continue;
+                }
+                // A temporary audio interruption is not the end of the track.
+                if(PlaybackClock>=expectedEnd-.02)break;
+                source.Play();source.timeSamples=Mathf.Clamp(resumeSample,0,Mathf.Max(0,clip.samples-1));
+                yield return new WaitForSecondsRealtime(.1f);
+            }
         }
     }
 

@@ -13,12 +13,12 @@ public sealed class ForgeResizeArrow : MaskableGraphic
         Line(Point(.23f,.77f),Point(.23f,.48f));Line(Point(.23f,.77f),Point(.52f,.77f));
         Line(Point(.77f,.23f),Point(.48f,.23f));Line(Point(.77f,.23f),Point(.77f,.52f));
     }
-    public static void AddTo(RectTransform handle)
+    public static void AddTo(RectTransform handle,string description="드래그하여 코드창 크기 조절")
     {
+        var hint=handle.GetComponent<ForgeUIHover>();if(!hint)hint=handle.gameObject.AddComponent<ForgeUIHover>();hint.description=description;
         if(handle.Find("ResizeArrow"))return;
         var child=new GameObject("ResizeArrow",typeof(RectTransform),typeof(CanvasRenderer),typeof(ForgeResizeArrow));child.transform.SetParent(handle,false);
         var rect=(RectTransform)child.transform;rect.anchorMin=Vector2.zero;rect.anchorMax=Vector2.one;rect.offsetMin=rect.offsetMax=Vector2.zero;
         var arrow=child.GetComponent<ForgeResizeArrow>();arrow.color=Color.white;arrow.raycastTarget=false;
-        var hint=handle.GetComponent<ForgeUIHover>();if(!hint)hint=handle.gameObject.AddComponent<ForgeUIHover>();hint.description="드래그하여 코드창 크기 조절";
     }
 }

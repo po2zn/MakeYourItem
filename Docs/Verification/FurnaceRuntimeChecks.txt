@@ -1,0 +1,195 @@
+PASS furnace setting does not heat a piece; persists within one execution
+PASS ideal is hidden before heating, fixed per piece and varied across seeds
+PASS exact temperature yields 128G; 1 degree miss yields 47G
+PASS requires hammer after latest heating and water; reheating clears reward
+PASS failed furnace changes consume nothing and retain previous state
+PASS single stepping matches continuous results and receipts
+PASS numeric and English temperature commands agree; guide hides research
+PASS parallel smith furnaces and parent furnace are isolated
+TOTAL furnace checks 8
+PASS basic: iron 1 / cost 0 / base 28 / bonus 0 / profit 28
+PASS extra successful heat: cost 0 / same state / sale 28 / profit 28
+PASS preview versus committed ledger and balances
+PASS preview is isolated from existing shop and caller balances
+PASS hot submission: zero value, cost remains 0
+PASS unshaped submission: zero value
+PASS cold strike executes without shaping
+PASS zero gold: all forging processes succeed
+PASS no iron: no money or material consumed
+PASS compile failure: whole run has zero cost
+PASS sell same ID repeatedly: pay exactly 28 once
+PASS select second product: retain first cost and identity
+PASS failed spend changes neither ledger nor balances
+PASS immutable record is unaffected by later ledger spending
+TOTAL 14 passed
+
+PASS raw iron submission consumes one iron and pays zero
+PASS raw submission cannot create inventory
+PASS standalone load and complete process sequence need no submission
+PASS calculation only and empty programs succeed
+PASS cold strike acts without changing shape; later hot strike succeeds
+PASS nested calls execute inner first and preserve snapshots
+PASS effectful return and condition allowed; short circuit skips actions
+PASS void calls return None without suppressing actions
+PASS multiple workpieces retain animation identity
+PASS failed calls leave only successful animation receipts
+PASS arity types cooling and invalid submissions remain errors
+PASS preview receipts reproduce final material and pricing
+TOTAL free forge 12 passed
+
+PASS All builtins/control entries have unique stable IDs and complete metadata
+PASS all builtin aliases share result and source remains intact
+PASS function/for/if/else/break/return aliases produce identical craft
+PASS no suitable candidate skips with zero cost
+PASS nested loops scope break/continue and function return
+PASS literal and opaque text contexts; whole identifiers
+PASS longest compound tokens distinguish completion/comparisons
+PASS tolerant highlighting exposes exact raw spans without markup
+PASS UTF8 roundtrip preserves zero padding, symbols, CRLF and Korean
+PASS flat integer collections, copy semantics and membership
+PASS compile errors have original line and no receipts
+PASS runtime errors retain prior cost and precise source line
+PASS while budget stops without registering finished item
+PASS bad runtime arguments fail and English/numeric errors match
+PASS deterministic inclusive random and full integer range
+PASS function processes share ledger and Piece identity
+PASS contextual tooltip distinguishes heat targets and random bounds
+PASS source file save/read preserves raw tokens and executable meaning
+PASS call-depth, collection and dynamic parameter limits
+PASS elif aliases select only first true branch and preserve fallback
+PASS elif token, purple span, tooltip and opaque text
+PASS orphan, after-else and malformed elif report original line
+PASS function calls yellow, control keywords purple
+PASS named numeric definitions match def; legacy headers rejected
+TOTAL language 24 passed
+
+PASS first click executes one line with no future effects
+PASS future runtime errors are not evaluated early
+PASS blank comments and untaken branches do not consume steps
+PASS while header reappears on each iteration
+PASS for continue and break preserve iteration state
+PASS step into functions and resume assignment on return
+PASS recursive calls retain independent paused frames
+PASS import enters original module lines and initializes once
+PASS stepped execution matches full costs output and random state
+PASS cancel preserves completed receipts and executes nothing later
+PASS compile failure creates completed zero-cost session
+PASS error retains only prior successful process receipts
+PASS recursion and command limits apply across separate clicks
+TOTAL stepping 13 passed
+
+PASS future arity error preserves earlier real receipts
+PASS missing functions and wrong literal types fail only when reached
+PASS bad parentheses and argument assignment do not execute partial expressions
+PASS unterminated string preserves valid lexical prefix
+PASS invalid indentation stops at unreadable boundary after prior lines
+PASS valid statements inside a block run before its malformed line
+PASS unselected branches and unused function bodies do not fail
+PASS function call pauses before its bad body statement
+PASS imports preserve module prefix and report original module line
+PASS block context errors remain enforced at reached statement
+PASS first-line errors pause before reporting
+PASS full execution still rejects whole-source compile errors
+PASS technology checks are delayed but cannot be bypassed
+PASS valid prefix and malformed elif retain branch control flow
+PASS malformed unselected elif does not leak its body into outer scope
+TOTAL deferred errors 15 passed
+
+PASS hot and cold water, stock depletion and price
+PASS handle material selection, atomic failures and stepping
+PASS polish plating, star frost and dragon refinement
+PASS lucky daily identity, validation, duplicate application and midnight
+PASS stack set mutation and safe errors
+PASS seals reverse order, damage and bounded bonus
+PASS runes duplicate family does not consume material
+PASS fixed resonance target and successful attachment
+PASS timed magic decay and acceleration
+PASS recovery and absorption prevent reuse
+PASS purchase gates and all expansion examples
+PASS translation preserves literals strings comments and execution
+TOTAL expansion 12 passed
+
+PASS tutorial: material choice, variable, five processes, sword submission, mistakes/retries, checkpoint restore and duplicate prevention
+
+PASS guide start
+PASS guide variables
+PASS guide notation
+PASS guide 1
+PASS guide 2
+PASS guide 3
+PASS guide 4
+PASS guide extension-5
+PASS guide finish
+PASS guide if
+PASS guide elif
+PASS guide else
+PASS guide while
+PASS guide for
+PASS guide break
+PASS guide continue
+PASS guide def
+PASS guide recursion
+PASS guide import
+PASS guide return
+PASS guide heat
+PASS guide abs
+PASS guide len
+PASS guide min
+PASS guide max
+PASS guide random
+PASS guide set
+PASS guide print
+PASS guide list
+PASS guide dict
+PASS guide tuple
+PASS guide membership
+PASS guide operators
+PASS guide stages
+PASS guide choose
+PASS guide errors
+PASS guide extension-6
+PASS guide extension-7
+PASS guide extension-8
+PASS guide extension-9
+PASS guide extension-10
+PASS guide extension-102
+PASS guide extension-777
+PASS guide extension-777?
+PASS guide extension-222
+PASS guide extension-225
+PASS guide extension-666
+PASS guide extension-667
+PASS guide extension-404
+PASS guide extension-201
+PASS guide extension-202
+PASS guide extension-203
+PASS guide extension-211
+PASS guide extension-212
+PASS guide extension-213
+PASS guide extension-214
+PASS guide extension-215
+PASS guide extension-301
+PASS guide extension-302
+PASS guide extension-303
+PASS guide extension-401
+PASS guide extension-402
+PASS guide extension-400
+PASS guide extension-501
+PASS guide is-day
+PASS guide night-time
+PASS guide clock-minutes
+PASS guide masterwork-example
+PASS guide extension-smith-90909
+PASS guide extension-smith-90901
+PASS guide extension-smith-90902
+PASS guide extension-smith-90903
+PASS guide extension-smith-90904
+PASS guide extension-smith-90905
+PASS guide extension-smith-90906
+PASS guide extension-smith-90907
+PASS guide extension-smith-90910
+PASS current tree offer coverage, research metadata, speed reward, smith hiring and masterwork materials
+PASS numeric-only examples, equal execution, hidden English, unlock restoration and search
+PASS guide unlocks: basic crafting, locked features, bundles, materials, smith research, speed reward, all 77 entries, overview and prose.
+TOTAL guide 77 examples passed; registry, economy, no-candidate and search passed
+

@@ -1,0 +1,5 @@
+2026-11-12
+Production no longer blocks technology or stock purchases. Purchase validation retains prerequisites, funds, quantity and overflow guards. Existing session RefreshResources picks up stock before each statement. Research purchased during a run remains owned; commands already rejected by the initial/deferred parser require a fresh execution.
+English research prerequisite and position: Max -> English, tier 5 lane 10. Existing saves retain purchases through ancestor migration.
+Coal + furnace bundle retained at 2400G; restored original coal position (704,1224) and automation-root branch. Heat crossing edge disabled; outgoing connections adjusted. Existing inactive duplicate coal card retained inactive.
+Runtime/editor compile passed. Both offline regression suites passed, including new live-purchase material refill, research ownership during execution, balance and duplicate checks. Serialized active edge positions, anchors and pivots verified. No Unity Pipeline editor connection: Play Mode and visual checks at 800x600/1280x720/1920x1080/3840x2160 and minimum window dimensions not performed.

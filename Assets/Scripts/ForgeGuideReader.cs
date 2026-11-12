@@ -319,13 +319,13 @@ public sealed partial class ForgeGuideReader
         float noteH=note.Length==0?0:SubsectionHeight("주의할 점",note,width);
         string research=VisibleProse(entry.ResearchFor(englishUnlocked));
         if(entry.Feature==BlueprintFeature.Speed)research="구매한 최대 속도: "+technology.MaxSpeedLevel+"배. 1부터 이 단계까지 설정할 수 있습니다.";
-        float researchH=SubsectionHeight("연구 및 준비",research,width);
+        float researchH=entry.ShowResearch?SubsectionHeight("연구 및 준비",research,width):0;
         float total=sectionH+titleH+bodyH+researchH+codeHeight+expectedH+noteH+170;
         detailScroll=BeginScroll(view,detailScroll,new Rect(0,0,width,Mathf.Max(view.height,total)));
         float y=0;ForgeTextLayout.Label(new Rect(0,y,width,sectionH),entry.Section,sectionStyle);y+=sectionH+4;
         ForgeTextLayout.Label(new Rect(0,y,width,titleH),entry.HeadingFor(englishUnlocked),titleStyle);y+=titleH+10;
         ForgeTextLayout.Label(new Rect(0,y,width,bodyH),description,bodyStyle);y+=bodyH+12;
-        DrawSubsection(y,width,"연구 및 준비",research);y+=researchH+16;
+        if(entry.ShowResearch){DrawSubsection(y,width,"연구 및 준비",research);y+=researchH+16;}
         if(ForgeTextLayout.Button(new Rect(0,y,Mathf.Min(width,150),28),copied?"복사했습니다":"예제 복사",buttonStyle)){GUIUtility.systemCopyBuffer=example;copied=true;}
         y+=34;
         Rect codeRect=new Rect(0,y,width,codeHeight);

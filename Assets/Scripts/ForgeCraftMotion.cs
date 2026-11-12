@@ -8,12 +8,13 @@ public sealed class ForgeCraftMotion : MonoBehaviour
     ForgeWorkshopVisuals workshop;
     uint motionGeneration;
     public bool UsesWorkshopAssets => workshop != null;
-    public void CancelCurrentAction(){motionGeneration++;ActiveProcess=0;if(workshop)workshop.Cancel();}
+    public void CancelCurrentAction(){motionGeneration++;ActiveProcess=0;if(workshop)workshop.Cancel();else{if(fallbackCoal)fallbackCoal.SetActive(false);if(arm){arm.localRotation=Quaternion.identity;var tool=arm.Find("Hammer");if(tool)tool.gameObject.SetActive(true);}}}
     public void ReactToCodeError(){CancelCurrentAction();if(workshop)workshop.ReactToCodeError();}
     void OnDisable(){CancelCurrentAction();}
     readonly Dictionary<int, GameObject> pieces = new Dictionary<int, GameObject>();
     Transform smith, arm;
     GameObject initial;
+    GameObject fallbackCoal;
     Renderer apron;
     bool burning;
     public Vector3 SmithPosition=>workshop?workshop.SmithPosition:smith?smith.position:transform.position;
@@ -82,12 +83,34 @@ public sealed class ForgeCraftMotion : MonoBehaviour
     }
     public void BeginRun()
     {
-        motionGeneration++;
+        CancelCurrentAction();
         if(workshop)workshop.Clear();
         foreach(var item in pieces.Values) if(item) Destroy(item);
         pieces.Clear();
         ActiveProcess = 0;
         CompletedActions = 0;
+    }
+    IEnumerator StokeFallback(ForgeMvp.Step step)
+    {
+        uint generation=motionGeneration;
+        if(!fallbackCoal)fallbackCoal=Shape("Furnace coal",PrimitiveType.Sphere,transform,Vector3.zero,Vector3.one*.12f,new Color(.06f,.055f,.05f));
+        fallbackCoal.SetActive(false);var tool=arm.Find("Hammer");if(tool)tool.gameObject.SetActive(false);
+        Vector3 start=smith.localPosition,end=new Vector3(furnace.x-.8f,0,furnace.z);
+        float elapsed=0,duration=Mathf.Max(.08f,step.duration);Vector3 released=Vector3.zero;bool tossed=false;
+        try{
+            while(elapsed<duration&&generation==motionGeneration){
+                float t=Mathf.Clamp01(elapsed/duration),move=Mathf.SmoothStep(0,1,Mathf.InverseLerp(0,.35f,t));
+                smith.localPosition=Vector3.Lerp(start,end,move)+Vector3.up*(Mathf.Sin(t*Mathf.PI*8)*.025f*(1-move));
+                float reach=Mathf.Sin(Mathf.InverseLerp(.35f,.7f,t)*Mathf.PI);
+                float stoke=t>.76f?Mathf.Sin(Mathf.InverseLerp(.76f,1,t)*Mathf.PI*4):0;
+                arm.localRotation=Quaternion.Euler(0,0,-25*reach-12*stoke);
+                fallbackCoal.SetActive(t>.43f&&t<.76f);
+                if(t<.64f)fallbackCoal.transform.position=arm.TransformPoint(new Vector3(.5f,0,0));
+                else{if(!tossed){released=fallbackCoal.transform.position;tossed=true;}float toss=Mathf.InverseLerp(.64f,.76f,t);fallbackCoal.transform.position=Vector3.Lerp(released,transform.TransformPoint(furnace),toss)+Vector3.up*(Mathf.Sin(toss*Mathf.PI)*.15f);}
+                elapsed+=Time.deltaTime;yield return null;
+            }
+            if(generation==motionGeneration){smith.localPosition=end;CompletedActions++;}
+        }finally{if(generation==motionGeneration){fallbackCoal.SetActive(false);arm.localRotation=Quaternion.identity;if(tool)tool.gameObject.SetActive(true);ActiveProcess=0;}}
     }
     public IEnumerator Play(ForgeMvp.Step step)
     {
@@ -99,7 +122,14 @@ public sealed class ForgeCraftMotion : MonoBehaviour
             finally{if(generation==motionGeneration){ActiveProcess=0;workshop.Cancel();}}
             yield break;
         }
+        if(step.finished){
+            if(pieces.TryGetValue(step.pieceId,out var submitted)){
+                if(submitted){submitted.SetActive(false);Destroy(submitted);}pieces.Remove(step.pieceId);
+            }
+            ActiveProcess=0;yield break;
+        }
         ActiveProcess = step.process;
+        if(step.process==8){yield return StokeFallback(step);yield break;}
         if(!pieces.TryGetValue(step.pieceId, out var work))
         {
             work = Instantiate(initial, transform);
@@ -112,7 +142,7 @@ public sealed class ForgeCraftMotion : MonoBehaviour
         Vector3 smithStart = smith.localPosition;
         Vector3 smithEnd = new Vector3(destination.x-.8f,0,destination.z);
         Color from = work.GetComponent<Renderer>().material.color;
-        Color to = step.heat>0 ? Color.Lerp(Color.gray,Color.red,step.heat/9f) : Color.gray;
+        Color to = step.heat>0 ? Color.Lerp(Color.gray,Color.red,step.heat/1200f) : Color.gray;
         float elapsed = 0;
         float duration = step.duration;
         while(elapsed < duration)

@@ -3,8 +3,8 @@ using System.Text;
 
 public static class ForgeEconomyChecks
 {
-    public const string Basic = "Material = 1\nBlade = 1(Material)\n2(Blade, 7)\n3(Blade)\n4(Blade, 0)\n!Blade";
-    public const string ExtraHeat = "Material = 1\nBlade = 1(Material)\n2(Blade, 7)\n2(Blade, 7)\n3(Blade)\n4(Blade, 0)\n!Blade";
+    public const string Basic = "Material = 1\nBlade = 1(Material)\n2(Blade)\n3(Blade)\n4(Blade, 0)\n!Blade";
+    public const string ExtraHeat = "Material = 1\nBlade = 1(Material)\n2(Blade)\n2(Blade)\n3(Blade)\n4(Blade, 0)\n!Blade";
     static void Require(bool condition, string message) { if (!condition) throw new Exception(message); }
 
     public static string Run()
@@ -52,7 +52,7 @@ public static class ForgeEconomyChecks
             Require(e.error == null && e.product != null && ForgePricing.Quote(e.product).SalePrice == 0 && e.cost == 0, "unshaped finish");
         });
         check("cold strike executes without shaping", () => {
-            var e = ForgeMvp.Evaluate(Basic.Replace("2(Blade, 7)", "2(Blade, 5)"), 100, 10);
+            var e = ForgeMvp.Evaluate(Basic.Replace("2(Blade)", "8(800)\n2(Blade)"), 100, 10);
             Require(e.product != null && e.error == null && e.cost == 0 && e.steps.Exists(s => s.process == 3) && !e.product.Shaped && ForgePricing.Quote(e.product).SalePrice == 0, "strike failure");
         });
         check("zero gold: all forging processes succeed", () => {

@@ -22,6 +22,7 @@ public sealed partial class BlueprintRuntime
     int gold, iron, commands, calls, allocated, printCount, printCharacters;
     readonly Dictionary<int,long> stocks;
     uint randomState;
+    int furnaceTemperature=ForgeBalance.DefaultFurnaceTemperature;
     int currentLine=1, nextPieceId;
     enum Flow { Next, Break, Continue, Return, Finish }
     struct Signal { public Flow Flow; public object Value; public Signal(Flow flow,object value=null){Flow=flow;Value=value;} }
@@ -206,7 +207,13 @@ public sealed partial class BlueprintRuntime
                 if(printCount>=256 || message.Length>65536-printCharacters)Fail("한 실행의 출력 한도(256개/65536자)를 초과했습니다.");
                 printCount++;printCharacters+=message.Length;
                 result.steps.Add(new ForgeMvp.Step{line=currentLine,module=currentModule.IsMain?null:currentModule.Name,debugOutput=true,text=message});return null;
-            case BlueprintFeature.Heat:return Piece(args[0]).heat;
+            case BlueprintFeature.Heat:
+                var measured=Piece(args[0]);EnsureLive(measured);
+                if(args.Count==1)return measured.heat;
+                if(Int(args[1])!=1)Fail("적정 온도 조회는 100(검날, 1)로 사용하세요.");
+                if(measured.material!=1&&measured.material!=7)Fail("철 또는 별철 검날의 적정 온도만 측정할 수 있습니다.");
+                if(measured.data.idealTemperature==0)Fail("먼저 2(검날)로 한 번 가열한 뒤 적정 온도를 측정하세요.");
+                return measured.data.idealTemperature;
             case BlueprintFeature.Abs:int n=Int(args[0]);return n<0?checked(-n):n;
             case BlueprintFeature.Len:if(args[0] is IList<int> l)return l.Count;if(args[0] is HashSet<int> s)return s.Count;if(args[0] is Dictionary<int,int> d)return d.Count;Fail("len에는 컬렉션이 필요합니다.");break;
             case BlueprintFeature.Min:case BlueprintFeature.Max:
@@ -226,13 +233,20 @@ public sealed partial class BlueprintRuntime
         var piece=Piece(args[0]);EnsureLive(piece);
         if(id==4){Cool(piece,Int(args[1]));return null;}
         int heat=piece.heat;bool shaped=piece.shaped;var traits=piece.traits;
-        if(id==2){heat=Int(args[1]);if(heat<1||heat>9)Fail("열 단계 범위: 1~9");traits&=~ForgeTraits.AirCooled;}
-        if(id==3 && heat>=6)shaped=true;
+        if(id==2){
+            heat=furnaceTemperature;traits&=~ForgeTraits.AirCooled;
+            piece.data.lastHammerTemperature=0;piece.data.hardness=0;piece.data.perfectQuench=false;
+            if((piece.material==1||piece.material==7)&&piece.data.idealTemperature==0){
+                randomState=unchecked(randomState*1664525u+1013904223u);
+                piece.data.idealTemperature=ForgeBalance.MinimumForgeTemperature+(int)(randomState%(ForgeBalance.MaximumIdealTemperature-ForgeBalance.MinimumForgeTemperature+1));
+            }
+        }
+        if(id==3 && heat>=ForgeBalance.MinimumForgeTemperature){shaped=true;piece.data.lastHammerTemperature=heat;}
         if(id==3 && piece.data.magic){double completed=Now+.8/Math.Max(1,context.Speed);double strength=StrengthAt(piece,completed)+3;if(strength>9)piece.data.cracked=true;piece.data.strength=Math.Min(9,strength);piece.data.lastStrike=completed; }
 
         // Validate before committing state. Forging consumes materials, never gold.
         piece.heat=heat;piece.shaped=shaped;piece.traits=traits;
-        Record(id,piece,0,0,id==2?"가열 · 0G":id==3?(heat>=6?"타격 · 검날 성형":"타격 · 열 부족으로 성형 효과 없음"):"공기 냉각 · 0G",false);return null;
+        Record(id,piece,0,0,id==2?"화로 가열 · "+heat+"°C · 0G":id==3?(heat>=ForgeBalance.MinimumForgeTemperature?"타격 · 검날 성형":"타격 · 열 부족으로 성형 효과 없음"):"공기 냉각 · 0G",false);return null;
     }
     ForgeMvp.Piece LoadMaterial(int material)
     {
@@ -240,7 +254,7 @@ public sealed partial class BlueprintRuntime
         if(entry==null)Fail("등록되지 않은 재료 번호: "+material);
         if(material>1&&stocks!=null&&(!stocks.TryGetValue(material,out long amount)||amount<1))Fail(entry.Name+" 재료가 잠겨 있거나 보유량이 부족합니다.");
         var piece=new ForgeMvp.Piece{id=++nextPieceId,material=material};
-        if(material==6){randomState=unchecked(randomState*1664525u+1013904223u);piece.data.resonanceTarget=(int)(randomState%9)+1;}
+        if(material==6){randomState=unchecked(randomState*1664525u+1013904223u);piece.data.resonanceTarget=((int)(randomState%9)+1)*100;}
         AddStep(1,piece,0,material==1?1:0,entry.Name+" 올리기 · 0G");
         if(material>1&&stocks!=null)stocks[material]--;
         if(material>0)usedMaterials[material]++;

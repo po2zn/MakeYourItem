@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 public static class ForgeExpansionChecks
 {
- const string Blade="p = 1(1)\n2(p,7)\n3(p)\n";
+ const string Blade="p = 1(1)\n2(p)\n3(p)\n";
  const string Cold=Blade+"4(p,0)\n";
  static void Require(bool ok,string message){if(!ok)throw new Exception(message);}
  static ForgeMvp.Evaluation Good(string code,Dictionary<int,long> stocks=null,ForgeRunContext context=null){var e=ForgeMvp.Evaluate(code,0,10,materialStocks:stocks,context:context);Require(e.error==null,e.error);return e;}
@@ -15,7 +15,7 @@ public static class ForgeExpansionChecks
   Require(e.product.Kind==ForgeProductKind.Sword&&e.product.Data.hardness==7&&ForgePricing.Quote(e.product).SalePrice==69,"quench handle quote");
   Require(inventory[3]==1&&e.steps.Single(s=>s.process==4).consumed[3]==1&&e.product.Data.materials[2]==1,"receipt isolation");
   var cold=Good(Cold+"4(p,3)\n!p");Require(cold.product.Data.hardness==0&&ForgePricing.Quote(cold.product).SalePrice==28,"cold water no bonus");
-  var shortage=ForgeMvp.Evaluate(Blade+"4(p,3)",materialStocks:new Dictionary<int,long>());Require(shortage.error!=null&&shortage.steps.Count==3&&((ForgeMvp.Piece)shortage.values["p"]).heat==7,"failed cooling atomic");
+  var shortage=ForgeMvp.Evaluate(Blade+"4(p,3)",materialStocks:new Dictionary<int,long>());Require(shortage.error!=null&&shortage.steps.Count==3&&((ForgeMvp.Piece)shortage.values["p"]).heat==900,"failed cooling atomic");
  });
  check("handle material selection, atomic failures and stepping",()=>{
   foreach(int material in new[]{1,2,5,7}){
@@ -67,11 +67,11 @@ public static class ForgeExpansionChecks
   var full=Good(Cold+"211(p,7)\n211(p,8)\n211(p,9)\n!p");Require(ForgePricing.Bonuses(full.product).ContainsKey("삼중 공명"),"three families");
  });
  check("fixed resonance target and successful attachment",()=>{
-  var e=Good(Cold+"c=1(6)\nfor heatValue in [1,2,3,4,5,6,7,8,9]:\n    2(c,heatValue)\n    if 501(c)==0:\n        break\n4(c,0)\n5(p,c)\n!p");Require(e.product.Data.activated,"resonance");
+  var e=Good(Cold+"c=1(6)\nfor heatValue in [100,200,300,400,500,600,700,800,900]:\n    8(heatValue)\n    2(c)\n    if 501(c)==0:\n        break\n4(c,0)\n5(p,c)\n!p");Require(e.product.Data.activated,"resonance");
  });
  check("timed magic decay and acceleration",()=>{
-  var hot=Good("p=1(1)\n401(p)\n2(p,7)\n3(p)\n4(p,0)\n!p");
-  var late=Good("p=1(1)\n401(p)\n2(p,7)\n3(p)\n400(5)\n4(p,0)\n!p");Require(hot.product.Data.magicGrade>late.product.Data.magicGrade,"decay");
+  var hot=Good("p=1(1)\n401(p)\n2(p)\n3(p)\n4(p,0)\n!p");
+  var late=Good("p=1(1)\n401(p)\n2(p)\n3(p)\n400(5)\n4(p,0)\n!p");Require(hot.product.Data.magicGrade>late.product.Data.magicGrade,"decay");
   var fast=Good("222(2)\n"+Cold+"!p");Require(fast.product.ProductionSeconds<hot.product.ProductionSeconds,"speed");
  });
  check("recovery and absorption prevent reuse",()=>{

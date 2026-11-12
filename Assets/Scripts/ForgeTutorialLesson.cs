@@ -15,12 +15,12 @@ public sealed class ForgeTutorialLesson
         "재료는 0~9, 총 10종입니다. 번호는 개수가 아니라 재료의 종류를 뜻합니다. 아래 목록에서 기본 검날에 사용할 철을 골라 보세요.",
         "변수는 값을 기억하는 이름입니다. = 오른쪽의 값을 왼쪽 이름에 넣습니다. Material이라는 변수에 철의 번호 1을 저장하세요.",
         "1(재료 번호)은 재료를 작업대에 올리고 작업물을 돌려줍니다. Material을 사용해 올린 작업물을 Blade라는 변수에 담으세요.",
-        "2(작업물, 열 단계)는 작업물을 가열합니다. Blade의 열을 7로 올리세요. 성형하려면 열이 6 이상이어야 합니다.",
+        "2(작업물)은 현재 화로 온도로 가열합니다. 2(Blade)로 기본 온도 900°C까지 달구세요. 850°C 이상이면 망치질로 성형할 수 있습니다.",
         "3(작업물)은 뜨거운 재료를 두드려 검날로 만듭니다. 앞에서 가열한 Blade를 성형하세요.",
         "4(작업물, 냉각 재료)는 검날을 식힙니다. 공기의 번호는 0입니다. 공기로 Blade를 식혀 열을 0으로 만드세요.",
         "5(작업물, 손잡이 재료)는 식힌 검날에 손잡이를 만듭니다. 이번에는 철(1)로 손잡이를 만드세요. 검날과 손잡이에 철을 각각 1개씩 사용합니다.",
         "손잡이까지 달린 검이 준비됐습니다! ! 뒤에 작업물 변수 이름을 적어 완성품으로 제출하세요. !는 함수가 아닌 제출 기호입니다."};
-    public static readonly string[] Hints={"철의 번호는 1입니다.","Material = 1","Blade = 1(Material)","2(Blade, 7)","3(Blade)","4(Blade, 0)","5(Blade, 1)","!Blade"};
+    public static readonly string[] Hints={"철의 번호는 1입니다.","Material = 1","Blade = 1(Material)","2(Blade)","3(Blade)","4(Blade, 0)","5(Blade, 1)","!Blade"};
     public bool SelectMaterial(int id,out string message)
     {
         if(Stage!=0){message="이미 재료를 선택했습니다.";return false;}

@@ -120,7 +120,8 @@ public static class BlueprintResearchGuide
         string text="재료 상점: 개당 "+stock.Price+"G · 수량을 입력하고 카드를 클릭해 구매";
         if(material<=3)return "기본 공급 재료 · 별도 공급 해금 없음\n"+text;
         var permit=ForgeTechnology.Find("material-"+material);
-        return OfferInfo(permit,english)+"\n해금비에는 재료가 포함되지 않습니다.\n"+text;
+        string permitInfo=material==4?Display(permit.Title,english)+" · "+permit.Price+"G":OfferInfo(permit,english);
+        return permitInfo+"\n해금비에는 재료가 포함되지 않습니다.\n"+text;
     }
     public static string Overview(bool english)
     {
@@ -131,7 +132,7 @@ public static class BlueprintResearchGuide
         text.AppendLine(OfferInfo(ForgeTechnology.Find(ForgeTechnology.AutomationRoot),english));
         text.AppendLine("조건·반복·반복 제어·사용자 함수를 한 번에 해금합니다. 기본 계산과 컬렉션 자체는 제공되지만 연구 함수와 제어문을 넣은 예제에는 해당 연구가 필요합니다.\n");
         text.AppendLine("3. 성장 트리 구매 방법");
-        text.AppendLine("카드에 마우스를 올리면 설명과 선행 조건이 보입니다. 카드를 클릭하면 구매합니다. 연결된 선행 항목은 모두 구매해야 합니다. 구매 완료 카드는 초록색입니다. 제작 중에는 성장 트리 구매가 제한됩니다. 빈 곳/우클릭 드래그로 이동하고 휠로 확대·축소합니다.\n");
+        text.AppendLine("카드에 마우스를 올리면 설명과 선행 조건이 보입니다. 카드를 클릭하면 구매합니다. 연결된 선행 항목은 모두 구매해야 합니다. 구매 완료 카드는 초록색입니다. 제작 중에도 연구와 재료를 구매할 수 있습니다. 빈 곳/우클릭 드래그로 이동하고 휠로 확대·축소합니다.\n");
         foreach(string section in new[]{"금속 가공","행운","마력 가공","공방 운영","시간 조회","기술 연구"}){
             text.AppendLine("【"+section+"】");
             foreach(var offer in ForgeTechnology.Offers.Where(o=>o.Kind!=ForgePurchaseKind.Material&&o.Id!=ForgeTechnology.AutomationRoot&&o.Id!=ForgeTechnology.MasterCommission).Where(o=>OfferSection(o)==section).OrderBy(o=>o.Tier).ThenBy(o=>o.Lane)){

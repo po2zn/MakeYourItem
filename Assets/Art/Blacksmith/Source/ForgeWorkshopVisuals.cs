@@ -17,7 +17,10 @@ public sealed class ForgeWorkshopVisuals : MonoBehaviour
     readonly List<Bounds> obstacles=new List<Bounds>();
     Vector3 leftFootRest,rightFootRest;
     Light fireLight;
+    float furnaceGlow=ForgeBalance.DefaultFurnaceTemperature/1200f;
     ParticleSystem coolingVapor;
+    Transform furnaceCoal,furnacePoker;
+    float furnacePulse;
     Renderer apron;
     Material apronMaterial;
     Material runeMaterial,sealMaterial,crystalMaterial;
@@ -103,11 +106,12 @@ public sealed class ForgeWorkshopVisuals : MonoBehaviour
         if(rightArm)rightArm.localRotation=rest[rightArm]*Quaternion.Euler(0,0,-65);
         if(hammer)hammer.localRotation=Quaternion.identity;
     }
-    void Update(){if(!acting&&smith&&heldPiece==null&&(!idle||!idle.IsReactingToError)){ResetPose();float breath=Mathf.Sin(Time.time*1.5f)*2.5f;leftArm.localRotation*=Quaternion.Euler(breath,0,0);rightArm.localRotation*=Quaternion.Euler(-breath,0,0);}if(idle)idle.Tick(Time.deltaTime,acting||heldPiece!=null);if(!acting&&heldPiece!=null){heldPiece.root.transform.position=leftSocket.position;}if(fireLight)fireLight.intensity=(acting&&LastProcess==2?2f:.7f)+Mathf.Sin(Time.time*9)*.08f;}
+    void Update(){if(!acting&&smith&&heldPiece==null&&(!idle||!idle.IsReactingToError)){ResetPose();float breath=Mathf.Sin(Time.time*1.5f)*2.5f;leftArm.localRotation*=Quaternion.Euler(breath,0,0);rightArm.localRotation*=Quaternion.Euler(-breath,0,0);}if(idle)idle.Tick(Time.deltaTime,acting||heldPiece!=null);if(!acting&&heldPiece!=null){heldPiece.root.transform.position=leftSocket.position;}if(fireLight)fireLight.intensity=(.3f+furnaceGlow*(acting&&(LastProcess==2||LastProcess==8)?2.4f:1.2f))+furnacePulse+Mathf.Sin(Time.time*9)*.08f;}
     public void Clear()
     {
         if(luckySparkles)luckySparkles.Hide();
         if(idle)idle.CancelErrorReaction();
+        HideFurnaceTools();furnaceGlow=ForgeBalance.DefaultFurnaceTemperature/1200f;
         epoch++;acting=false;LastProcess=0;ReleaseHeldPiece();ResetPose();if(coolingVapor)coolingVapor.Clear();if(polishingStone)polishingStone.gameObject.SetActive(false);
         foreach(var p in pieces.Values){if(p.root)Destroy(p.root);foreach(var m in new[]{p.material,p.handleMaterial})if(m){owned.Remove(m);Destroy(m);}}
         pieces.Clear();
@@ -119,7 +123,7 @@ public sealed class ForgeWorkshopVisuals : MonoBehaviour
         heldPiece=null;
     }
     public void ReactToCodeError(){if(idle)idle.ReactToCodeError();}
-    public void Cancel(){if(luckySparkles)luckySparkles.Hide();if(idle)idle.CancelErrorReaction();epoch++;acting=false;LastProcess=0;ReleaseHeldPiece();ResetPose();if(coolingVapor)coolingVapor.Clear();if(hammer)hammer.gameObject.SetActive(true);if(tongs)tongs.gameObject.SetActive(false);if(polishingStone)polishingStone.gameObject.SetActive(false);}
+    public void Cancel(){HideFurnaceTools();if(luckySparkles)luckySparkles.Hide();if(idle)idle.CancelErrorReaction();epoch++;acting=false;LastProcess=0;ReleaseHeldPiece();ResetPose();if(coolingVapor)coolingVapor.Clear();if(hammer)hammer.gameObject.SetActive(true);if(tongs)tongs.gameObject.SetActive(false);if(polishingStone)polishingStone.gameObject.SetActive(false);}
     void OnDisable(){Cancel();}
     void OnDestroy(){foreach(var m in owned)if(m)Destroy(m);}
     static Color Metal(int material)=>material==5?new Color(.72f,.81f,.9f):material==7?new Color(.3f,.35f,.65f):material==9?Color.white:new Color(.48f,.52f,.56f);
@@ -127,8 +131,8 @@ public sealed class ForgeWorkshopVisuals : MonoBehaviour
     {
         Color color=ForgeSwordAppearance.BladeColor(step.material,step.data);var d=step.data;
 
-        p.material.SetColor("_BaseColor",Color.Lerp(color,new Color(1,.22f,.025f),Mathf.Clamp01(heat/9f)*.6f));
-        p.material.SetColor("_EmissionColor",new Color(1,.16f,.015f)*Mathf.Clamp01(heat/9f)*2.5f);
+        p.material.SetColor("_BaseColor",Color.Lerp(color,new Color(1,.22f,.025f),Mathf.Clamp01(heat/1200f)*.6f));
+        p.material.SetColor("_EmissionColor",new Color(1,.16f,.015f)*Mathf.Clamp01(heat/1200f)*2.5f);
         p.material.SetFloat("_Smoothness",d!=null&&d.polished?.72f:.35f);
         p.heat=heat;
     }
@@ -153,13 +157,100 @@ public sealed class ForgeWorkshopVisuals : MonoBehaviour
         }
         Foot(leftLeg,leftKnee,leftFoot,leftFootRest,0);Foot(rightLeg,rightKnee,rightFoot,rightFootRest,Mathf.PI);
     }
+    void EnsureFurnaceTools()
+    {
+        if(furnaceCoal)return;
+        Transform Tool(string name,PrimitiveType shape,Vector3 scale,Color color){
+            var obj=GameObject.CreatePrimitive(shape);obj.name=name;obj.transform.SetParent(transform,false);obj.transform.localScale=scale;
+            var collider=obj.GetComponent<Collider>();collider.enabled=false;Destroy(collider);
+            var material=new Material(assets.sword.GetComponentsInChildren<Renderer>().First(r=>r.name=="Blade").sharedMaterial);
+            material.SetColor("_BaseColor",color);material.SetColor("_EmissionColor",Color.black);material.SetFloat("_Metallic",0);material.SetFloat("_Smoothness",.15f);
+            owned.Add(material);obj.GetComponent<Renderer>().sharedMaterial=material;obj.SetActive(false);return obj.transform;
+        }
+        furnaceCoal=Tool("Furnace coal",PrimitiveType.Sphere,new Vector3(.14f,.10f,.12f),new Color(.06f,.055f,.05f));
+        furnacePoker=Tool("Furnace poker",PrimitiveType.Cylinder,new Vector3(.025f,.32f,.025f),new Color(.2f,.22f,.24f));
+    }
+    void HideFurnaceTools()
+    {
+        if(furnaceCoal)furnaceCoal.gameObject.SetActive(false);
+        if(furnacePoker)furnacePoker.gameObject.SetActive(false);
+        furnacePulse=0;
+    }
+    IEnumerator StokeFurnace(ForgeMvp.Step step,int run)
+    {
+        EnsureFurnaceTools();
+        if(hammer)hammer.gameObject.SetActive(false);
+        if(tongs)tongs.gameObject.SetActive(false);
+        if(polishingStone)polishingStone.gameObject.SetActive(false);
+        Vector3 target=heatTarget.position;
+        Vector3 facing=new Vector3(-.45f,0,.89f).normalized;
+        Vector3 stand=target-facing*.70f+Vector3.Cross(Vector3.up,facing)*.10f;stand.y=transform.position.y;
+        var route=ForgePoseSolver.Route(smith.position,stand,obstacles.Select(b=>new Bounds(b.center+transform.position,b.size)).ToList(),.18f);
+        Quaternion initialFacing=smith.rotation;float traveled=0,elapsed=0,duration=Mathf.Max(.08f,step.duration);
+        float initialGlow=furnaceGlow;Vector3 releasePoint=target;bool released=false;
+        try{
+            while(elapsed<duration&&run==epoch){
+                float t=Mathf.Clamp01(elapsed/duration);
+                float move=Mathf.SmoothStep(0,1,Mathf.InverseLerp(0,.34f,t));
+                ResetPose();Vector3 old=smith.position;smith.position=ForgePoseSolver.Along(route,move);traveled+=Vector3.Distance(old,smith.position);
+                Vector3 direction=ForgePoseSolver.Along(route,Mathf.Min(1,move+.02f))-smith.position;
+                Quaternion walking=direction.sqrMagnitude>.00001f?Quaternion.LookRotation(direction):Quaternion.LookRotation(facing);
+                smith.rotation=Quaternion.Slerp(initialFacing,walking,Mathf.Clamp01(t/.12f));
+                smith.rotation=Quaternion.Slerp(smith.rotation,Quaternion.LookRotation(facing),Mathf.SmoothStep(0,1,Mathf.InverseLerp(.22f,.34f,t)));
+                float settle=Mathf.SmoothStep(0,1,Mathf.InverseLerp(.28f,.38f,t));
+                float scoop=Mathf.Sin(Mathf.InverseLerp(.34f,.49f,t)*Mathf.PI);
+                float stoke=t>=.76f?Mathf.Sin(Mathf.InverseLerp(.76f,.98f,t)*Mathf.PI*4):0;
+                spine.localRotation=rest[spine]*Quaternion.Euler((12+10*scoop+3*stoke)*settle,0,0);
+                headBone.localRotation=rest[headBone]*Quaternion.Euler(12*settle,0,0);
+                Feet(traveled*22,1-settle);
+                Vector3 carry=smith.TransformPoint(new Vector3(.27f,.86f,.19f));
+                Vector3 feed=smith.TransformPoint(new Vector3(.18f,1.03f,.43f));
+                Vector3 hand=Vector3.Lerp(carry-Vector3.up*(scoop*.18f),feed,Mathf.SmoothStep(0,1,Mathf.InverseLerp(.46f,.64f,t)));
+                if(t>=.76f)hand=smith.TransformPoint(new Vector3(.22f,.97f,.29f+stoke*.075f));
+                float finish=Mathf.SmoothStep(0,1,Mathf.InverseLerp(.97f,1,t));hand=Vector3.Lerp(hand,carry,finish);
+                Quaternion grip=Quaternion.LookRotation(smith.right,smith.forward);
+                Reach(rightArm,rightFore,rightHand,rightSocket,hand,grip,false);
+                Reach(leftArm,leftFore,leftHand,leftSocket,smith.TransformPoint(new Vector3(-.28f,.85f,.20f)),grip,true);
+                furnaceCoal.gameObject.SetActive(t>=.43f&&t<.76f);
+                if(t<.64f)furnaceCoal.position=rightSocket.position;
+                else {
+                    if(!released){released=true;releasePoint=rightSocket.position;}
+                    float toss=Mathf.Clamp01(Mathf.InverseLerp(.64f,.76f,t));
+                    furnaceCoal.position=Vector3.Lerp(releasePoint,target,toss)+Vector3.up*(Mathf.Sin(toss*Mathf.PI)*.14f);
+                    furnaceCoal.rotation=Quaternion.Euler(toss*240,toss*100,0);
+                }
+                furnacePoker.gameObject.SetActive(t>=.76f&&t<.97f);
+                Vector3 tipDirection=(target-rightSocket.position).normalized;
+                furnacePoker.SetPositionAndRotation(rightSocket.position+tipDirection*.28f,Quaternion.FromToRotation(Vector3.up,tipDirection));
+                furnacePulse=t>=.70f?Mathf.Sin(Mathf.InverseLerp(.70f,1,t)*Mathf.PI)*.8f:0;
+                furnaceGlow=Mathf.Lerp(initialGlow,step.heat/1200f,Mathf.SmoothStep(0,1,Mathf.InverseLerp(.70f,1,t)));
+                elapsed+=Time.deltaTime;yield return null;
+            }
+            if(run==epoch)furnaceGlow=step.heat/1200f;
+        }finally{
+            if(run==epoch){HideFurnaceTools();acting=false;ResetPose();if(hammer)hammer.gameObject.SetActive(true);}
+        }
+    }
+    void RemoveSubmittedPiece(int id)
+    {
+        if(!pieces.TryGetValue(id,out var piece))return;
+        if(heldPiece==piece){heldPiece=null;ResetPose();}
+        if(luckySparkles)luckySparkles.Hide();
+        // Hide immediately: Destroy is deferred until the end of the frame.
+        if(piece.root){piece.root.SetActive(false);Destroy(piece.root);}
+        foreach(var material in new[]{piece.material,piece.handleMaterial})if(material){owned.Remove(material);Destroy(material);}
+        pieces.Remove(id);
+    }
     public IEnumerator Play(ForgeMvp.Step step)
     {
         if(step.debugOutput||step.process<0)yield break;
+        if(step.finished){RemoveSubmittedPiece(step.pieceId);yield break;}
         int run=epoch;acting=true;
+        if(step.process==2)furnaceGlow=step.heat/1200f;
         if(heldPiece!=null&&(!pieces.TryGetValue(step.pieceId,out var nextPiece)||nextPiece!=heldPiece))ReleaseHeldPiece();
         heldPiece=null;LastProcess=step.process;
         if(idle)idle.BeginWork();
+        if(step.process==8){yield return StokeFurnace(step,run);yield break;}
         if(step.absorbedPiece>0&&pieces.TryGetValue(step.absorbedPiece,out var absorbed))absorbed.root.SetActive(false);
         if(!pieces.TryGetValue(step.pieceId,out var p)){
             p=new PieceView();p.root=Spawn(assets.sword,"Workpiece "+step.pieceId,new Vector3(3.4f,.9f,0));p.blade=Find(p.root.transform,"Blade").GetComponent<Renderer>();

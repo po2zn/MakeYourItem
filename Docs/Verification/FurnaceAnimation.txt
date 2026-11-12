@@ -1,0 +1,9 @@
+8() furnace animation
+
+Implemented: obstacle-aware approach, waist-level coal pickup, right-hand feed, arcing coal toss, two poker strokes, torso/head/foot posing, temperature-driven fire glow and transient pulse. Props are reused; no fake workpiece is created. Cancellation/Clear/disable hide props and reset pose/tools. Basic fallback model also moves and feeds coal.
+
+Duration: 2.4 seconds at 1x, scaled by the existing production speed. Interpreter receipt duration and animation remain aligned.
+
+PASS: runtime and Editor compilation, furnace checks (9 groups), production-speed 1x/2x/5x timing, existing crafting/language/stepping/guide suites, git diff --check.
+
+NOT RUN: Unity Play Mode and visual animation inspection (no connected Pipeline editor). Added ForgeFurnaceMotionChecks.Run() coroutine for approach, coal/poker phases, 1x/5x playback, finite poses, no phantom pieces and cancellation cleanup.

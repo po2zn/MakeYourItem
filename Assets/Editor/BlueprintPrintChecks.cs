@@ -41,7 +41,7 @@ public static class BlueprintPrintChecks
             Require(r.error!=null&&!r.compileError&&r.errorLine==2&&r.steps.Count==1&&r.steps[0].text=="before",r.error);
         });
         check("workpiece output snapshots state without production effects",()=>{
-            var r=ForgeMvp.Evaluate(ForgeEconomyChecks.Basic.Replace("2(Blade, 7)","print(Blade)\n2(Blade, 7)").Replace("!Blade","print(Blade)\n!Blade"));
+            var r=ForgeMvp.Evaluate(ForgeEconomyChecks.Basic.Replace("2(Blade)","print(Blade)\n2(Blade)").Replace("!Blade","print(Blade)\n!Blade"));
             var messages=r.steps.Where(x=>x.debugOutput).Select(x=>x.text).ToArray();
             Require(r.error==null&&r.cost==0&&messages.Length==2,r.error);
             Require(messages[0].Contains("성형=False")&&messages[1].Contains("성형=True"),"piece snapshots");

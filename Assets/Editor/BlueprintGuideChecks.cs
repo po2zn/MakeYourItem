@@ -7,12 +7,12 @@ public static class BlueprintGuideChecks {
  string code=entry.ExampleFor(unlocked);
  if(entry.Id.StartsWith("extension-"))return code;
  switch(entry.Id){
- case "1":return code+"\n2(Blade, 7)\n3(Blade)\n4(Blade, 0)\n!Blade";
+ case "1":return code+"\n2(Blade)\n3(Blade)\n4(Blade, 0)\n!Blade";
  case "2":return "Blade = 1(1)\n"+code+"\n3(Blade)\n4(Blade, 0)\n!Blade";
- case "3":return "Blade = 1(1)\n2(Blade, 7)\n"+code+"\n4(Blade, 0)\n!Blade";
- case "4":return "Blade = 1(1)\n2(Blade, 7)\n3(Blade)\n"+code+"\n!Blade";
- case "finish":return "Blade = 1(1)\n2(Blade, 7)\n3(Blade)\n4(Blade, 0)\n"+code;
- case "heat":return "Blade = 1(1)\n2(Blade, 7)\n"+code+"\n3(Blade)\n4(Blade, 0)\n!Blade";
+ case "3":return "Blade = 1(1)\n2(Blade)\n"+code+"\n4(Blade, 0)\n!Blade";
+ case "4":return "Blade = 1(1)\n2(Blade)\n3(Blade)\n"+code+"\n!Blade";
+ case "finish":return "Blade = 1(1)\n2(Blade)\n3(Blade)\n4(Blade, 0)\n"+code;
+ case "heat":return "Blade = 1(1)\n2(Blade)\n"+code+"\n3(Blade)\n4(Blade, 0)\n!Blade";
  default:return entry.IsFunctionReference?code+"\nprint(\"검증\")":code;
  }
  }
@@ -35,12 +35,12 @@ public static class BlueprintGuideChecks {
  Require(entries.Single(e=>e.Id=="print").HeadingFor(false).Contains("print"),"print must remain documented");
 
  foreach(var e in entries){
-   Require(e.ResearchFor(true).Length>0&&e.ResearchFor(false).Length>0,"missing research metadata "+e.Id);
+   Require(e.ShowResearch?e.ResearchFor(true).Length>0&&e.ResearchFor(false).Length>0:e.ResearchFor(true).Length==0&&e.ResearchFor(false).Length==0,"research section visibility "+e.Id);
    foreach(var alias in BlueprintAliases.All.Where(a=>a.Symbol.Length>0))Require(!System.Text.RegularExpressions.Regex.IsMatch(e.ResearchFor(false),@"(?<![A-Za-z0-9_])"+alias.English+@"(?![A-Za-z0-9_])"),"research English leak "+e.Id+" / "+alias.English);
  }
  string treeGuide=BlueprintResearchGuide.Overview(true);
  foreach(var offer in ForgeTechnology.Offers)Require(treeGuide.Contains(offer.Kind==ForgePurchaseKind.Material?ForgeMaterialGuide.Find(offer.Material).Heading:offer.Title),"missing current tree offer "+offer.Id);
- Require(entries.Single(e=>e.Feature==BlueprintFeature.AutoSell).ResearchFor(false).Contains("별도 자동판매 구매 비용은 없습니다"),"speed reward metadata");
+ Require(entries.Single(e=>e.Feature==BlueprintFeature.AutoSell).ResearchFor(false).Contains("자동판매 노드를 별도로 구매"),"auto-sell purchase metadata");
  Require(entries.Single(e=>e.Feature==BlueprintFeature.SmithRun).ResearchFor(false).Contains(ForgeBlacksmiths.HireCosts[0]+" 다이아"),"parallel example hire prerequisite");
  var master=EvaluateGuide(entries.Single(e=>e.Id=="masterwork-example").Example);
  Require(master.error==null&&master.product.Data.materials[7]==1&&master.product.Data.materials[5]==1&&master.product.Data.materials[9]==1&&master.product.Data.materials[3]==2&&master.product.Data.materials[6]==4,"masterwork example stock requirements");

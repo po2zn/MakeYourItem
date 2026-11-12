@@ -16,7 +16,7 @@ public static class SmithMotionChecks
  var light=new GameObject("Motion light").AddComponent<Light>();light.type=LightType.Directional;light.intensity=1.6f;light.transform.rotation=Quaternion.Euler(40,-25,0);
  string report="";
  try{
- var eval=ForgeMvp.Evaluate("p = 1(1)\n2(p, 7)\n3(p)\n4(p, 3)\n2(p, 7)\n3(p)\n4(p, 0)",100,10,materialStocks:new Dictionary<int,long>{{3,10}});
+ var eval=ForgeMvp.Evaluate("p = 1(1)\n2(p)\n3(p)\n4(p, 3)\n2(p)\n3(p)\n4(p, 0)",100,10,materialStocks:new Dictionary<int,long>{{3,10}});
  var forgeRenderers=Find("Forge").GetComponentsInChildren<Renderer>();var forgeBounds=forgeRenderers[0].bounds;foreach(var r in forgeRenderers)forgeBounds.Encapsulate(r.bounds);
  int index=0;foreach(var step in eval.steps){step.duration=2;bool done=false;Exception failure=null;float elapsed=0,maxGripError=0,minFront=10,minFoot=10,minForgeClearance=10,maxHammerError=0;int shots=0;
  IEnumerator Run(){var action=v.Play(step);try{while(action.MoveNext()){

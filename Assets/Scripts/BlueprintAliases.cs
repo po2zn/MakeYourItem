@@ -33,7 +33,7 @@ public static class BlueprintAliases
         new BlueprintAlias(BlueprintFeature.Else,"else","0?",BlueprintSyntaxKind.Branch,"연결된 앞 조건 분기에서 실행할 블록이 선택되지 않았을 때 실행합니다.","0?:"),
         new BlueprintAlias(BlueprintFeature.Def,"def","333",BlueprintSyntaxKind.Block,"재사용할 사용자 함수를 정의합니다.","333 이름(매개변수): · 최대8개 · 재귀 지원 · 호출 깊이32"),
         new BlueprintAlias(BlueprintFeature.Return,"return","<<",BlueprintSyntaxKind.Control,"현재 함수를 종료하고 호출한 위치로 결과를 돌려줍니다.","<< 값 · 생략하면 None"),
-        new BlueprintAlias(BlueprintFeature.Heat,"heat","100",BlueprintSyntaxKind.Builtin,"작업물의 현재 열 단계를 읽습니다.","작업물1개 → 정수0~9 · 비용0G",1),
+        new BlueprintAlias(BlueprintFeature.Heat,"heat","100",BlueprintSyntaxKind.Builtin,"100(작업물)은 현재 온도, 100(검날, 1)은 첫 가열 뒤 검마다 고정된 적정 온도(850~1100°C)를 읽습니다.","100(작업물[, 1]) → 정수 온도 · 비용0G",-1),
         new BlueprintAlias(BlueprintFeature.Abs,"abs","101",BlueprintSyntaxKind.Builtin,"정수의 절댓값을 구합니다.","정수1개 → 정수 · Int32 범위 초과 시 오류",1),
         new BlueprintAlias(BlueprintFeature.Len,"len","1111",BlueprintSyntaxKind.Builtin,"대상에 포함된 원소 개수를 구합니다.","리스트/튜플/집합/딕셔너리1개 → 정수 · 빈 대상은0",1),
         new BlueprintAlias(BlueprintFeature.Min,"min","000",BlueprintSyntaxKind.Builtin,"최솟값을 구합니다.","비어 있지 않은 정수 리스트/튜플1개 → 정수",1),

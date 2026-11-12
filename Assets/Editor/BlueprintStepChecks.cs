@@ -12,11 +12,11 @@ public static class BlueprintStepChecks
     {
         int count=0;var log=new StringBuilder();Action<string,Action> check=(name,test)=>{test();count++;log.AppendLine("PASS "+name);};
         check("first click executes one line with no future effects",()=>{
-            using(var s=Start("x = 1\np = 1(1)\n2(p, 7)\n!p")){
+            using(var s=Start("x = 1\np = 1(1)\n2(p)\n!p")){
                 Require(s.NextLine==1&&s.Evaluation.cost==0&&!s.Evaluation.values.ContainsKey("x"),"initial pause");
                 Step(s);Require(s.NextLine==2&&Equals(s.Evaluation.values["x"],1)&&s.Evaluation.steps.Count==0,"assignment");
                 Step(s);var piece=(ForgeMvp.Piece)s.Evaluation.values["p"];Require(s.NextLine==3&&s.Evaluation.cost==0&&s.Evaluation.ironConsumed==1&&piece.heat==0,"load only");
-                Step(s);Require(s.NextLine==4&&piece.heat==7&&s.Evaluation.cost==0&&s.Evaluation.product==null,"heat only");
+                Step(s);Require(s.NextLine==4&&piece.heat==900&&s.Evaluation.cost==0&&s.Evaluation.product==null,"heat only");
                 Step(s);Require(s.Completed&&s.Evaluation.product!=null,"finish only");int receipts=s.Evaluation.steps.Count;Step(s);Require(receipts==s.Evaluation.steps.Count,"no duplicate finish");
             }
         });
@@ -49,13 +49,13 @@ public static class BlueprintStepChecks
             var full=ForgeMvp.Evaluate(code,100,10);using(var s=Start(code)){Drain(s);var e=s.Evaluation;Require(e.error==null&&e.cost==full.cost&&e.ironConsumed==full.ironConsumed&&e.steps.Select(x=>x.text).SequenceEqual(full.steps.Select(x=>x.text))&&ForgePricing.Quote(e.product).SalePrice==28,"equivalence");}
         });
         check("cancel preserves completed receipts and executes nothing later",()=>{
-            var s=Start("p = 1(1)\n2(p, 7)\n!p");Step(s);s.Dispose();s.Advance().GetAwaiter().GetResult();Require(s.Cancelled&&s.Completed&&s.Evaluation.cost==0&&s.Evaluation.steps.Count==1&&s.Evaluation.product==null,"cancel");
+            var s=Start("p = 1(1)\n2(p)\n!p");Step(s);s.Dispose();s.Advance().GetAwaiter().GetResult();Require(s.Cancelled&&s.Completed&&s.Evaluation.cost==0&&s.Evaluation.steps.Count==1&&s.Evaluation.product==null,"cancel");
         });
         check("compile failure creates completed zero-cost session",()=>{
             using(var s=Start("p = 1(1)\n2()")){Require(s.Completed&&s.Evaluation.compileError&&s.Evaluation.cost==0,"compile");}
         });
         check("error retains only prior successful process receipts",()=>{
-            using(var s=Start("p = 1(1)\n2(p, 10)")){Step(s);s.Advance().GetAwaiter().GetResult();Require(s.Completed&&s.Evaluation.errorLine==2&&s.Evaluation.cost==0&&s.Evaluation.steps.Count==1,"partial error");}
+            using(var s=Start("p = 1(1)\n8(99)")){Step(s);s.Advance().GetAwaiter().GetResult();Require(s.Completed&&s.Evaluation.errorLine==2&&s.Evaluation.cost==0&&s.Evaluation.steps.Count==1,"partial error");}
         });
         check("recursion and command limits apply across separate clicks",()=>{
             using(var s=Start("def forever():\n    forever()\nforever()")){Drain(s);Require(s.Evaluation.errorMessage.Contains("32"),"depth");}

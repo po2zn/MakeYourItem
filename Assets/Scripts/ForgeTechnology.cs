@@ -44,7 +44,7 @@ public sealed class ForgeTechnology
         new Offer(1,5),new Offer(2,3),new Offer(3,1),new Offer(4,8),new Offer(5,20),
         new Offer(6,30),new Offer(7,40),new Offer(8,25),new Offer(9,50),
         new Offer(AutomationRoot,ForgePurchaseKind.Function,500,"제어문 해금 · 자동화 시작","조건·반복·반복 제어·사용자 함수의 숫자/기호 표기를 해금합니다. 영어 예약어는 별도 연구가 필요합니다. 구매 후 모든 분야의 첫 노드를 구매할 수 있습니다.",1,4,0,BlueprintFeature.If),
-        new Offer(EnglishResearch,ForgePurchaseKind.Function,500,"영어 예약어","제어문을 영어로도 작성합니다. if / elif / else / for / while / break / continue / def / return. 숫자·기호 표기도 계속 사용할 수 있습니다. in, and, or, not, True, False, None은 기본 문법이며 import는 별도 연구를 따릅니다.",2,12,0,BlueprintFeature.None,AutomationRoot),
+        new Offer(EnglishResearch,ForgePurchaseKind.Function,500,"영어 예약어","제어문을 영어로도 작성합니다. if / elif / else / for / while / break / continue / def / return. 숫자·기호 표기도 계속 사용할 수 있습니다. in, and, or, not, True, False, None은 기본 문법이며 import는 별도 연구를 따릅니다.",4,10,0,BlueprintFeature.None,"function-Max"),
         F(BlueprintFeature.Heat,20,1,0),
         // General computation branches start from the workshop, independently of forging.
         F(BlueprintFeature.Abs,15,1,10),
@@ -70,8 +70,7 @@ public sealed class ForgeTechnology
         F(BlueprintFeature.Resonate,50,4,3,"function-Magic"),
         F(BlueprintFeature.Protect,50,3,5,"function-Charge"),
         F(BlueprintFeature.Curse,2000,8,5,"function-Protect","function-Refine"),
-        M(4,60,1,6),
-        F(BlueprintFeature.Fuel,25,2,6,"material-4","function-Heat"),
+        new Offer("function-Fuel",ForgePurchaseKind.Function,2400,"석탄 + 8() 화로","석탄 공급과 8() 화로 온도 설정을 함께 해금합니다. 석탄은 재료 상점에서 개당 8G로 구매합니다. 해금비에 석탄 재고는 포함되지 않습니다.",1,6,4,BlueprintFeature.Fuel,AutomationRoot),
         F(BlueprintFeature.Recover,40,3,7,"function-Fuel"),
         F(BlueprintFeature.Wrap,40,3,6,"function-Fuel"),
         Speed(1,100),Speed(2,150),Speed(3,200),Speed(4,300),Speed(5,450),
@@ -83,7 +82,7 @@ public sealed class ForgeTechnology
     static string CanonicalId(string id)
     {
         foreach(var f in ControlFeatures)if(id=="function-"+f)return AutomationRoot;
-        return id=="function-NightTime"?"function-IsDay":id=="function-LuckyCode"?"function-Lucky":id=="function-Speed"?"speed-1":id;
+        return id=="material-4"?"function-Fuel":id=="function-NightTime"?"function-IsDay":id=="function-LuckyCode"?"function-Lucky":id=="function-Speed"?"speed-1":id;
     }
     public static Offer Find(string id)=>Offers.FirstOrDefault(o=>o.Id==CanonicalId(id));
     public static bool RequiresPurchase(BlueprintFeature feature)=>Offers.Any(o=>o.Features.Contains(feature));
@@ -131,7 +130,7 @@ public sealed class ForgeTechnology
         if(offer==null||!Offers.Contains(offer))return "판매하지 않는 항목입니다.";
         if(quantity<1)return "수량은 1 이상의 정수로 입력하세요.";
         if(offer.Kind!=ForgePurchaseKind.Material&&quantity!=1)return "해금은 한 번에 하나만 구매할 수 있습니다.";
-        if(busy)return "제작 중에는 구매할 수 없습니다.";
+        // Purchases share the live ledger with crafting; being busy is not a purchase gate.
         if(Owns(offer))return "이미 구매한 항목입니다.";
         string missing=MissingPrerequisites(offer);if(missing!=null)return missing;
         if(gold<TotalPrice(offer,quantity))return "골드가 부족합니다.";
@@ -143,7 +142,7 @@ public sealed class ForgeTechnology
         message=BlockReason(offer,gold,iron,stocks,busy,quantity);if(message!=null)return false;
         if(offer.Kind!=ForgePurchaseKind.Material)purchased.Add(offer.Id);
         else if(offer.Material==1)iron+=quantity;
-        if((offer.Kind==ForgePurchaseKind.Material&&offer.Material>1)||offer.Kind==ForgePurchaseKind.MaterialUnlock){
+        if((offer.Kind==ForgePurchaseKind.Material&&offer.Material>1)||offer.Kind==ForgePurchaseKind.MaterialUnlock||(offer.Kind==ForgePurchaseKind.Function&&offer.Material>0)){
             var stock=Array.Find(stocks??Array.Empty<ForgeMaterialStock>(),s=>s!=null&&s.material==offer.Material);
             if(stock==null){stock=new ForgeMaterialStock{material=offer.Material};var list=new List<ForgeMaterialStock>(stocks??Array.Empty<ForgeMaterialStock>());list.Add(stock);stocks=list.ToArray();}
             stock.unlocked=true;

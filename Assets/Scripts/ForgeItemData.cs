@@ -4,6 +4,8 @@ using System.Collections.Generic;
 [Serializable]
 public sealed class ForgeItemData
 {
+    public int idealTemperature, lastHammerTemperature;
+    public bool perfectQuench;
     public int hardness, handle, charge, sealBonus, magicGrade, luckyDay, luckyCode, resonanceTarget=-1;
     public bool polished, plated, star, frost, cracked, refined, activated, magic, protectedItem, cursed, destroyed, recovered;
     public double strength, lastStrike=-100;
