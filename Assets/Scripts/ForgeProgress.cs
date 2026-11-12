@@ -294,18 +294,23 @@ public partial class ForgeMvp
     {
         if(menuTitle==null){
             menuTitle=new GUIStyle(GUI.skin.label){font=codeStyle.font,fontSize=36,fontStyle=FontStyle.Bold,alignment=TextAnchor.MiddleCenter,wordWrap=true};
-            menuTitle.normal.textColor=new Color(1,.85f,.54f);
+            menuTitle.normal.textColor=ForgeTitleStyle.Ink;
             menuText=new GUIStyle(GUI.skin.label){font=codeStyle.font,fontSize=18,wordWrap=true,alignment=TextAnchor.MiddleCenter};
-            menuText.normal.textColor=new Color(.93f,.90f,.82f);
+            menuText.normal.textColor=new Color(.78f,.83f,.89f);
             menuButton=new GUIStyle(GUI.skin.button){font=codeStyle.font,fontSize=22,wordWrap=true,padding=new RectOffset(12,12,10,10)};
+            ForgeTitleStyle.Button(menuButton);
         }
         if(titlePage==4){DrawSettingsScreen();return;}
-        Color old=GUI.color;GUI.color=new Color(.075f,.085f,.10f);GUI.DrawTexture(new Rect(0,0,Screen.width,Screen.height),Texture2D.whiteTexture);GUI.color=old;
-        float width=Mathf.Min(560,Mathf.Max(1,Screen.width-32));
-        Rect panel=new Rect((Screen.width-width)/2,Mathf.Max(12,(Screen.height-650)/2),width,Mathf.Max(1,Mathf.Min(650,Screen.height-24)));
-        GUILayout.BeginArea(panel);
+        ForgeTitleStyle.Fill(new Rect(0,0,Screen.width,Screen.height),new Color(.04f,.07f,.11f,.18f));
+        float width=Screen.width>=760?Mathf.Min(620,Screen.width*.46f):Mathf.Max(1,Screen.width-32);
+        float height=Mathf.Min(titlePage==0?560:700,Screen.height-32);
+        Rect panel=new Rect(Screen.width>=760?Screen.width-width-24:(Screen.width-width)/2,(Screen.height-height)/2,width,height);
+        ForgeTitleStyle.Window(panel);
+        var caption=new GUIStyle(menuText){fontSize=16,alignment=TextAnchor.MiddleLeft};
+        GUI.Label(new Rect(panel.x+16,panel.y+3,panel.width-32,28),titlePage==0?"대장간 · 메인 메뉴":titlePage==3?"새 게임 확인":"저장 슬롯",caption);
+        GUILayout.BeginArea(new Rect(panel.x+24,panel.y+48,panel.width-48,panel.height-64));
         titleScroll=GUILayout.BeginScrollView(titleScroll);
-        GUILayout.Space(18);ForgeTextLayout.LayoutLabel("MAKE YOUR ITEM",menuTitle);GUILayout.Space(8);
+        GUILayout.Space(10);ForgeTextLayout.LayoutLabel("MAKE YOUR ITEM",menuTitle);GUILayout.Space(8);
         ForgeTextLayout.LayoutLabel("숫자로 도면을 그리고, 나만의 무기를 만드세요.",menuText);GUILayout.Space(24);
         if(titlePage==0){
             if(GUILayout.Button("게임 시작",menuButton,GUILayout.MinHeight(58))){titlePage=1;titleMessage="";}
@@ -324,7 +329,7 @@ public partial class ForgeMvp
             }
             if(GUILayout.Button("뒤로",menuButton))titlePage=0;
         }else if(titlePage==3){
-            ForgeTextLayout.LayoutLabel("슬롯 "+confirmSlot+"에서 새 게임을 시작할까요?",menuTitle);
+            ForgeTextLayout.LayoutLabel("슬롯 "+confirmSlot+"에서 새 게임을 시작할까요?",new GUIStyle(menuTitle){fontSize=26});
             GUILayout.Space(16);
             ForgeTextLayout.LayoutLabel(PlayerPrefs.HasKey(SlotKey(confirmSlot))?"이 슬롯의 기존 진행 상황과 작성한 도면을 덮어씁니다. 되돌릴 수 없습니다. 다른 슬롯은 유지됩니다.":"100G와 철 10개로 Day 1 오전 8시에 시작합니다. 진행 상황은 선택한 슬롯에 저장됩니다.",menuText);
             GUILayout.Space(20);

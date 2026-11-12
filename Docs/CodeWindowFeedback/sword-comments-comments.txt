@@ -1,0 +1,18 @@
+m = 1(1) # English: This comment stays on this line.
+2(m, 7) # Русский: Этот комментарий остаётся на этой строке.
+3(m) # Italiano: Questo commento resta su questa riga.
+4(m, 0) # العربية: هذا التعليق يبقى في هذا السطر.
+5(m, 1) # Slovenčina: Tento komentár zostáva na tomto riadku.
+!m # Čeština: Tento komentář zůstává na tomto řádku.
+m = 1(1) # Español: Este comentario permanece en esta línea.
+2(m, 7) # Türkçe: Bu yorum bu satırda kalır.
+3(m) # Slovenščina: Ta komentar ostane v tej vrstici.
+4(m, 0) # Português: Este comentário fica nesta linha.
+5(m, 1) # עברית: ההערה הזאת נשארת בשורה הזאת.
+!m # हिन्दी: यह टिप्पणी इसी पंक्ति में रहती है।
+m = 1(1) # Română: Acest comentariu rămâne pe acest rând.
+2(m, 7) # Polski: Ten komentarz pozostaje w tym wierszu.
+3(m) # 한국어: 이 주석은 작성한 줄에만 있어야 합니다.
+4(m, 0) # 简体中文：这条注释只能留在当前行。
+5(m, 1) # 日本語：このコメントは同じ行に表示されます。
+!m

@@ -23,7 +23,7 @@ public partial class ForgeMvp
     bool cameraSuspended,cameraWasEnabled;
     void UpdateRenderVisibility()
     {
-        bool covered=(ForgeRenderDiagnostics.Optimized&&showTechTree)||ForgeRenderDiagnostics.Hide(ForgeRenderLayer.World);
+        bool covered=(ForgeRenderDiagnostics.Optimized&&showTechTree&&!showTitle)||ForgeRenderDiagnostics.Hide(ForgeRenderLayer.World);
         if(covered&&!cameraSuspended&&workspaceCamera){cameraWasEnabled=workspaceCamera.enabled;workspaceCamera.enabled=false;cameraSuspended=true;}
         else if(!covered)RestoreRenderCamera();
     }

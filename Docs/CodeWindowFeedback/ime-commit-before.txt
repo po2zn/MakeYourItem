@@ -1,0 +1,6 @@
+commit=안 raw=12 text=m = 1(1) #안|2(m, 7)|3(m)|4(m, 0)|5(m, 1)|!m
+commit=녕 raw=14 text=m = 1(1) #안|녕2(m, 7)|3(m)|4(m, 0)|5(m, 1)|!m
+commit=하 raw=16 text=m = 1(1) #안|녕2하(m, 7)|3(m)|4(m, 0)|5(m, 1)|!m
+commit=세 raw=18 text=m = 1(1) #안|녕2하(세m, 7)|3(m)|4(m, 0)|5(m, 1)|!m
+commit=요 raw=19 text=m = 1(1) #안|녕2하(세m요, 7)|3(m)|4(m, 0)|5(m, 1)|!m
+MATCH=False

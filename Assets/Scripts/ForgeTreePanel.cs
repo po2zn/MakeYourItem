@@ -32,6 +32,10 @@ public sealed class ForgeTreePanel : MonoBehaviour
     {
         owner=game;if(bound)return;bound=true;
         foreach(var text in GetComponentsInChildren<Text>(true))ForgeGoldGlyph.Attach(text);
+        heading.raycastTarget=true;
+        var currency=heading.GetComponent<ForgeCurrencyHover>()??heading.gameObject.AddComponent<ForgeCurrencyHover>();
+        currency.show=point=>{hovered=null;tooltipTitle.text="보유 재화";tooltipBody.text=ForgeCurrencyHover.Details(owner);LayoutTooltip();PositionTooltip(point);};
+        currency.hide=HideTooltip;
         if(materialStockIcons!=null){stockArtwork=new ForgeMaterialHud();for(int i=0;i<materialStockIcons.Length;i++){var icon=materialStockIcons[i];int id=i+1;icon.texture=stockArtwork.GetIcon(id);icon.uvRect=stockArtwork.GetIconUV(id);float aspect=stockArtwork.GetIconAspect(id);icon.rectTransform.sizeDelta=aspect>=1?new Vector2(27,27/aspect):new Vector2(27*aspect,27);}}
         foreach(var card in cards)card.Bind(this);
         growthButton.onClick.AddListener(()=>ShowPage(0));materialsButton.onClick.AddListener(()=>ShowPage(1));smithButton.onClick.AddListener(()=>ShowPage(2));
@@ -94,6 +98,10 @@ public sealed class ForgeTreePanel : MonoBehaviour
     {
         if(hovered!=card)return;
         tooltipTitle.text=card.title.text;tooltipBody.text=card.smithId>=0?owner.HierarchySmithTooltip(card.smithId):owner.HierarchyTooltip(card.offer,card.Quantity);
+        LayoutTooltip();
+    }
+    void LayoutTooltip()
+    {
         tooltip.gameObject.SetActive(true);
         float scale=canvas.scaleFactor;float width=Mathf.Min(520,Screen.width/scale-24);tooltip.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal,width);
         tooltipTitle.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal,width-32);

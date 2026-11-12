@@ -1,0 +1,4 @@
+Captured live Game view (800, 600)
+Captured live Game view (1280, 720)
+Captured live Game view (1920, 1080)
+Captured live Game view (3840, 2160)

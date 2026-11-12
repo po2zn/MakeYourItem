@@ -1,0 +1,17 @@
+# English: This comment stays on this line.
+# Русский: Этот комментарий остаётся на этой строке.
+# Italiano: Questo commento resta su questa riga.
+# العربية: هذا التعليق يبقى في هذا السطر.
+# Slovenčina: Tento komentár zostáva na tomto riadku.
+# Čeština: Tento komentář zůstává na tomto řádku.
+# Español: Este comentario permanece en esta línea.
+# Türkçe: Bu yorum bu satırda kalır.
+# Slovenščina: Ta komentar ostane v tej vrstici.
+# Português: Este comentário fica nesta linha.
+# עברית: ההערה הזאת נשארת בשורה הזאת.
+# हिन्दी: यह टिप्पणी इसी पंक्ति में रहती है।
+# Română: Acest comentariu rămâne pe acest rând.
+# Polski: Ten komentarz pozostaje w tym wierszu.
+# 한국어: 이 주석은 작성한 줄에만 있어야 합니다.
+# 简体中文：这条注释只能留在当前行。
+# 日本語：このコメントは同じ行に表示されます。

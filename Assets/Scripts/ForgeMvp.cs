@@ -135,6 +135,14 @@ public partial class ForgeMvp : MonoBehaviour
     void UpdateWorkspaceCamera()
     {
         if (!workspaceCamera) return;
+        if(showTitle){
+            // Frame the live workshop independently of saved gameplay zoom/pan.
+            float size=Mathf.Max(2.6f,2.8f/Mathf.Max(.5f,workspaceCamera.aspect));
+            workspaceCamera.orthographicSize=size;
+            float screenX=Screen.width>=760?.25f:.5f;
+            workspaceCamera.transform.position=cameraOrigin+workspaceCamera.transform.right*((.5f-screenX)*2*size*workspaceCamera.aspect);
+            return;
+        }
         if(showTutorial){UpdateTutorialCamera();return;}
         workspaceCamera.orthographicSize = Screen.height * WorkspaceUnitsPerPixel * .5f / workspaceZoom;
         workspaceCamera.transform.position = cameraOrigin
@@ -893,15 +901,7 @@ public partial class ForgeMvp : MonoBehaviour
         {
             Rect bounds=cache.Bounds[i];bounds.position+=content.position;
             if(ForgeRenderDiagnostics.Optimized&&!bounds.Overlaps(visible))continue;
-            Color color=Color.white;
-            switch(tokens[i].kind){
-                case ForgeSyntax.Kind.Reserved:color=reservedColor;break;
-                case ForgeSyntax.Kind.Comment:color=new Color(.42f,.78f,.42f);break;
-                case ForgeSyntax.Kind.Material:color=new Color(1f,.55f,.76f);break;
-                case ForgeSyntax.Kind.Keyword:color=new Color(1f,.65f,.30f);break;
-                case ForgeSyntax.Kind.Function:color=new Color(1f,.92f,.60f);break;
-                case ForgeSyntax.Kind.Blacksmith:color=new Color(.55f,.83f,1f);break;
-            }
+            Color color=ForgeCodeColors.TokenColor(tokens[i].kind);
             paint.normal.textColor=color;paint.hover.textColor=color;
             GUI.Label(bounds,cache.Values[i],paint);
         }

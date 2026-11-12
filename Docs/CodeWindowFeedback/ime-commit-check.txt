@@ -1,0 +1,7 @@
+commit=안 raw=11 text=m = 1(1) #안|2(m, 7)|3(m)|4(m, 0)|5(m, 1)|!m
+commit=녕 raw=12 text=m = 1(1) #안녕|2(m, 7)|3(m)|4(m, 0)|5(m, 1)|!m
+commit=하 raw=13 text=m = 1(1) #안녕하|2(m, 7)|3(m)|4(m, 0)|5(m, 1)|!m
+commit=세 raw=14 text=m = 1(1) #안녕하세|2(m, 7)|3(m)|4(m, 0)|5(m, 1)|!m
+commit=요 raw=15 text=m = 1(1) #안녕하세요|2(m, 7)|3(m)|4(m, 0)|5(m, 1)|!m
+PASS sequential IME commits preserve every source line
+PASS IME selection replacement uses committed-text indices

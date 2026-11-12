@@ -1,0 +1,8 @@
+Korean width=340 lines=3 content=(x:0.00, y:-242.00, width:2214.00, height:242.00) scroll=(-1920.00, 0.00) caret=272..273 viewport=(x:0.00, y:-242.00, width:288.00, height:242.00) clipping=True
+PASS insertion stays on logical line and offscreen caret stays clipped
+Korean width=700 lines=3 content=(x:0.00, y:-242.00, width:2214.00, height:242.00) scroll=(-1560.00, 0.00) caret=632..633 viewport=(x:0.00, y:-242.00, width:648.00, height:242.00) clipping=True
+PASS insertion stays on logical line and offscreen caret stays clipped
+English width=340 lines=3 content=(x:0.00, y:-242.00, width:1722.00, height:242.00) scroll=(-1428.00, 0.00) caret=272..273 viewport=(x:0.00, y:-242.00, width:288.00, height:242.00) clipping=True
+PASS insertion stays on logical line and offscreen caret stays clipped
+English width=700 lines=3 content=(x:0.00, y:-242.00, width:1722.00, height:242.00) scroll=(-1068.00, 0.00) caret=632..633 viewport=(x:0.00, y:-242.00, width:648.00, height:242.00) clipping=True
+PASS insertion stays on logical line and offscreen caret stays clipped

@@ -18,6 +18,10 @@ public sealed partial class ForgeGameUI:MonoBehaviour
  // Leave room for currency artwork, which is wider than its G/D source glyph.
  var rect=label.rectTransform;rect.offsetMin=new Vector2(12,12);rect.offsetMax=new Vector2(-12,-12);
  ForgeGoldGlyph.Attach(label);
+ label.raycastTarget=true;
+ var hover=label.GetComponent<ForgeCurrencyHover>()??label.gameObject.AddComponent<ForgeCurrencyHover>();
+ hover.show=point=>ShowCodeHelp(ForgeCurrencyHover.Details(game),point);
+ hover.hide=HideCodeHelp;
  }
  void EnsureDiamondButton(){
  var actions=GetComponentsInChildren<ForgeUIAction>(true);

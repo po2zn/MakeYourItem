@@ -5,7 +5,26 @@ using UnityEngine.UI;
 // Keep editable text unchanged; color the generated glyphs using the full source.
 public sealed class ForgeCodeColors : BaseMeshEffect
 {
+ public const string PaletteKey="MakeYourItem.Settings.CodePalette";
+ public static readonly string[] PaletteNames={"기본","색약 배려 (파랑·노랑 중심)","고대비 단색"};
+ static int palette=-1;
+ public static int Palette {get {if(palette<0)palette=Mathf.Clamp(PlayerPrefs.GetInt(PaletteKey,0),0,2);return palette;}}
+ public static void SetPalette(int value){
+  palette=Mathf.Clamp(value,0,2);PlayerPrefs.SetInt(PaletteKey,palette);PlayerPrefs.Save();
+  foreach(var effect in Resources.FindObjectsOfTypeAll<ForgeCodeColors>())if(effect.graphic)effect.graphic.SetVerticesDirty();
+  foreach(var effect in Resources.FindObjectsOfTypeAll<ForgeGuideMaterialColors>()){var text=effect.GetComponent<Text>();if(text)text.SetVerticesDirty();}
+ }
  public static Color TokenColor(ForgeSyntax.Kind kind){
+ if(Palette==2)return kind==ForgeSyntax.Kind.Comment?new Color32(190,200,210,255):Color.white;
+ if(Palette==1){switch(kind){
+ case ForgeSyntax.Kind.Comment:return new Color32(180,190,204,255);
+ case ForgeSyntax.Kind.Material:return new Color32(255,218,102,255);
+ case ForgeSyntax.Kind.Keyword:return new Color32(255,255,255,255);
+ case ForgeSyntax.Kind.Function:return new Color32(126,201,255,255);
+ case ForgeSyntax.Kind.Reserved:return new Color32(255,178,102,255);
+ case ForgeSyntax.Kind.Blacksmith:return new Color32(195,185,255,255);
+ default:return Color.white;
+ }}
  switch(kind){
  case ForgeSyntax.Kind.Comment:return new Color(.42f,.78f,.42f);
  case ForgeSyntax.Kind.Material:return new Color(1f,.55f,.76f);

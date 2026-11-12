@@ -1,0 +1,6 @@
+IME=False focused=False text=m = 1(1) #
+2(m, 7)
+3(m)
+4(m, 0)
+5(m, 1)
+!m caret=0
