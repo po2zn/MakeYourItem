@@ -143,7 +143,7 @@ public sealed class ForgeCraftMotion : MonoBehaviour
         uint actionGeneration=motionGeneration;
         if(step.debugOutput) yield break;
         if(step.process>=90&&step.process<=95){if(workshop&&step.process==93&&step.duration>0){yield return workshop.Play(step);workshop.Cancel();yield break;}float boneElapsed=0;while(boneElapsed<step.duration&&actionGeneration==motionGeneration){yield return null;boneElapsed+=Time.deltaTime;}yield break;}
-        if(step.process>=70&&step.process<=73){
+        if(step.process>=70&&step.process<=74){
             uint generation=motionGeneration;ActiveProcess=step.process;
             ForgeStarlightPanel.Receipt(step,true,gameObject.name);
             if(workshop&&step.duration>0){yield return workshop.Play(step);workshop.Cancel();}

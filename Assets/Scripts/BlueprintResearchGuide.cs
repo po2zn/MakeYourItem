@@ -63,6 +63,8 @@ public static class BlueprintResearchGuide
             return true;
         }));
     }
+    // Keep old bookmark actions working while grouping introductory topics together.
+    public static string BookmarkSection(string section)=>section=="출력"||section=="기본 문법"||section=="완성 예제"||section=="문제가 생겼을 때"?"시작하기":section;
     public static string SectionFor(BlueprintFeature feature,string fallback)
     {
         switch(feature){
@@ -73,7 +75,7 @@ public static class BlueprintResearchGuide
             case BlueprintFeature.Fuel:case BlueprintFeature.Recover:case BlueprintFeature.Wrap:case BlueprintFeature.Unwrap:case BlueprintFeature.SealCount:case BlueprintFeature.Speed:case BlueprintFeature.AutoSell:case BlueprintFeature.Wait:return "공방 운영";
             case BlueprintFeature.Abs:case BlueprintFeature.Len:case BlueprintFeature.Min:case BlueprintFeature.Max:case BlueprintFeature.Random:case BlueprintFeature.Set:return "기술 연구";
             case BlueprintFeature.Append:case BlueprintFeature.Pop:case BlueprintFeature.SetAdd:return "자료 묶음";
-            default:return fallback;
+            default:return BookmarkSection(fallback);
         }
     }
     public static string Display(string text,bool english)

@@ -98,6 +98,7 @@ public static class ForgePricing
         if(d.plated)result["은도금"]=ForgeBalance.PlateBonus;
         if(d.star)result["별무늬"]=ForgeBalance.StarBonus;
         if(product.Material==7&&d.starlight!=null&&d.starlight.Bonus>0)result["별빛 정제"]=d.starlight.Bonus;
+        if(product.Material==7&&d.starlight!=null&&d.starlight.EngravingBonus>0)result["별빛 각인"]=d.starlight.EngravingBonus;
         if(d.frost)result["서리 문양"]=ForgeBalance.FrostBonus;
         if(d.charge>=3)result["마력 전도"]=ForgeBalance.ChargeBonus;
         if(d.charge>=3&&d.handle==9)result["용의 맥동"]=ForgeBalance.DragonPulseBonus;

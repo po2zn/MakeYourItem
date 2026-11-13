@@ -10,6 +10,10 @@ public sealed class ForgeStarlight
     [SerializeField] List<bool> revealed;
     [SerializeField] int swaps, removals;
     [SerializeField] double seconds;
+    [SerializeField] bool engraved;
+    public bool Engraved => engraved;
+    public int EngravingBonus => engraved?ForgeBalance.StarlightEngravingBonus:0;
+    public bool Engrave(double hour){if(hour>=1&&hour<5)engraved=true;return engraved;}
     public int Count => values.Count;
     public int Swaps => swaps;
     public int Removals => removals;
@@ -23,7 +27,7 @@ public sealed class ForgeStarlight
         initial=(int[])source.Clone(); Reset();
     }
     public ForgeStarlight Clone(){if(initial==null||initial.Length!=5||values==null||revealed==null||values.Count!=revealed.Count)return null;var c=(ForgeStarlight)MemberwiseClone();c.initial=(int[])initial.Clone();c.values=new List<int>(values);c.revealed=new List<bool>(revealed);return c;}
-    public void Reset(){values=new List<int>(initial);revealed=new List<bool>(new bool[initial.Length]);swaps=removals=0;seconds=0;}
+    public void Reset(){values=new List<int>(initial);revealed=new List<bool>(new bool[initial.Length]);swaps=removals=0;seconds=0;engraved=false;}
     public void CheckIndex(int index){if(index<0||index>=Count)throw new ArgumentException("별빛 위치 "+index+"는 범위를 벗어났습니다. 현재 개수 "+Count+", 위치는 0부터 시작합니다.");}
     public int Read(int index){CheckIndex(index);revealed[index]=true;return values[index];}
     static double Cost(double cost){return double.IsNaN(cost)||double.IsInfinity(cost)?0:Math.Max(0,cost);}
@@ -40,7 +44,7 @@ public sealed class ForgeStarlight
         }
     }
     public int Bonus => Perfect?ForgeBalance.StarlightBonus:0;
-    public static bool IsFeature(BlueprintFeature f)=>f>=BlueprintFeature.StarlightCount&&f<=BlueprintFeature.StarlightRemove;
+    public static bool IsFeature(BlueprintFeature f)=>f==BlueprintFeature.StarlightEngrave||f>=BlueprintFeature.StarlightCount&&f<=BlueprintFeature.StarlightRemove;
 }
 
 // Owns only a clone; disposal invalidates all receipts before replacing that clone.

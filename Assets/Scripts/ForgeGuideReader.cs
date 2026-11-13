@@ -37,6 +37,7 @@ public sealed partial class ForgeGuideReader
     }
     bool SectionVisible(string value)
     {
+        if(BlueprintResearchGuide.BookmarkSection(value)!=value)return false;
         if(value==""||value=="게임 소개"||value=="재료")return true;
         if(value=="테크 트리")return technology!=null&&technology.ExportNodes().Length>0;
         foreach(int i in visible)if(BlueprintGuide.Entries[i].Section==value)return true;
@@ -65,10 +66,11 @@ public sealed partial class ForgeGuideReader
     Vector2 indexScroll,detailScroll,codeScroll,leftTabScroll,materialScroll;
     int material=-1;
     string section="게임 소개";
+    // Serialized GuideSection indices remain stable; merged bookmarks are hidden.
     public static readonly string[] Sections={"게임 소개","테크 트리","재료","시작하기","대장간 공정","금속 가공","행운","마력 가공","공방 운영","시간 조회","기술 연구","대장장이와 다이아몬드","조건과 반복","사용자 함수","출력","자료 묶음","기본 문법","완성 예제","문제가 생겼을 때"};
     // Header and page insets surround the full bookmark rail.
     public static float DefaultWindowHeight => Mathf.Min(660,ForgeGuideUI.HeaderHeight+20+Sections.Length*BookmarkStep);
-    static readonly string[] Tabs={"소개","테크","재료","시작","공정","금속","행운","마력","운영","시간","연구","대장장이","조건 반복","함수","출력","자료","기본","예제","오류"};
+    static readonly string[] Tabs={"소개","테크","재료","시작","공정","금속","행운","마력","운영","시간","연구","대장장이","조건 점 반복","함수","출력","자료","기본","예제","오류"};
     GUIStyle bodyStyle,titleStyle,sectionStyle,entryStyle,codeStyle,buttonStyle,searchStyle,tabStyle;
     void Styles(Font font,int fontSize)
     {
@@ -83,7 +85,7 @@ public sealed partial class ForgeGuideReader
         searchStyle=new GUIStyle(GUI.skin.textField){font=font,fontSize=fontSize,richText=false};
         codeStyle=new GUIStyle(bodyStyle){fontSize=fontSize,wordWrap=false,padding=new RectOffset(6,6,6,6)};
         codeStyle.normal.textColor=new Color(.94f,.94f,.94f);
-        tabStyle=new GUIStyle(GUIStyle.none){font=font,fontSize=fontSize,fontStyle=FontStyle.Bold,alignment=TextAnchor.MiddleCenter,richText=false,padding=new RectOffset(0,0,0,0)};
+        tabStyle=new GUIStyle(GUIStyle.none){wordWrap=true,font=font,fontSize=fontSize,fontStyle=FontStyle.Bold,alignment=TextAnchor.MiddleCenter,richText=false,padding=new RectOffset(0,0,0,0)};
         foreach(var state in new[]{tabStyle.normal,tabStyle.hover,tabStyle.active,tabStyle.focused,tabStyle.onNormal,tabStyle.onHover,tabStyle.onActive,tabStyle.onFocused}){state.background=null;state.scaledBackgrounds=new Texture2D[0];state.textColor=new Color(.98f,.94f,.83f);}
         foreach(var style in new[]{bodyStyle,titleStyle,sectionStyle,entryStyle,codeStyle,buttonStyle,searchStyle,tabStyle})FixTextColor(style);
     }

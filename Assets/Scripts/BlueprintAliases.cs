@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 
-public enum BlueprintFeature { None, While, For, Break, Continue, If, Else, Def, Return, Heat, Abs, Len, Min, Max, Random, Set, Elif, Print, IsDay, NightTime, Attach, Polish, Plate, Fuel, Charge, Refine, Inspect, Lucky, LuckyCode, Speed, AutoSell, Curse, Protect, Recover, Wrap, Unwrap, SealCount, Rune, RuneList, RuneFamily, RuneGrade, Slots, Append, Pop, SetAdd, Magic, Strength, Wait, Resonate, SmithDemand, SmithGift, SmithFavor, SmithPosition, SmithRun, SmithCount, SmithSelf, SmithBusy, GiantRune, Match, Case, Default, StarlightCount, StarlightRead, StarlightSwap, StarlightRemove, CoolingCount, CoolingStart, CoolingEnd, CoolingCost, CoolingRun, BoneLength, BoneCount, BonePosition, BoneCut, BoneIsCut, BoneCost, GiantRuneTime }
+public enum BlueprintFeature { None, While, For, Break, Continue, If, Else, Def, Return, Heat, Abs, Len, Min, Max, Random, Set, Elif, Print, IsDay, NightTime, Attach, Polish, Plate, Fuel, Charge, Refine, Inspect, Lucky, LuckyCode, Speed, AutoSell, Curse, Protect, Recover, Wrap, Unwrap, SealCount, Rune, RuneList, RuneFamily, RuneGrade, Slots, Append, Pop, SetAdd, Magic, Strength, Wait, Resonate, SmithDemand, SmithGift, SmithFavor, SmithPosition, SmithRun, SmithCount, SmithSelf, SmithBusy, GiantRune, Match, Case, Default, StarlightCount, StarlightRead, StarlightSwap, StarlightRemove, CoolingCount, CoolingStart, CoolingEnd, CoolingCost, CoolingRun, BoneLength, BoneCount, BonePosition, BoneCut, BoneIsCut, BoneCost, GiantRuneTime, StarlightEngrave }
 public enum BlueprintSyntaxKind { Block, Branch, Control, Builtin }
 public sealed class BlueprintAlias
 {
@@ -32,6 +32,7 @@ public static class BlueprintAliases
         new BlueprintAlias(BlueprintFeature.CoolingEnd,"cooling_end","82",BlueprintSyntaxKind.Builtin,"출구 지점 번호를 읽습니다.","82(Blade) → 정수",1),
         new BlueprintAlias(BlueprintFeature.CoolingCost,"cooling_cost","83",BlueprintSyntaxKind.Builtin,"통로의 서리수 비용을 읽습니다. 연결 없으면 -1입니다.","83(Blade, A, B) → 정수 · 지점은 0부터",3),
         new BlueprintAlias(BlueprintFeature.CoolingRun,"cooling_run","84",BlueprintSyntaxKind.Builtin,"유효 경로의 총비용만큼 서리수를 소비해 냉각합니다.","84(Blade, 8, Path) → None · 경로 최대 128개 지점",3),
+        new BlueprintAlias(BlueprintFeature.StarlightEngrave,"starlight_engrave","74",BlueprintSyntaxKind.Builtin,"별빛 각인 · 게임 시간 01:00 이상~05:00 미만에 별철 칼날에 사용하면 판매 보너스 +100G를 얻습니다. 중첩되지 않습니다.","74(StarIron) → None",1),
         new BlueprintAlias(BlueprintFeature.StarlightCount,"starlight_count","70",BlueprintSyntaxKind.Builtin,"현재 별빛 개수를 읽습니다.","70(StarIron) → 정수",1),
         new BlueprintAlias(BlueprintFeature.StarlightRead,"starlight_read","71",BlueprintSyntaxKind.Builtin,"0부터 시작하는 위치의 값을 읽고 공개합니다.","71(StarIron, Index) → 정수 0~9",2),
         new BlueprintAlias(BlueprintFeature.StarlightSwap,"starlight_swap","72",BlueprintSyntaxKind.Builtin,"두 위치의 별빛과 공개 상태를 교환합니다.","72(StarIron, A, B) → None",3),
