@@ -70,6 +70,7 @@ public sealed partial class ForgeGameUI:MonoBehaviour
  foreach(var h in source)if(h.name=="MaterialTile1"){
  var tile=Instantiate(h.gameObject,h.transform.parent);tile.name="MaterialTile0";tile.transform.SetSiblingIndex(h.transform.GetSiblingIndex());
  foreach(var t in tile.GetComponentsInChildren<Transform>(true)){if(t.name=="MaterialIcon1"){var original=h.GetComponentInChildren<RawImage>(true);var rect=(RectTransform)t;if(original&&iconSlots.TryGetValue(original,out var slot)){rect.sizeDelta=new Vector2(slot.x,slot.y);rect.anchoredPosition=new Vector2(slot.z,slot.w);}t.name="MaterialIcon0";if(airIcons==null)airIcons=new ForgeMaterialHud();t.GetComponent<RawImage>().texture=airIcons.GetIcon(0);}else if(t.name=="MaterialCount1")t.name="MaterialCount0";}return;}}
+ ForgeFrostStationHover frostHover;
  ForgeMaterialHud airIcons;bool smithHelp,materialHelp;
  readonly List<ForgeUIHover> materialHovers=new List<ForgeUIHover>();
  RectTransform materialViewport;
@@ -77,10 +78,13 @@ public sealed partial class ForgeGameUI:MonoBehaviour
  void UpdateSmithHover(){
 #if ENABLE_INPUT_SYSTEM
  var mouse=UnityEngine.InputSystem.Mouse.current;
- if(mouse==null)return;
+ if(mouse==null){if(frostHover)frostHover.Hide();return;}
  Vector2 point=mouse.position.ReadValue();
  hoverHits.Clear();if(EventSystem.current)EventSystem.current.RaycastAll(new PointerEventData(EventSystem.current){position=point},hoverHits);
  bool blocked=false;foreach(var hit in hoverHits){if(hit.gameObject.transform.IsChildOf(codeHelp))continue;blocked=hit.gameObject.GetComponent<ForgeWorkspacePan>()==null;break;}
+ bool dragging=mouse.leftButton.isPressed||mouse.rightButton.isPressed||mouse.middleButton.isPressed;
+ if(!blocked&&!dragging&&game.TryFrostStationHover(point,out int station,out var motion)){if(!frostHover)frostHover=ForgeFrostStationHover.Create(this);HideCodeHelp();frostHover.Show(this,motion,station,point,game.CoolingWater);return;}
+ if(frostHover)frostHover.Hide();
  // Observe screen rectangles without making materials raycast targets. A
  // foreground window/button always gets both input and tooltip priority.
  var material=FindMaterialHover(point,blocked||mouse.leftButton.isPressed||mouse.rightButton.isPressed||mouse.middleButton.isPressed);

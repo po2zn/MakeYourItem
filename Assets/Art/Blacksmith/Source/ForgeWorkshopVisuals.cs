@@ -4,9 +4,9 @@ using System.Linq;
 using UnityEngine;
 
 // Presentation follows successful interpreter receipts; never spends resources or changes quality.
-public sealed class ForgeWorkshopVisuals : MonoBehaviour
+public sealed partial class ForgeWorkshopVisuals : MonoBehaviour
 {
-    sealed class PieceView { public GameObject root; public Renderer blade; public Material material,handleMaterial; public float heat; }
+    sealed class PieceView { public GameObject root,raw; public Renderer blade; public Material material,handleMaterial; public float heat; }
     readonly Dictionary<int,PieceView> pieces=new Dictionary<int,PieceView>();
     readonly Dictionary<Transform,Quaternion> rest=new Dictionary<Transform,Quaternion>();
     readonly List<Material> owned=new List<Material>();
@@ -99,6 +99,7 @@ public sealed class ForgeWorkshopVisuals : MonoBehaviour
     {
         var appearance=p.root.GetComponent<ForgeSwordAppearance>()??p.root.AddComponent<ForgeSwordAppearance>();
         appearance.Apply(step.material,step.shaped,step.data,step.heat,false);
+        SetRawVisible(p,!step.shaped);
     }
     void HideSealLayer(){if(sealLayer)sealLayer.gameObject.SetActive(false);}
     void AnimateSealLayer(PieceView p,ForgeMvp.Step step,float t)
@@ -154,7 +155,7 @@ public sealed class ForgeWorkshopVisuals : MonoBehaviour
     public void ReactToCodeError(){if(idle)idle.ReactToCodeError();}
     public void Cancel(){if(actionAudio&&acting)actionAudio.Stop();HideSealLayer();HideFurnaceTools();if(luckySparkles)luckySparkles.Hide();if(idle)idle.CancelErrorReaction();epoch++;acting=false;LastProcess=0;ReleaseHeldPiece();ResetPose();if(coolingVapor)coolingVapor.Clear();if(hammer)hammer.gameObject.SetActive(true);if(tongs)tongs.gameObject.SetActive(false);if(polishingStone)polishingStone.gameObject.SetActive(false);if(platingBrush)platingBrush.gameObject.SetActive(false);}
     void OnDisable(){Cancel();}
-    void OnDestroy(){foreach(var m in owned)if(m)Destroy(m);}
+    void OnDestroy(){if(mistTexture)Destroy(mistTexture);foreach(var m in owned)if(m)Destroy(m);}
     static Color Metal(int material)=>material==5?new Color(.72f,.81f,.9f):material==7?new Color(.3f,.35f,.65f):material==9?Color.white:new Color(.48f,.52f,.56f);
     void Appearance(PieceView p,ForgeMvp.Step step,float heat)
     {
@@ -201,6 +202,7 @@ public sealed class ForgeWorkshopVisuals : MonoBehaviour
     }
     void HideFurnaceTools()
     {
+        HideIngredient();
         if(furnaceCoal)furnaceCoal.gameObject.SetActive(false);
         if(furnacePoker)furnacePoker.gameObject.SetActive(false);
         furnacePulse=0;
@@ -289,12 +291,15 @@ public sealed class ForgeWorkshopVisuals : MonoBehaviour
         }
         if(step.data!=null&&(step.data.destroyed||step.data.recovered)){p.root.SetActive(false);actionAudio.Stop();acting=false;yield break;}
         p.root.SetActive(true);
+        EnsureRaw(p,step.material);SetRawVisible(p,!step.shaped||step.process==3);
+        PrepareIngredient(step);
         // A billet is the saved blade mesh compressed along its length; no runtime mesh generation.
         bool shaped=step.shaped;
         var blade=Find(p.root.transform,"Blade");blade.localScale=shaped?Vector3.one:new Vector3(2.2f,.35f,2.2f);
         bool hasHandle=shaped&&step.data!=null&&step.data.handle>0;
         foreach(string part in new[]{"Guard","Grip","Pommel"})Find(p.root.transform,part).gameObject.SetActive(hasHandle);
-        Vector3 target=step.process==2?heatTarget.position:step.process==4?waterTarget.position:strikeTarget.position;
+        bool frost=UsesFrostStation(step);
+        Vector3 target=step.process==2?heatTarget.position:step.process==4?(frost&&frostTarget?frostTarget.position:waterTarget.position):strikeTarget.position;
         bool wet=step.process==4&&step.consumed!=null&&(step.consumed.ContainsKey(3)||step.consumed.ContainsKey(8));
         // Air cooling remains over the anvil; only a water/ice receipt enters the bucket.
         if(step.process==4&&!wet)target=strikeTarget.position;
@@ -359,7 +364,7 @@ public sealed class ForgeWorkshopVisuals : MonoBehaviour
                         p.root.transform.position=grip+new Vector3(0,Mathf.Sin(phase*Mathf.PI)*.06f,wave*.12f);
                         p.root.transform.rotation=pose*Quaternion.Euler(0,0,wave*14);
                     }
-                    if(!vaporEmitted&&phase>.3f&&initialHeat>0){EmitCoolingVapor(wet?waterTarget.position:p.root.transform.position+Vector3.right*.35f,wet);vaporEmitted=true;}
+                    if(!vaporEmitted&&phase>.3f&&initialHeat>0){if(frost)EmitFrostMist(target);else EmitCoolingVapor(wet?target:p.root.transform.position+Vector3.right*.35f,wet);vaporEmitted=true;}
                 }
                 // Carry the workpiece at the hand while walking, then present it to the station.
                 {
@@ -409,6 +414,10 @@ public sealed class ForgeWorkshopVisuals : MonoBehaviour
                     AnimateSealLayer(p,step,t);
                     if(!sealApplied&&t>=ForgeActionAudio.SealContactTime){Details(p,step);sealApplied=true;}
                 }
+                AnimateIngredient(step,p,t,frost?target:strikeTarget.position);
+                if(step.process==3&&t>=.78f)SetRawVisible(p,false);
+                AnimateRawHeat(p,Mathf.Lerp(initialHeat,step.heat,t));
+                if(frost&&cooling&&t>.58f&&t<.82f)FrostRipple(target,(t-.58f)/.24f);else HideFrostRipple();
                 float coolingProgress=Mathf.Clamp01((t-.4f)/.48f);
                 if(lucky&&t>.48f&&t<.92f)luckySparkles.Show(p.root.transform,Mathf.InverseLerp(.48f,.92f,t));
                 else if(lucky)luckySparkles.Hide();
@@ -422,6 +431,6 @@ public sealed class ForgeWorkshopVisuals : MonoBehaviour
                 else{p.root.transform.position=grip;p.root.transform.rotation=pose;}
                 Appearance(p,step,step.heat);Details(p,step);
             }
-        }finally{if(run==epoch){HideSealLayer();actionAudio.AbortIfActive();if(luckySparkles)luckySparkles.Hide();acting=false;if(heldPiece==null)ResetPose();if(hammer)hammer.gameObject.SetActive(heldPiece==null);if(tongs)tongs.gameObject.SetActive(false);if(polishingStone)polishingStone.gameObject.SetActive(false);if(platingBrush)platingBrush.gameObject.SetActive(false);}}
+        }finally{if(run==epoch){HideIngredient();HideFrostRipple();HideSealLayer();actionAudio.AbortIfActive();if(luckySparkles)luckySparkles.Hide();acting=false;if(heldPiece==null)ResetPose();if(hammer)hammer.gameObject.SetActive(heldPiece==null);if(tongs)tongs.gameObject.SetActive(false);if(polishingStone)polishingStone.gameObject.SetActive(false);if(platingBrush)platingBrush.gameObject.SetActive(false);}}
     }
 }

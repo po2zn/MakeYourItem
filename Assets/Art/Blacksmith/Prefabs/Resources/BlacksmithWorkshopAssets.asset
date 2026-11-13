@@ -21,3 +21,10 @@ MonoBehaviour:
   butterfly: {fileID: 2428670593305356072, guid: c5e61fe580252bb42941b6f3f65bc5bd, type: 3}
   tongs: {fileID: 4225459351544343493, guid: 995028c0650adb241ad0ec0cb0c535df, type: 3}
   floor: {fileID: 2630825452187511835, guid: 8271ff1b2b14f3a429782d352111edef, type: 3}
+  crystalMaterial: {fileID: 8700473119173060460, guid: ae48dc818c5f9c94f956f5eb5b297b70, type: 3}
+  starIronMaterial: {fileID: 1669694896034619444, guid: 71a0b7a3d29a3d342bddc261a3e869c1, type: 3}
+  frostWaterMaterial: {fileID: 5926692843002807456, guid: 9f215bf10ac428442adb115b58d463ad, type: 3}
+  dragonBoneMaterial: {fileID: 4166500929693083085, guid: 13ecf79459bfc7f46a810034745f8f4e, type: 3}
+  frostStation: {fileID: 5151868195228771776, guid: 8e2846a48e6a889458e17572948b220d, type: 3}
+  giantRunePillar: {fileID: 7220129766031383245, guid: 4d892bbc0828fcf41a22c5ac9819bb09, type: 3}
+  giantRuneCircle: {fileID: 8948359955625184495, guid: df77517da777c1148b2b06e2988da780, type: 3}

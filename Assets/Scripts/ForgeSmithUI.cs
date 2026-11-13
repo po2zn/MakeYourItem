@@ -27,6 +27,13 @@ public partial class ForgeMvp
         isBurning=blacksmiths.Burning(closest,SmithHours);
         return SmithInfo(closest);
     }
+    public bool TryFrostStationHover(Vector2 screenPoint,out int id,out ForgeCraftMotion motion){
+        id=-1;motion=null;
+        if(!CoolingUnlocked||!workspaceCamera||!workspaceCamera.enabled||showTitle||showTechTree||showGameMenu||showProgress||showProductInventory||showTutorial||deleteWindowId>=0||campaignComplete&&!endingSeen)return false;
+        var ray=workspaceCamera.ScreenPointToRay(screenPoint);float closest=float.MaxValue;
+        for(int i=0;i<smithMotions.Count;i++)if(smithMotions[i]&&smithMotions[i].HitFrostStation(ray,out float hit)&&hit<closest){closest=hit;id=i;motion=smithMotions[i];}
+        return motion;
+    }
     void DrawSmithHover()
     {
         if(!workspaceCamera||!workspaceCamera.enabled||WorkspacePointerActive||showGameMenu||showTitle)return;

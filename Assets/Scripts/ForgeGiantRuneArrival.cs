@@ -28,7 +28,7 @@ public sealed class ForgeGiantRuneArrival : MonoBehaviour
     public void Sample(float seconds)
     {
         elapsed=Mathf.Max(0,seconds);transform.localPosition=floor+Vector3.up*HeightAt(elapsed);
-        if(shadow){float t=Mathf.Clamp01(elapsed/DropSeconds);shadow.transform.localPosition=floor-Vector3.up*.008f;float spread=Mathf.Lerp(1.5f,1,t);shadow.transform.localScale=new Vector3(transform.localScale.x*spread,.003f,transform.localScale.z*spread);
+        if(shadow){float t=Mathf.Clamp01(elapsed/DropSeconds);shadow.transform.localPosition=floor-Vector3.up*.008f;float spread=Mathf.Lerp(1.5f,1,t);shadow.transform.localScale=new Vector3(2.25f*spread,.003f,2.25f*spread);
             var color=new Color(.025f,.02f,.04f,Mathf.Lerp(.08f,.5f,t));shadowMaterial.color=color;if(shadowMaterial.HasProperty("_BaseColor"))shadowMaterial.SetColor("_BaseColor",color);}
         if(elapsed>=DropSeconds+BounceSeconds){Playing=false;transform.localPosition=floor;if(shadow)shadow.SetActive(false);}
     }

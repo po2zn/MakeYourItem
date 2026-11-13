@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 public sealed class ForgeSfxLibrary:ScriptableObject {
  public AudioClip click,ui,place,coal,walk,hammer,water,air,seal,upgrade,polish,sparkle;
+ public AudioClip frostDrop,frostCooling;
  static ForgeSfxLibrary instance;
  readonly Dictionary<string,AudioClip> sped=new Dictionary<string,AudioClip>();
  public static ForgeSfxLibrary Instance=>instance?instance:instance=Resources.Load<ForgeSfxLibrary>("ForgeSfxLibrary");
@@ -9,7 +10,7 @@ public sealed class ForgeSfxLibrary:ScriptableObject {
   // Level 5 keeps its gameplay timing but shares the level 4 sound and cache entry.
   if(!clip)return null;speed=Mathf.Clamp(speed,1,4);
   if(clip.loadState==AudioDataLoadState.Unloaded)clip.LoadAudioData();
-  bool soft=clip==water||clip==polish||clip==sparkle;
+  bool soft=clip==water||clip==polish||clip==sparkle||clip==frostCooling||clip==frostDrop;
   if(speed==1&&!soft)return clip;
   string key=clip.name+"/"+speed.ToString("0.###",System.Globalization.CultureInfo.InvariantCulture);
   if(sped.TryGetValue(key,out var result)&&result)return result;
@@ -58,6 +59,14 @@ public sealed class ForgeSfxLibrary:ScriptableObject {
    double fade=System.Math.Min(1,(samples.Length-1-i)/(rate*.025/speed));samples[i]=(float)(sum*System.Math.Max(0,fade));
   }
   return samples;
+ }
+ public static float[] FrostSamples(int rate,bool drop){
+  var data=new float[(int)(rate*(drop?.34f:.8f))];uint seed=83117;double filtered=0;
+  for(int i=0;i<data.Length;i++){double t=(double)i/rate;seed=seed*1664525u+1013904223u;double noise=(seed>>8)/(double)0xffffff*2-1;filtered+=.13*(noise-filtered);
+   double fade=System.Math.Min(1,i/(rate*.012))*System.Math.Min(1,(data.Length-1-i)/(rate*.035));
+   double value=drop?(.24*System.Math.Sin(2*System.Math.PI*740*t)*System.Math.Exp(-t*18)+.12*System.Math.Sin(2*System.Math.PI*1174*t)*System.Math.Exp(-t*26)+filtered*.38*System.Math.Exp(-t*12)):filtered*.65*(.8+.2*System.Math.Sin(2*System.Math.PI*4*t))+.035*System.Math.Sin(2*System.Math.PI*(180*t+16*System.Math.Sin(t*7)));
+   data[i]=(float)(value*fade);
+  }return data;
  }
  void OnDisable(){foreach(var clip in sped.Values)if(clip)Destroy(clip);sped.Clear();if(instance==this)instance=null;}
 }

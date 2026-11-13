@@ -23,6 +23,9 @@ public sealed class ForgeCraftMotion : MonoBehaviour
     bool burning;
     public Vector3 SmithPosition=>workshop?workshop.SmithPosition:smith?smith.position:transform.position;
     public Bounds SmithBounds { get {var b=new Bounds(SmithPosition+Vector3.up*.9f,new Vector3(.9f,1.9f,.7f));return b;} }
+    public readonly ForgeCoolingViewState StationCoolingView=new ForgeCoolingViewState();
+    public bool HitFrostStation(Ray ray,out float distance){distance=0;return workshop&&workshop.HitFrostStation(ray,out distance);}
+    public void SetFrostUnlocked(bool value){if(workshop)workshop.SetFrostUnlocked(value);}
     public void SetStationOffset(Vector3 offset){transform.localPosition=offset;}
     public void SetBurning(bool value){if(workshop){workshop.SetBurning(value);return;}if(value==burning||!apron)return;burning=value;apron.material.color=value?new Color(1f,.05f,.05f):new Color(.3f,.18f,.1f);}
     readonly Vector3 bench = new Vector3(2, 1, 0);
@@ -90,6 +93,7 @@ public sealed class ForgeCraftMotion : MonoBehaviour
     public void BeginRun()
     {
         CancelCurrentAction();
+        StationCoolingView.Clear();
         if(workshop)workshop.Clear();
         foreach(var item in pieces.Values) if(item) Destroy(item);
         pieces.Clear();
@@ -125,23 +129,25 @@ public sealed class ForgeCraftMotion : MonoBehaviour
         var game=GetComponentInParent<ForgeMvp>();uint generation=0;
         // The main station owns the code observer; other stations keep their own execution UI.
         bool primary=game&&ReferenceEquals(game.MainCoolingMotion,this);
+        uint stationGeneration=StationCoolingView.Receipt(step);
         if(primary)generation=game.BeginCoolingReceipt(step);
         if(step.coolingCall>=80&&step.coolingCall<=83)yield break;
         Coroutine progress=null;
-        if(primary&&(step.coolingCall==84||step.process==93))progress=StartCoroutine(CoolingTravel(game,generation,step.duration));
+        if(step.coolingCall==84||step.process==93||step.process==4&&step.coolingPath!=null)progress=StartCoroutine(CoolingTravel(primary?game:null,generation,stationGeneration,step.duration));
         uint workGeneration=motionGeneration;
-        try{yield return PlayPhysical(step);if(workGeneration==motionGeneration){step.CompleteWork();if(primary)game.BeginCoolingReceipt(step);}}finally{step.CancelWork();step.ReleaseCooling();if(progress!=null)StopCoroutine(progress);if(primary)game.EndCoolingReceipt(generation);}
+        try{yield return PlayPhysical(step);if(workGeneration==motionGeneration){step.CompleteWork();StationCoolingView.Receipt(step);if(primary)game.BeginCoolingReceipt(step);}}finally{step.CancelWork();step.ReleaseCooling();if(progress!=null)StopCoroutine(progress);StationCoolingView.Animate(stationGeneration,1);if(primary)game.EndCoolingReceipt(generation);}
     }
-    IEnumerator CoolingTravel(ForgeMvp game,uint generation,float duration){float elapsed=0;while(elapsed<duration){game.CoolingProgress(generation,duration<=0?1:elapsed/duration);yield return null;elapsed+=Time.deltaTime;}}
+    IEnumerator CoolingTravel(ForgeMvp game,uint generation,uint stationGeneration,float duration){float elapsed=0;while(elapsed<duration){float fraction=duration<=0?1:elapsed/duration;StationCoolingView.Animate(stationGeneration,fraction);if(game)game.CoolingProgress(generation,fraction);yield return null;elapsed+=Time.deltaTime;}}
     IEnumerator PlayPhysical(ForgeMvp.Step step)
     {
         uint actionGeneration=motionGeneration;
         if(step.debugOutput) yield break;
-        if(step.process>=90&&step.process<=95){float boneElapsed=0;while(boneElapsed<step.duration&&actionGeneration==motionGeneration){yield return null;boneElapsed+=Time.deltaTime;}yield break;}
+        if(step.process>=90&&step.process<=95){if(workshop&&step.process==93&&step.duration>0){yield return workshop.Play(step);workshop.Cancel();yield break;}float boneElapsed=0;while(boneElapsed<step.duration&&actionGeneration==motionGeneration){yield return null;boneElapsed+=Time.deltaTime;}yield break;}
         if(step.process>=70&&step.process<=73){
             uint generation=motionGeneration;ActiveProcess=step.process;
             ForgeStarlightPanel.Receipt(step,true,gameObject.name);
-            float starElapsed=0;
+            if(workshop&&step.duration>0){yield return workshop.Play(step);workshop.Cancel();}
+            float starElapsed=workshop?step.duration:0;
             while(starElapsed<step.duration&&generation==motionGeneration){yield return null;starElapsed+=Time.deltaTime;}
             if(generation==motionGeneration){ForgeStarlightPanel.Receipt(step,false,gameObject.name);CompletedActions++;ActiveProcess=0;}
             yield break;

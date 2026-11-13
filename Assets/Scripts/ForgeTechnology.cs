@@ -65,7 +65,7 @@ public sealed class ForgeTechnology
         F(BlueprintFeature.Plate,30,4,0,"material-5"),
         M(7,300,5,0,"function-Plate"),
         M(8,180,6,0,"material-7"),
-        MaterialBundle(9,BlueprintFeature.Refine,10000,6,1,"용뼈 + 10()","material-7","function-Charge"),
+        MaterialBundle(9,BlueprintFeature.Refine,10000,6,1,"용뼈 + 10()","material-7","function-Resonate"),
         MaterialBundle(6,BlueprintFeature.Charge,15000,1,4,"마력 수정 + 9()"),
         F(BlueprintFeature.Inspect,15,2,3,"material-6"),
         new Offer("function-Rune",ForgePurchaseKind.Function,50,"룬 각인·거대한 룬","각인 211()과 거대한 룬 설치 90910(), 남은 시간 조회 90911()을 함께 해금합니다. 룬 번호와 같은 번호의 재료 1개를 사용합니다. 거대한 룬은 다이아 25/50/75개도 필요하며 게임 시간 48시간 동안 유지됩니다.",3,4,0,BlueprintFeature.Rune,"function-Charge"),

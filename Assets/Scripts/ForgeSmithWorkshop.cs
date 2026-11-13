@@ -37,7 +37,7 @@ public partial class ForgeMvp
             var motion=root.AddComponent<ForgeCraftMotion>();motion.Initialize(work);motion.SetStationOffset(new Vector3(ForgeBlacksmiths.X(id)*4.5f,0,ForgeBlacksmiths.Y(id)*4.5f));smithMotions.Add(motion);
         }
         for(int i=smithMotions.Count-1;i>=blacksmiths.smiths.Count;i--){Destroy(smithMotions[i].gameObject);smithMotions.RemoveAt(i);}
-        for(int i=0;i<smithMotions.Count;i++)smithMotions[i].SetBurning(blacksmiths.Burning(i,SmithHours));
+        for(int i=0;i<smithMotions.Count;i++){smithMotions[i].SetBurning(blacksmiths.Burning(i,SmithHours));smithMotions[i].SetFrostUnlocked(CoolingUnlocked&&!showTutorial&&!showTitle);}
         UpdateGiantRuneViews();
     }
     static void ReleaseRuneObject(UnityEngine.Object value){if(!value)return;if(Application.isPlaying)Destroy(value);else DestroyImmediate(value);}
@@ -52,14 +52,26 @@ public partial class ForgeMvp
                 var material=new Material(Shader.Find("Universal Render Pipeline/Unlit")??Shader.Find("Unlit/Color"));view.GetComponent<Renderer>().sharedMaterial=material;giantRuneMaterials.Add(material);giantRuneViews.Add(view);giantRuneBindings.Add(null);
             }
             int family=(rune.rune-1)%3,grade=(rune.rune-1)/3+1;
-            var floor=new Vector3(1.2f+(float)rune.x*4.5f,.02f,(float)rune.y*4.5f);
+            var floor=new Vector3(1.2f+(float)rune.x*4.5f,.02f,(float)rune.y*4.5f-1.05f);
             var arrival=giantRuneViews[i].GetComponent<ForgeGiantRuneArrival>();
             if(giantRuneBindings[i]!=rune){if(arrival&&arrival.Playing)arrival.Sample(ForgeGiantRuneArrival.DropSeconds+ForgeGiantRuneArrival.BounceSeconds);giantRuneBindings[i]=rune;}
             if(!arrival||!arrival.Playing)giantRuneViews[i].transform.localPosition=floor;
-            giantRuneViews[i].transform.localScale=new Vector3(2.25f,.02f,2.25f);
+            giantRuneViews[i].transform.localScale=ApplyGiantRuneModel(giantRuneViews[i],grade)?Vector3.one:new Vector3(2.25f,.02f,2.25f);
             if(arrivingRunes.Remove(rune)){if(!arrival)arrival=giantRuneViews[i].AddComponent<ForgeGiantRuneArrival>();arrival.Begin(floor);}
             giantRuneMaterials[i].color=family==0?new Color(.5f,.25f,.9f):family==1?new Color(.2f,.65f,.9f):new Color(.9f,.65f,.15f);
         }
+    }
+    ForgeWorkshopAssets runeWorkshopAssets;
+    bool ApplyGiantRuneModel(GameObject view,int grade){
+        if(!runeWorkshopAssets)runeWorkshopAssets=Resources.Load<ForgeWorkshopAssets>("BlacksmithWorkshopAssets");
+        var prefab=runeWorkshopAssets?runeWorkshopAssets.GiantRuneModel(grade):null;if(!prefab)return false;
+        var existing=view.transform.Find("Rune model");
+        if(!existing||existing.GetChild(0).name!=prefab.name){
+            if(existing){existing.name="Retired rune model";existing.gameObject.SetActive(false);ReleaseRuneObject(existing.gameObject);}
+            var holder=new GameObject("Rune model");holder.transform.SetParent(view.transform,false);
+            var model=Instantiate(prefab,holder.transform,false);model.name=prefab.name;
+        }
+        view.GetComponent<Renderer>().enabled=false;return true;
     }
     Dictionary<int,long> SmithMaterials(){var values=new Dictionary<int,long>();foreach(var s in materialStocks??Array.Empty<ForgeMaterialStock>())if(s!=null&&s.unlocked)values[s.material]=s.count;return values;}
     ForgeRunContext SmithContext(int id)=>new ForgeRunContext{

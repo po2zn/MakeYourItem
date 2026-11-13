@@ -24,3 +24,5 @@ MonoBehaviour:
   upgrade: {fileID: 8300000, guid: 619b54eec28e930458e4639c0b806bd4, type: 3}
   polish: {fileID: 8300000, guid: 7ac170c558406441be2a53ec9bc1b786, type: 3}
   sparkle: {fileID: 8300000, guid: 9659985d8d9135e6376f21cafae5b6a8, type: 3}
+  frostDrop: {fileID: 8300000, guid: ea5da2c1ad830304ba5379cd35e1d700, type: 3}
+  frostCooling: {fileID: 8300000, guid: dbeaf6e9e95f9c14090bddbd70003e91, type: 3}
