@@ -202,6 +202,7 @@ public sealed partial class ForgeWorkshopVisuals : MonoBehaviour
     }
     void HideFurnaceTools()
     {
+        HideCurse();
         HideIngredient();
         if(furnaceCoal)furnaceCoal.gameObject.SetActive(false);
         if(furnacePoker)furnacePoker.gameObject.SetActive(false);
@@ -289,7 +290,7 @@ public sealed partial class ForgeWorkshopVisuals : MonoBehaviour
             p.material=new Material(p.blade.sharedMaterial);p.blade.sharedMaterial=p.material;owned.Add(p.material);pieces.Add(step.pieceId,p);
             var handle=Find(p.root.transform,"Grip").GetComponent<Renderer>();p.handleMaterial=new Material(handle.sharedMaterial);handle.sharedMaterial=p.handleMaterial;owned.Add(p.handleMaterial);
         }
-        if(step.data!=null&&(step.data.destroyed||step.data.recovered)){p.root.SetActive(false);actionAudio.Stop();acting=false;yield break;}
+        if(step.data!=null&&((step.data.destroyed&&step.process!=666)||step.data.recovered)){p.root.SetActive(false);actionAudio.Stop();acting=false;yield break;}
         p.root.SetActive(true);
         EnsureRaw(p,step.material);SetRawVisible(p,!step.shaped||step.process==3);
         PrepareIngredient(step);
@@ -313,14 +314,14 @@ public sealed partial class ForgeWorkshopVisuals : MonoBehaviour
         // Approach above the surface, lower the blade, hold it in water, then lift it clear.
         float bladeLength=shaped?.94f:.94f*.35f;
         if(wet){grip=target+new Vector3(0,bladeLength*.707107f+.16f,bladeLength*.707107f);pose=Quaternion.Euler(225,0,0);}
-        if(cooling&&!wet)grip=target+new Vector3(.34f,.32f,.28f);
+        if(cooling&&!wet)grip=target+new Vector3(.34f,.24f,-.06f);
         Vector3 start=p.root.transform.position,smithStart=smith.position;
         // Each workstation has its own stance. Heating faces the opening; forging faces
         // the player with the anvil in front. A camera lock must never force a rearward reach.
         Vector3 facing=heating?new Vector3(-.45f,0,.89f).normalized:Vector3.back;
         Vector3 handGrip=heating?grip+new Vector3(0,.12f,-.4f):grip;
         Vector3 stand=heating?handGrip+Vector3.Cross(Vector3.up,facing)*.25f-facing*.30f:
-            wet?target+new Vector3(-.25f,0,.8f):target+new Vector3(.05f,0,.58f);
+            wet?target+new Vector3(-.25f,0,.8f):target+new Vector3(.05f,0,cooling?.40f:.58f);
         stand.y=transform.position.y;
         var worldObstacles=obstacles.Select(b=>new Bounds(b.center+transform.position,b.size)).ToList();
         var route=ForgePoseSolver.Route(smithStart,stand,worldObstacles,.18f);
@@ -341,7 +342,7 @@ public sealed partial class ForgeWorkshopVisuals : MonoBehaviour
                 smith.rotation=Quaternion.Slerp(startFacing,travelRotation,Mathf.Clamp01(t/.12f));
                 smith.rotation=Quaternion.Slerp(smith.rotation,Quaternion.LookRotation(facing),Mathf.SmoothStep(0,1,Mathf.InverseLerp(.25f,.4f,t)));
                 float settle=Mathf.SmoothStep(0,1,Mathf.InverseLerp(.3f,.43f,t));
-                spine.localRotation=rest[spine]*Quaternion.Euler((lucky?4:heating?12:cooling?12:30)*settle,0,0);
+                spine.localRotation=rest[spine]*Quaternion.Euler((lucky?4:heating?12:cooling?4:step.process==3?10:18)*settle,0,0);
                 headBone.localRotation=rest[headBone]*Quaternion.Euler(10*settle,0,0);
                 Feet(traveled*22,1-settle);
                 p.root.transform.position=Vector3.Lerp(start,grip,move);p.root.transform.rotation=Quaternion.Slerp(initialRotation,pose,move);
@@ -361,8 +362,8 @@ public sealed partial class ForgeWorkshopVisuals : MonoBehaviour
                         p.root.transform.rotation=Quaternion.Euler(180+angle*Mathf.Rad2Deg,0,0);
                     }else{
                         float wave=Mathf.Sin(phase*Mathf.PI*4);
-                        p.root.transform.position=grip+new Vector3(0,Mathf.Sin(phase*Mathf.PI)*.06f,wave*.12f);
-                        p.root.transform.rotation=pose*Quaternion.Euler(0,0,wave*14);
+                        p.root.transform.position=grip+new Vector3(0,Mathf.Sin(phase*Mathf.PI)*.025f,wave*.025f);
+                        p.root.transform.rotation=pose*Quaternion.Euler(0,wave*5,0);
                     }
                     if(!vaporEmitted&&phase>.3f&&initialHeat>0){if(frost)EmitFrostMist(target);else EmitCoolingVapor(wet?target:p.root.transform.position+Vector3.right*.35f,wet);vaporEmitted=true;}
                 }
@@ -374,17 +375,17 @@ public sealed partial class ForgeWorkshopVisuals : MonoBehaviour
                     desired=Vector3.Lerp(smith.TransformPoint(new Vector3(-.32f,.93f,.24f)),desired,present);
                     handPose=Quaternion.Slerp(Quaternion.LookRotation(smith.right,smith.forward),handPose,present);
                     Reach(leftArm,leftFore,leftHand,leftSocket,desired,handPose,true);
-                    if(lucky&&t>.4f)p.root.transform.position=leftSocket.position;
+                    if((lucky||cooling&&!wet)&&t>.4f)p.root.transform.position=leftSocket.position;
                     if(t<.4f){Vector3 carry=leftSocket.position+(heating?smith.forward*.42f:Vector3.zero);p.root.transform.position=Vector3.Lerp(carry,p.root.transform.position,present);p.root.transform.rotation=Quaternion.Slerp(Quaternion.FromToRotation(Vector3.up,smith.forward),p.root.transform.rotation,present);}
                     if(heating&&tongs){tongs.position=leftSocket.position;tongs.rotation=Quaternion.FromToRotation(Vector3.forward,p.root.transform.position-leftSocket.position);tongs.localScale=new Vector3(1,1,Vector3.Distance(leftSocket.position,p.root.transform.position)/.42f);}
                 }
                 if(step.process==3&&t>.4f){
                     float cycle=Mathf.Repeat((t-.4f)/.6f*2,1);
                     float lift=cycle<.65f?Mathf.SmoothStep(0,1,cycle/.65f):1-Mathf.SmoothStep(0,1,(cycle-.65f)/.35f);
-                    Vector3 shaft=Vector3.Slerp(smith.forward,Vector3.up,.88f*lift).normalized;
+                    Vector3 shaft=Vector3.Slerp((smith.forward-smith.right*.7f).normalized,Vector3.up,.70f*lift).normalized;
                     Vector3 face=Vector3.ProjectOnPlane(Vector3.down,shaft).normalized;
                     Quaternion hammerPose=Quaternion.LookRotation(Vector3.Cross(face,shaft),shaft);
-                    Vector3 contact=strikeTarget.position+Vector3.up*(.035f+lift*.33f);
+                    Vector3 contact=strikeTarget.position+smith.right*.16f+Vector3.up*(.035f+lift*.30f);
                     Vector3 held=contact-hammerPose*new Vector3(.14f,.28f,0);
                     Reach(rightArm,rightFore,rightHand,rightSocket,held,hammerPose,false);
                     hammer.rotation=hammerPose;
@@ -415,6 +416,8 @@ public sealed partial class ForgeWorkshopVisuals : MonoBehaviour
                     if(!sealApplied&&t>=ForgeActionAudio.SealContactTime){Details(p,step);sealApplied=true;}
                 }
                 AnimateIngredient(step,p,t,frost?target:strikeTarget.position);
+                if(step.process==5)AnimateHandleFitting(p,step,t);
+                if(step.process==666)AnimateCurse(p,t);
                 if(step.process==3&&t>=.78f)SetRawVisible(p,false);
                 AnimateRawHeat(p,Mathf.Lerp(initialHeat,step.heat,t));
                 if(frost&&cooling&&t>.58f&&t<.82f)FrostRipple(target,(t-.58f)/.24f);else HideFrostRipple();
@@ -430,7 +433,8 @@ public sealed partial class ForgeWorkshopVisuals : MonoBehaviour
                 if(cooling){heldPiece=p;p.root.transform.position=leftSocket.position;}
                 else{p.root.transform.position=grip;p.root.transform.rotation=pose;}
                 Appearance(p,step,step.heat);Details(p,step);
+                if(step.data!=null&&step.data.destroyed)p.root.SetActive(false);
             }
-        }finally{if(run==epoch){HideIngredient();HideFrostRipple();HideSealLayer();actionAudio.AbortIfActive();if(luckySparkles)luckySparkles.Hide();acting=false;if(heldPiece==null)ResetPose();if(hammer)hammer.gameObject.SetActive(heldPiece==null);if(tongs)tongs.gameObject.SetActive(false);if(polishingStone)polishingStone.gameObject.SetActive(false);if(platingBrush)platingBrush.gameObject.SetActive(false);}}
+        }finally{if(run==epoch){HideCurse();HideIngredient();HideFrostRipple();HideSealLayer();actionAudio.AbortIfActive();if(luckySparkles)luckySparkles.Hide();acting=false;if(heldPiece==null)ResetPose();if(hammer)hammer.gameObject.SetActive(heldPiece==null);if(tongs)tongs.gameObject.SetActive(false);if(polishingStone)polishingStone.gameObject.SetActive(false);if(platingBrush)platingBrush.gameObject.SetActive(false);}}
     }
 }

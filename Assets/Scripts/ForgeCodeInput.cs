@@ -4,6 +4,7 @@ using UnityEngine.UI;
 using UnityEngine.EventSystems;
 public sealed class ForgeCodeInput:InputField,IScrollHandler
 {
+ internal ForgeCodeFeedback feedback;
  struct Snapshot{public string text;public int caret,anchor;}
  readonly List<Snapshot> undo=new List<Snapshot>();readonly Event keyEvent=new Event();public int DrawStart=>m_DrawStart;public ScrollRect outerScroll;int lastCaret=-1;string lastText,layoutText;float layoutWidth=-1,layoutViewport=-1,viewportWidth=-1;
  void Apply(BlueprintIndentation.Edit edit){text=edit.Text;selectionFocusPosition=edit.Cursor;selectionAnchorPosition=edit.Selection;ForceLabelUpdate();}
@@ -46,13 +47,13 @@ public sealed class ForgeCodeInput:InputField,IScrollHandler
  if(!key.shift)selectionAnchorPosition=target;
  selectionFocusPosition=target;ForceLabelUpdate();return true;
  }
- public override void OnUpdateSelected(BaseEventData data){if(!isFocused)return;if(composing||compositionFrame==Time.frameCount){base.OnUpdateSelected(data);return;}while(Event.PopEvent(keyEvent)){
+ public override void OnUpdateSelected(BaseEventData data){if(!isFocused)return;if(composing||compositionFrame==Time.frameCount){string committedBefore=text;base.OnUpdateSelected(data);ForgeCodeFeedback.Edited(this,committedBefore);return;}while(Event.PopEvent(keyEvent)){
  if(keyEvent.rawType==EventType.KeyDown){if(FinishOnEscape(keyEvent))break;if(MoveLineBoundary(keyEvent))continue;var before=new Snapshot{text=text,caret=selectionFocusPosition,anchor=selectionAnchorPosition};bool undoKey=keyEvent.control&&keyEvent.keyCode==KeyCode.Z;
  if(undoKey){if(undo.Count>0){var s=undo[undo.Count-1];undo.RemoveAt(undo.Count-1);text=s.text;selectionFocusPosition=s.caret;selectionAnchorPosition=s.anchor;}}
  else if(!keyEvent.control&&!keyEvent.alt&&!keyEvent.command&&BlueprintIndentation.TryTabEvent(text,selectionFocusPosition,selectionAnchorPosition,keyEvent.keyCode==KeyCode.Tab,keyEvent.character,keyEvent.shift,out var tabEdit)){if(!readOnly)Apply(tabEdit);}
  else if(keyEvent.keyCode==KeyCode.Backspace&&!keyEvent.control&&BlueprintIndentation.Backspace(text,selectionFocusPosition,selectionAnchorPosition,out var edit))Apply(edit);
  else {if(KeyPressed(keyEvent)==EditState.Finish){DeactivateInputField();break;}if(BlueprintIndentation.IndentNativeNewline(before.text,text,before.caret,before.anchor,out var newline))Apply(newline);}
- if(text!=before.text&&!undoKey){undo.Add(before);if(undo.Count>256)undo.RemoveAt(0);}UpdateLabel();}
+ if(text!=before.text&&!undoKey){undo.Add(before);if(undo.Count>256)undo.RemoveAt(0);}ForgeCodeFeedback.Edited(this,before.text);UpdateLabel();}
  else if((keyEvent.type==EventType.ValidateCommand||keyEvent.type==EventType.ExecuteCommand)&&keyEvent.commandName=="SelectAll")SelectAll();
  }data.Use();}
  protected override void LateUpdate(){

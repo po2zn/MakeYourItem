@@ -26,7 +26,7 @@ public static class SmithMotionChecks
  var piece=Find("Workpiece "+step.pieceId);var socket=Find("LeftHandSocket");var expected=piece.position+(step.process==2?new Vector3(0,.12f,-.4f):Vector3.zero);
  maxGripError=Mathf.Max(maxGripError,Vector3.Distance(socket.position,expected));minFront=Mathf.Min(minFront,Vector3.Dot(socket.position-smith.position,smith.forward));
  minFoot=Mathf.Min(minFoot,Find("LeftFoot").position.y,Find("RightFoot").position.y);
- if(step.process==3){float cycle=Mathf.Repeat((elapsed-Time.deltaTime-step.duration*.4f)/(step.duration*.6f)*2,1);float lift=cycle<.65f?Mathf.SmoothStep(0,1,cycle/.65f):1-Mathf.SmoothStep(0,1,(cycle-.65f)/.35f);var expectedHead=Find("StrikeTarget").position+Vector3.up*(.035f+lift*.33f);maxHammerError=Mathf.Max(maxHammerError,Vector3.Distance(Find("HeldHammer").TransformPoint(new Vector3(.14f,.28f,0)),expectedHead));}
+ if(step.process==3){float cycle=Mathf.Repeat((elapsed-Time.deltaTime-step.duration*.4f)/(step.duration*.6f)*2,1);float lift=cycle<.65f?Mathf.SmoothStep(0,1,cycle/.65f):1-Mathf.SmoothStep(0,1,(cycle-.65f)/.35f);var expectedHead=Find("StrikeTarget").position+smith.right*.16f+Vector3.up*(.035f+lift*.30f);maxHammerError=Mathf.Max(maxHammerError,Vector3.Distance(Find("HeldHammer").TransformPoint(new Vector3(.14f,.28f,0)),expectedHead));}
  }
  foreach(var t in smith.GetComponentsInChildren<Transform>())if(!float.IsFinite(t.position.x))throw new Exception("Nonfinite "+t.name);
  if(shots<3&&elapsed>step.duration*(.5f+shots*.2f)){Capture(camera,"Motion_"+index+"_"+step.process+"_"+shots);shots++;}

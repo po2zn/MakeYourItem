@@ -81,7 +81,10 @@ public partial class ForgeMvp
         float labelWidth=width*.28f,controlX=x+labelWidth,controlWidth=width-labelWidth;
         const string audioHelp="변경 즉시 적용 · 자동 저장 · 0%는 음소거\n전체 음량은 BGM과 효과음 모두에 적용됩니다.";
         float audioHelpHeight=ForgeTextLayout.Height(audioHelp,settingsRowLabel,controlWidth);
-        float panelHeight=952+Mathf.Max(44,audioHelpHeight);
+        const string typingHelp="키 입력 소리 · 효과음(SFX) 음량 적용";
+        const string forgeHelp="입력한 코드가 붉게 달아올랐다가 금속빛으로 식으며, 화면이 미세하게 흔들립니다.";
+        float typingHeight=ForgeTextLayout.Height(typingHelp,settingsRowLabel,controlWidth),forgeHeight=ForgeTextLayout.Height(forgeHelp,settingsRowLabel,controlWidth);
+        float panelHeight=952+Mathf.Max(44,audioHelpHeight)+144+typingHeight+forgeHeight;
         float y=Mathf.Max(16,(Screen.height-panelHeight)/2);
         settingsPageScroll=GUI.BeginScrollView(new Rect(0,0,Screen.width,Screen.height),settingsPageScroll,new Rect(0,0,Screen.width-20,Mathf.Max(Screen.height,y+panelHeight+12)));
         ForgeTitleStyle.Window(new Rect(x-16,y-8,width+32,panelHeight),false);
@@ -120,6 +123,12 @@ public partial class ForgeMvp
             ForgeTextLayout.Label(new Rect(controlX+(i%2)*controlWidth/2,y+52+(i/2)*30,controlWidth/2-8,28),samples[i],preview);
         }
         y+=156;
+        ForgeTextLayout.Label(new Rect(x,y,labelWidth-16,48),"코드 입력 소리",settingsRowLabel);
+        if(ForgeTextLayout.Button(new Rect(controlX,y,controlWidth,48),ForgeCodePreferences.TypingSound?"ON · 켜짐":"OFF · 꺼짐",SettingsButton))ForgeCodePreferences.SetTypingSound(!ForgeCodePreferences.TypingSound);
+        ForgeTextLayout.Label(new Rect(controlX,y+52,controlWidth,typingHeight),typingHelp,settingsRowLabel);y+=72+typingHeight;
+        ForgeTextLayout.Label(new Rect(x,y,labelWidth-16,48),"Forge Code",settingsRowLabel);
+        if(ForgeTextLayout.Button(new Rect(controlX,y,controlWidth,48),ForgeCodePreferences.ForgeCode?"ON · 켜짐":"OFF · 꺼짐",SettingsButton))ForgeCodePreferences.SetForgeCode(!ForgeCodePreferences.ForgeCode);
+        ForgeTextLayout.Label(new Rect(controlX,y+52,controlWidth,forgeHeight),forgeHelp,settingsRowLabel);y+=72+forgeHeight;
         if(ForgeTextLayout.Button(new Rect(x,y,140,48),"뒤로",SettingsButton)){ForgeAudioSettings.Save();titlePage=0;settingsDropdown=0;}
         if(ForgeTextLayout.Button(new Rect(x+width-220,y,220,48),"해상도 적용",SettingsButton)){
             size=displaySizes[selectedDisplaySize];Screen.SetResolution(size.x,size.y,Screen.fullScreen);

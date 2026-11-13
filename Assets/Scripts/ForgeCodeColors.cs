@@ -102,7 +102,7 @@ public sealed class ForgeCodeColors : BaseMeshEffect
             Color32 color=TokenColor(kind);
             for(int corner=0;corner<4;corner++){
                 int vertexIndex=quad*4+corner;var vertex=new UIVertex();
-                mesh.PopulateUIVertex(ref vertex,vertexIndex);color.a=vertex.color.a;vertex.color=color;mesh.SetUIVertex(vertex,vertexIndex);
+                mesh.PopulateUIVertex(ref vertex,vertexIndex);color.a=vertex.color.a;vertex.color=input&&input.feedback?input.feedback.Shade(index,color,corner):color;if(input&&input.feedback)vertex.position+=(Vector3)input.feedback.Offset;mesh.SetUIVertex(vertex,vertexIndex);
             }
         }
     }
