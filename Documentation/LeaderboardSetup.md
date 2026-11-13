@@ -23,3 +23,10 @@
 
 공식 문서: https://docs.unity.com/en-us/services-web-apis/client-auth
 https://docs.unity.com/en-us/oas-leaderboards/1.0.0
+
+## 리더보드 UI 편집
+- `Assets/Resources/ForgeLeaderboardUI.prefab`을 Prefab Mode로 열면 실행하지 않아도 전체 UI를 편집할 수 있습니다.
+- Panel/Layout/Scroll/Viewport/Content 아래에서 제목, 안내문, 이름 입력, 상태, Rank01~Rank20을 선택합니다. 순위 행은 기록이 없으면 비활성 상태이며 프리팹 모드에서 활성화하여 편집할 수 있습니다.
+- Text에서 폰트·크기·색상, Vertical Layout Group에서 간격·여백, 버튼 Layout Element에서 최소 높이를 조정합니다. 문단 높이는 Text의 preferred height로 계산하므로 고정 높이를 강제로 지정하지 마세요.
+- 루트 ForgeLeaderboardView에서 동적 안내 문구와 UI 참조를 편집합니다. 런타임은 저장된 프리팹을 표시하고 내용만 갱신하며 UI 요소를 조립하지 않습니다.
+- 640×480, 800×600, 1280×720, 1920×1080, 3840×2160에서 긴 한글 이름·최대 금액·안내문 줄바꿈의 높이/겹침 검사 및 오프스크린 렌더링을 확인했습니다. 실제 마우스 입력 및 itch.io 브라우저 검증은 별도입니다.
