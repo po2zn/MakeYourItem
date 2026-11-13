@@ -223,7 +223,7 @@ public sealed partial class BlueprintParser
         if(Comparison(Current.Raw)) Fail("연쇄 비교 대신 and로 조건을 연결하세요."); return left;
     }
     BlueprintExpr Sum() { var left=Product(); while(Current.Raw=="+"||Current.Raw=="-") { var op=Take();left=Node(BlueprintExprKind.Binary,op,left,Product()); } return left; }
-    BlueprintExpr Product() { var left=Unary(); while(Current.Raw=="*"||Current.Raw=="//"||Current.Raw=="%") { var op=Take();left=Node(BlueprintExprKind.Binary,op,left,Unary()); } return left; }
+    BlueprintExpr Product() { var left=Unary(); while(Current.Raw=="*"||Current.Raw=="/"||Current.Raw=="//"||Current.Raw=="%") { var op=Take();left=Node(BlueprintExprKind.Binary,op,left,Unary()); } return left; }
     BlueprintExpr Increment(BlueprintToken op,BlueprintExpr target,bool postfix)
     {
         if(target.Kind!=BlueprintExprKind.Name&&!(target.Kind==BlueprintExprKind.Index&&target.Args[0].Kind==BlueprintExprKind.Name))throw new BlueprintException(op.Line,"증감 대상은 정수 변수 또는 이름으로 저장한 리스트·딕셔너리의 원소여야 합니다.");
@@ -255,7 +255,11 @@ public sealed partial class BlueprintParser
             if(!Match(")")) { do { value.Args.Add(Expression()); } while(Match(",")); Need(")"); }
         }
         else if(token.Kind==BlueprintTokenKind.Number) {
-            if(!int.TryParse(token.Raw,out int n)) throw new BlueprintException(token.Line,"정수 범위 초과"); value=Node(BlueprintExprKind.Literal,token);value.Value=n;
+            value=Node(BlueprintExprKind.Literal,token);
+            if(token.Raw.Contains(".")){
+                if(!double.TryParse(token.Raw,System.Globalization.NumberStyles.AllowDecimalPoint,System.Globalization.CultureInfo.InvariantCulture,out double number)||double.IsInfinity(number))throw new BlueprintException(token.Line,"소수 범위 초과");
+                value.Value=number;
+            }else{if(!int.TryParse(token.Raw,out int n))throw new BlueprintException(token.Line,"정수 범위 초과");value.Value=n;}
         }
         else if(token.Kind==BlueprintTokenKind.String) { value=Node(BlueprintExprKind.Literal,token);value.Value=Decode(token); }
         else if(token.Kind==BlueprintTokenKind.Name && (token.Raw=="True"||token.Raw=="False"||token.Raw=="None")) {

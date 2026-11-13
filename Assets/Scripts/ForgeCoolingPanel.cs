@@ -11,28 +11,32 @@ public sealed class ForgeCoolingPanel : MonoBehaviour {
     RectTransform content,diagramRect;Text templateText,status,latest,inspection,bindings,log,practiceLocation;
     ForgeCoolingDiagram diagram;InputField lineInput,practiceCode;
     GameObject choices,practiceTools;string choiceMode,selectedVariable,distance,previous,visited;
-    bool open,showLog,observing,paused;int screenWidth,screenHeight;
+    bool open,showLog,observing,paused;int screenWidth,screenHeight;Vector2 canvasSize;
     ForgeCoolingPractice practice;readonly ForgeCoolingViewState practiceView=new ForgeCoolingViewState();Coroutine runner;
+    Color paperColor,inkColor,frameColor;
     string message="";string namesStamp="";float nextRefresh;float zoom=1;
     BlueprintObservation Observer=>practice?.Observation??game.CoolingObservation;
     ForgeCoolingViewState View=>practice!=null?practiceView:game.CoolingView;
     public static ForgeCoolingPanel Create(ForgeMvp game,ForgeGameUI ui){var existing=ui.GetComponent<ForgeCoolingPanel>();if(existing)return existing;var p=ui.gameObject.AddComponent<ForgeCoolingPanel>();p.game=game;p.ui=ui;p.Build();return p;}
     Transform Named(string name)=>window.GetComponentsInChildren<Transform>(true).First(t=>t.name==name);
-    Button Button(string label,UnityEngine.Events.UnityAction action,Transform parent=null){var b=Instantiate(template,parent?parent:content);b.name=label;b.gameObject.SetActive(true);b.onClick=new Button.ButtonClickedEvent();b.onClick.AddListener(action);foreach(var a in b.GetComponents<ForgeUIAction>())Destroy(a);var t=b.GetComponentInChildren<Text>();t.text=label;t.horizontalOverflow=HorizontalWrapMode.Wrap;t.verticalOverflow=VerticalWrapMode.Overflow;var l=b.GetComponent<LayoutElement>()??b.gameObject.AddComponent<LayoutElement>();l.minHeight=36;l.preferredHeight=42;var hint=b.GetComponent<ForgeUIHover>();if(hint){hint.description=label;hint.Bind(ui);}return b;}
-    Text Text(string name,string value,Transform parent=null){var t=Instantiate(templateText,parent?parent:content);t.name=name;t.text=value;t.gameObject.SetActive(true);t.raycastTarget=false;t.horizontalOverflow=HorizontalWrapMode.Wrap;t.verticalOverflow=VerticalWrapMode.Overflow;t.fontSize=16;return t;}
+    Button Button(string label,UnityEngine.Events.UnityAction action,Transform parent=null){var b=Instantiate(template,parent?parent:content);b.name=label;b.gameObject.SetActive(true);b.onClick=new Button.ButtonClickedEvent();b.onClick.AddListener(action);foreach(var a in b.GetComponents<ForgeUIAction>())Remove(a);var t=b.GetComponentInChildren<Text>();t.text=label;t.horizontalOverflow=HorizontalWrapMode.Wrap;t.verticalOverflow=VerticalWrapMode.Overflow;var l=b.GetComponent<LayoutElement>()??b.gameObject.AddComponent<LayoutElement>();l.minHeight=36;l.preferredHeight=42;var hint=b.GetComponent<ForgeUIHover>();if(hint){hint.description=label;hint.Bind(ui);}return b;}
+    Text Text(string name,string value,Transform parent=null){var t=Instantiate(templateText,parent?parent:content);t.name=name;t.text=value;t.gameObject.SetActive(true);t.raycastTarget=false;t.horizontalOverflow=HorizontalWrapMode.Wrap;t.verticalOverflow=VerticalWrapMode.Overflow;t.fontSize=templateText.fontSize;return t;}
+    static void Remove(UnityEngine.Object value){if(Application.isPlaying)Destroy(value);else DestroyImmediate(value);}
     static RectTransform Rect(string name,Transform parent){var o=new GameObject(name,typeof(RectTransform));o.transform.SetParent(parent,false);return (RectTransform)o.transform;}
-    InputField Input(string name,string value,int height,Transform parent=null){var r=Rect(name,parent?parent:content);r.gameObject.AddComponent<Image>().color=new Color(.96f,.97f,1);r.gameObject.AddComponent<LayoutElement>().preferredHeight=height;var field=r.gameObject.AddComponent<InputField>();var t=Text(name+" 글씨",value,r);var fit=t.GetComponent<ContentSizeFitter>();if(fit)Destroy(fit);t.rectTransform.anchorMin=Vector2.zero;t.rectTransform.anchorMax=Vector2.one;t.rectTransform.offsetMin=new Vector2(8,8);t.rectTransform.offsetMax=new Vector2(-8,-8);t.supportRichText=false;t.verticalOverflow=VerticalWrapMode.Truncate;field.textComponent=t;field.text=value;field.characterLimit=32768;return field;}
+    InputField Input(string name,string value,int height,Transform parent=null){var r=Rect(name,parent?parent:content);var image=r.gameObject.AddComponent<Image>();image.sprite=template.GetComponent<Image>().sprite;image.type=Image.Type.Sliced;image.color=Color.Lerp(paperColor,Color.white,.2f);r.gameObject.AddComponent<LayoutElement>().preferredHeight=height;var field=r.gameObject.AddComponent<InputField>();var t=Text(name+" 글씨",value,r);var fit=t.GetComponent<ContentSizeFitter>();if(fit)Remove(fit);t.rectTransform.anchorMin=Vector2.zero;t.rectTransform.anchorMax=Vector2.one;t.rectTransform.offsetMin=new Vector2(8,8);t.rectTransform.offsetMax=new Vector2(-8,-8);t.supportRichText=false;t.verticalOverflow=VerticalWrapMode.Truncate;field.textComponent=t;field.text=value;field.characterLimit=32768;return field;}
     GameObject Group(string name){var r=Rect(name,content);var layout=r.gameObject.AddComponent<VerticalLayoutGroup>();layout.spacing=6;layout.childControlHeight=layout.childControlWidth=true;layout.childForceExpandHeight=false;return r.gameObject;}
     void Build(){
         template=ui.Node("ClearDebug").GetComponent<Button>();templateText=ui.Node("DebugText").GetComponent<Text>();
         window=Instantiate(ui.Node("Debug").gameObject,ui.Node("Debug").parent);window.name="CoolingBlueprint";
-        foreach(var a in window.GetComponentsInChildren<ForgeUIAction>(true))Destroy(a);
-        Named("DebugTitle").GetComponent<Text>().text="냉각·용뼈 도면";
+        paperColor=Named("UtilityPaper").GetComponent<Image>().color;inkColor=templateText.color;frameColor=window.GetComponent<Image>().color;
+        foreach(var a in window.GetComponentsInChildren<ForgeUIAction>(true))Remove(a);
+        Named("DebugTitle").GetComponent<Text>().text="가공 도면";
         var close=Named("DebugClose").GetComponent<Button>();close.onClick=new Button.ButtonClickedEvent();close.onClick.AddListener(Close);
-        content=(RectTransform)Named("DebugScrollContent");foreach(Transform child in content){child.gameObject.SetActive(false);Destroy(child.gameObject);}
+        content=(RectTransform)Named("DebugScrollContent");foreach(Transform child in content.Cast<Transform>().ToArray()){child.gameObject.SetActive(false);Remove(child.gameObject);}
         status=Text("CoolingStatus","");latest=Text("CoolingLatest","");
-        var graphViewport=Rect("냉각 도면 이동 영역",content);graphViewport.gameObject.AddComponent<LayoutElement>().preferredHeight=400;graphViewport.gameObject.AddComponent<Image>().color=new Color(.9f,.94f,.98f);graphViewport.gameObject.AddComponent<RectMask2D>();var pan=graphViewport.gameObject.AddComponent<ScrollRect>();pan.viewport=graphViewport;pan.horizontal=pan.vertical=true;pan.movementType=ScrollRect.MovementType.Clamped;
-        diagramRect=Rect("냉각 그래프",graphViewport);diagramRect.anchorMin=diagramRect.anchorMax=new Vector2(.5f,.5f);diagramRect.pivot=new Vector2(.5f,.5f);diagramRect.sizeDelta=new Vector2(660,680);diagram=diagramRect.gameObject.AddComponent<ForgeCoolingDiagram>();diagram.raycastTarget=false;pan.content=diagramRect;
+        Text("CoolingNavigation","스크롤하여 아래 내용을 확인하세요. 도면을 드래그하면 좌우로 이동합니다.");
+        var graphViewport=Rect("냉각 도면 이동 영역",content);graphViewport.gameObject.AddComponent<LayoutElement>().preferredHeight=680;graphViewport.gameObject.AddComponent<Image>().color=paperColor;var outline=graphViewport.gameObject.AddComponent<Outline>();outline.effectColor=frameColor;outline.effectDistance=new Vector2(2,-2);graphViewport.gameObject.AddComponent<RectMask2D>();var pan=graphViewport.gameObject.AddComponent<ForgeCoolingDiagramPan>();pan.page=Named("DebugScroll").GetComponent<ScrollRect>();pan.viewport=graphViewport;pan.horizontal=pan.vertical=true;pan.movementType=ScrollRect.MovementType.Clamped;
+        diagramRect=Rect("냉각 그래프",graphViewport);diagramRect.anchorMin=diagramRect.anchorMax=new Vector2(.5f,1);diagramRect.pivot=new Vector2(.5f,1);diagramRect.sizeDelta=new Vector2(660,680);diagramRect.gameObject.AddComponent<CanvasRenderer>();diagram=diagramRect.gameObject.AddComponent<ForgeCoolingDiagram>();diagram.ApplyStyle(inkColor,paperColor,frameColor);diagram.raycastTarget=false;pan.content=diagramRect;
         Text("CoolingLegend","원을 둘러싼 굵은 테두리 = 조회 지점 · 굵은 선 = 조회 통로\n화살표 = 제출 경로 · 푸른 빛 = 실제 냉각 진행\n서리수 N개 = 실제 통로 소모량. 누적/이전/방문은 코드가 기록한 값이며 자동 정답이 아닙니다.\n용뼈: 굵은 구간 = 이번 절단 조각 · 세로선 = 고정 마디 · 완료 표시는 절단 후 갱신됩니다.\n도면을 드래그하여 이동하세요.");
         Button("도면 확대",()=>Zoom(.2f));Button("도면 축소",()=>Zoom(-.2f));
         runControl=Button("실행 / 계속",()=>Run(false));Button("일시 정지 · 현재 문장/공정 후",()=>{paused=true;if(practice==null)game.CoolingPause();});stepControl=Button("한 단계 실행",()=>Run(true));Button("실행 중단",Stop);
@@ -44,12 +48,12 @@ public sealed class ForgeCoolingPanel : MonoBehaviour {
         Button("누적 비용 배열 선택",()=>Pick("distance"));Button("이전 지점 배열 선택",()=>Pick("previous"));Button("코드의 방문 표시 배열 선택",()=>Pick("visited"));choices=Group("실제 변수 목록");choices.SetActive(false);bindings=Text("배열 연결 상태","");
         Button("실행 기록 펼치기 / 접기 · 최근 80개",()=>{showLog=!showLog;});log=Text("냉각 실행 기록","");
         ForgeLegacyUIFont.Apply(window.transform);
-        entry=Instantiate(ui.Node("DebugToggle").GetComponent<Button>(),ui.Node("DebugToggle").parent);entry.name="CoolingBlueprintToggle";entry.onClick=new Button.ButtonClickedEvent();entry.onClick.AddListener(()=>{if(open)Close();else Open();});foreach(var a in entry.GetComponents<ForgeUIAction>())Destroy(a);entry.GetComponentInChildren<Text>().text="가공 도면";var hint=entry.GetComponent<ForgeUIHover>();if(hint){hint.description="칼날의 냉각 경로 · 코드 관찰 · 복제 연습";hint.Bind(ui);}
+        entry=Instantiate(ui.Node("DebugToggle").GetComponent<Button>(),ui.Node("DebugToggle").parent);entry.name="CoolingBlueprintToggle";entry.onClick=new Button.ButtonClickedEvent();entry.onClick.AddListener(()=>{if(open)Close();else Open();});foreach(var a in entry.GetComponents<ForgeUIAction>())Remove(a);entry.GetComponentInChildren<Text>().text="가공 도면";var hint=entry.GetComponent<ForgeUIHover>();if(hint){hint.description="칼날의 냉각 경로 · 코드 관찰 · 복제 연습";hint.Bind(ui);}
         var layout=ui.GetComponentInChildren<ForgeLegacyLayout>(true);if(layout){layout.cooling=(RectTransform)entry.transform;layout.Invalidate();}
         window.SetActive(false);entry.gameObject.SetActive(false);Place();
     }
     void Zoom(float change){zoom=Mathf.Clamp(zoom+change,.8f,1.8f);diagramRect.localScale=Vector3.one*zoom;}
-    void Place(){screenWidth=Screen.width;screenHeight=Screen.height;var r=(RectTransform)window.transform;r.anchorMin=r.anchorMax=r.pivot=new Vector2(0,1);r.sizeDelta=new Vector2(Mathf.Min(480,Screen.width-24),Mathf.Min(760,Screen.height-36));r.anchoredPosition=new Vector2(Mathf.Max(12,Screen.width-r.rect.width-12),-18);}
+    void Place(){screenWidth=Screen.width;screenHeight=Screen.height;canvasSize=((RectTransform)window.transform.parent).rect.size;var r=(RectTransform)window.transform;r.anchorMin=r.anchorMax=r.pivot=new Vector2(0,1);r.sizeDelta=new Vector2(Mathf.Min(480,Mathf.Max(1,canvasSize.x-24)),Mathf.Min(760,Mathf.Max(1,canvasSize.y-36)));r.anchoredPosition=new Vector2(Mathf.Max(12,canvasSize.x-r.rect.width-12),-18);}
     public void SyncVisibility(bool visible){entry.gameObject.SetActive(visible);if(!visible&&open)Close();}
     public void Open(){if(!game.CoolingVisible)return;open=true;window.SetActive(true);window.transform.SetAsLastSibling();Observer.Enabled=observing;Refresh();}
     public void Close(){open=false;CancelRunner();EndPractice();window.SetActive(false);game.CoolingPanelClosed();}
@@ -73,7 +77,7 @@ public sealed class ForgeCoolingPanel : MonoBehaviour {
         runner=null;Refresh();
     }
     void Pick(string mode){choiceMode=mode;choices.SetActive(true);namesStamp="";RefreshChoices();}
-    void RefreshChoices(){if(!choices.activeSelf)return;var names=Observer.Names.ToArray();string stamp=choiceMode+string.Join("|",names);if(stamp==namesStamp)return;namesStamp=stamp;foreach(Transform child in choices.transform){child.gameObject.SetActive(false);Destroy(child.gameObject);}Button("선택/연결 해제",()=>Select(null),choices.transform);foreach(string name in names){string value=name;Button(name,()=>Select(value),choices.transform);}if(names.Length==0)Text("변수 없음","한 단계 실행하여 변수를 만든 뒤 선택하세요.",choices.transform);}
+    void RefreshChoices(){if(!choices.activeSelf)return;var names=Observer.Names.ToArray();string stamp=choiceMode+string.Join("|",names);if(stamp==namesStamp)return;namesStamp=stamp;foreach(Transform child in choices.transform.Cast<Transform>().ToArray()){child.gameObject.SetActive(false);Remove(child.gameObject);}Button("선택/연결 해제",()=>Select(null),choices.transform);foreach(string name in names){string value=name;Button(name,()=>Select(value),choices.transform);}if(names.Length==0)Text("변수 없음","한 단계 실행하여 변수를 만든 뒤 선택하세요.",choices.transform);}
     void Select(string name){switch(choiceMode){case "distance":distance=name;break;case "previous":previous=name;break;case "visited":visited=name;break;case "variable":selectedVariable=name;break;case "blade":if(practice!=null)message="연습 대상은 고정되어 있습니다. 실제 제작 보기로 돌아가 선택하세요.";else message=game.CoolingSelectVariable(name);break;}choices.SetActive(false);Refresh();}
     void Refresh(){
         if(!open)return;runControl.interactable=stepControl.interactable=practice!=null?runner==null:!game.CoolingRunning;var view=View;var graph=view.Blade?.data.cooling;status.text=graph==null?"칼날을 선택하거나 작업대에 올려주세요":(practice!=null?"복제 연습":"실제 제작")+" · 칼날 #"+view.Blade.id+" · "+graph.Count+"개 지점\n입구 "+graph.Start+" → 출구 "+graph.End+" · 서리수 "+(practice?.Remaining??game.CoolingWater)+"개"+(practice!=null?" · 연습 소모 "+practice.Spent+"개":"");
@@ -83,7 +87,13 @@ public sealed class ForgeCoolingPanel : MonoBehaviour {
         var notes=new List<string>();foreach(var pair in new[]{new KeyValuePair<string,string>("누적",distance),new KeyValuePair<string,string>("이전",previous),new KeyValuePair<string,string>("코드 방문",visited)}){Observer.BindArray(pair.Value,graph?.Count??0,out _,out string reason);notes.Add(pair.Key+" ← "+(pair.Value??"미선택")+": "+reason);}bindings.text=string.Join("\n",notes);
         log.gameObject.SetActive(showLog);if(showLog)log.text=Observer.History;practiceLocation.text=practice==null?"":"연습 도면 · 다음 문장 "+(practice.Session?.NextLine??1)+"줄 · 현재 공정 후 일시 정지";diagram.Show(view,Observer,distance,previous,visited,templateText.font);RefreshChoices();
     }
-    void Update(){if(!game||!window)return;if(Screen.width!=screenWidth||Screen.height!=screenHeight)Place();if(!open)return;if(Time.unscaledTime>=nextRefresh){nextRefresh=Time.unscaledTime+.1f;Refresh();}if(View.Path!=null)diagram.SetVerticesDirty();}
+    void Update(){if(!game||!window)return;if(Screen.width!=screenWidth||Screen.height!=screenHeight||((RectTransform)window.transform.parent).rect.size!=canvasSize)Place();if(!open)return;if(Time.unscaledTime>=nextRefresh){nextRefresh=Time.unscaledTime+.1f;Refresh();}if(View.Path!=null)diagram.SetVerticesDirty();}
     void LateUpdate(){if(!open)return;foreach(var t in content.GetComponentsInChildren<Text>()){if(t.transform.IsChildOf(diagramRect)||t.GetComponentInParent<InputField>())continue;var button=t.transform.parent.GetComponent<Button>();if(button){var l=button.GetComponent<LayoutElement>();if(l)l.preferredHeight=Mathf.Max(36,t.preferredHeight+14);}else{var l=t.GetComponent<LayoutElement>();if(l)l.preferredHeight=Mathf.Max(24,t.preferredHeight+4);}}}
-    void OnDisable(){if(window)Close();}void OnDestroy(){CancelRunner();practice?.Dispose();if(window)Destroy(window);if(entry)Destroy(entry.gameObject);}
+    void OnDisable(){if(window)Close();}void OnDestroy(){CancelRunner();practice?.Dispose();if(window)Remove(window);if(entry)Remove(entry.gameObject);}
+}
+
+// Wheel scrolling belongs to the page; the diagram itself remains draggable for panning.
+public sealed class ForgeCoolingDiagramPan : ScrollRect {
+    public ScrollRect page;
+    public override void OnScroll(UnityEngine.EventSystems.PointerEventData eventData){if(page)page.OnScroll(eventData);else base.OnScroll(eventData);}
 }

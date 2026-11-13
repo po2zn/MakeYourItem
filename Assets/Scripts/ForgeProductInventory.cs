@@ -23,7 +23,7 @@ public sealed class ForgeProductInventory : MonoBehaviour
     RawImage detailPreview;
     RenderTexture detailTexture;
     sealed class Cell {public Button button,sell;public RectTransform rect;public Text order,name,info;public Image blade;public RawImage preview;public RenderTexture texture;public int id=-1;public bool selected;}
-    void OnDestroy(){if(preview!=null)preview.Dispose();foreach(var cell in cells)if(cell.texture){cell.texture.Release();Destroy(cell.texture);}if(detailTexture){detailTexture.Release();Destroy(detailTexture);}}
+    void OnDestroy(){if(preview!=null)preview.Dispose();foreach(var cell in cells)if(cell.texture){cell.texture.Release();ForgeProductPreview.Release(cell.texture);}if(detailTexture){detailTexture.Release();ForgeProductPreview.Release(detailTexture);}}
     public int PoolCount=>cells.Count;
     public static int Rows(int count)=>count<=0?0:(count-1)/Columns+1;
     public static int PoolLimit(float height)=>Columns*(Mathf.CeilToInt(Mathf.Max(0,height)/RowHeight)+2);
@@ -31,7 +31,7 @@ public sealed class ForgeProductInventory : MonoBehaviour
     public static float ContentHeight(int count)=>Mathf.Max(0,Rows(count)*RowHeight-Gap);
     public void Bind(ForgeMvp owner,ForgeShop products,Font textFont)
     {
-        if(game)return;game=owner;shop=products;font=textFont;ForgeSfxButton.Bind(this);
+        if(game){if(!ReferenceEquals(shop,products)){shop=products;revision=-1;selected=-1;selectedEntry=null;lastClickedEntry=null;detailSelection=int.MinValue;detailRevision=-1;size=Vector2.zero;}return;}game=owner;shop=products;font=textFont;ForgeSfxButton.Bind(this);
         foreach(var text in GetComponentsInChildren<Text>(true))text.font=font;
         backButton.onClick.AddListener(()=>game.GameUIAction("products-close"));
         // Retain the authored button only as the visual template for slot actions.
@@ -45,15 +45,21 @@ public sealed class ForgeProductInventory : MonoBehaviour
         var rect=detailPreview.rectTransform;rect.anchorMin=rect.anchorMax=new Vector2(.5f,1);rect.pivot=new Vector2(.5f,1);rect.anchoredPosition=new Vector2(0,-8);rect.sizeDelta=new Vector2(200,200);picture.SetActive(false);
     }
     void OnEnable(){lastClickedEntry=null;lastClickedAt=-1;revision=-1;size=Vector2.zero;viewportSize=Vector2.zero;}
-    void LateUpdate(){if(!game)return;Layout();Refresh();}
+    void LateUpdate(){if(!game)return;Layout();Refresh();UpdateTutorialAttention();}
+    void UpdateTutorialAttention(){
+        bool active=game.TutorialSaleReady;
+        ForgeTutorialAttention.Set(backButton,active&&game.TutorialSaleStage==10);
+        foreach(var cell in cells){ForgeTutorialAttention.Set(cell.button,active&&game.TutorialSaleStage==8&&cell.id>=0);ForgeTutorialAttention.Set(cell.sell,active&&game.TutorialSaleStage==9&&cell.selected);}
+    }
     public void Refresh()
     {
         if(shop==null||!gameObject.activeInHierarchy)return;
         Layout();
+        if(game.TutorialSaleActive&&game.TutorialSaleStage==9&&selected<0&&shop.Count==1){selected=shop.Items[0].Id;selectedEntry=shop.Items[0];}
         if(revision!=shop.Revision){revision=shop.Revision;heading.text="완성품 · "+shop.Count.ToString("N0")+"개";emptyMessage.gameObject.SetActive(shop.Count==0);
             gridScroll.content.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical,ContentHeight(shop.Count));
             var p=gridScroll.content.anchoredPosition;p.y=Mathf.Clamp(p.y,0,Mathf.Max(0,ContentHeight(shop.Count)-gridScroll.viewport.rect.height));gridScroll.content.anchoredPosition=p;
-            if(shop.Find(selected)!=selectedEntry){selected=-1;selectedEntry=null;}foreach(var cell in cells)cell.id=-1;Populate();}
+            if(shop.Find(selected)!=selectedEntry){selected=-1;selectedEntry=null;}foreach(var cell in cells)cell.id=-1;Populate();if(game.TutorialSaleActive&&game.TutorialSaleStage==9)gridScroll.verticalNormalizedPosition=0;}
         var item=shop.Find(selected);sellButton.interactable=item!=null;
         if(detailSelection!=selected||detailRevision!=revision){detailSelection=selected;detailRevision=revision;
             detailPreview.gameObject.SetActive(item!=null);
@@ -65,7 +71,14 @@ public sealed class ForgeProductInventory : MonoBehaviour
     void Layout()
     {
         var root=(RectTransform)transform;var current=root.rect.size;
-        if(size!=current){size=current;bool wide=size.x>=1100;
+        if(size!=current){size=current;bool practice=game.TutorialSaleActive;bool wide=size.x>=1100;
+            if(practice){
+                detailsArea.gameObject.SetActive(false);
+                gridArea.anchorMin=gridArea.anchorMax=gridArea.pivot=new Vector2(0,1);gridArea.anchoredPosition=new Vector2(12,-112);gridArea.sizeDelta=new Vector2(size.x-24,Mathf.Max(80,size.y-124));
+                var hr=heading.rectTransform;hr.anchorMin=hr.anchorMax=hr.pivot=new Vector2(0,1);hr.anchoredPosition=new Vector2(12,-8);hr.sizeDelta=new Vector2(size.x-24,40);heading.fontSize=22;
+                var br=(RectTransform)backButton.transform;br.anchorMin=br.anchorMax=br.pivot=new Vector2(0,1);br.anchoredPosition=new Vector2(12,-56);br.sizeDelta=new Vector2(size.x-24,44);
+                Canvas.ForceUpdateCanvases();viewportSize=Vector2.zero;return;
+            }
             gridArea.anchorMin=gridArea.anchorMax=gridArea.pivot=new Vector2(0,1);
             detailsArea.anchorMin=detailsArea.anchorMax=detailsArea.pivot=new Vector2(0,1);
             float detailWidth=wide?320:size.x-24,detailHeight=wide?size.y-84:186;
@@ -96,13 +109,16 @@ public sealed class ForgeProductInventory : MonoBehaviour
     }
     void SelectCell(Cell cell)
     {
+        if(game.TutorialSaleActive&&!game.TutorialSaleReady)return;
         var entry=shop.Find(cell.id);if(entry==null)return;
         float now=Time.unscaledTime;
         bool doubleClick=ReferenceEquals(lastClickedEntry,entry)&&now-lastClickedAt<=DoubleClickSeconds;
         lastClickedEntry=entry;lastClickedAt=now;
         selected=entry.Id;selectedEntry=entry;
-        if(doubleClick){SellEntry(entry);return;}
+        game.TutorialSelectProduct(entry.Id);
+        if(doubleClick&&!game.TutorialSaleActive){SellEntry(entry);return;}
         Populate();Refresh();
+        if(game.TutorialSaleActive)gridScroll.verticalNormalizedPosition=0;
     }
     void SellEntry(ForgeShop.Entry entry)
     {
@@ -118,11 +134,11 @@ public sealed class ForgeProductInventory : MonoBehaviour
         int count=shop.Count,needed=Math.Min(count,PoolLimit(gridScroll.viewport.rect.height));
         while(cells.Count<needed)CreateCell();
         int start=FirstRow(gridScroll.content.anchoredPosition.y,Rows(count))*Columns;
-        float cellWidth=(width-Gap*(Columns-1))/Columns;
+        int columns=game.TutorialSaleActive?1:Columns;float cellWidth=game.TutorialSaleActive?Mathf.Min(260,width):(width-Gap*(Columns-1))/Columns;
         for(int i=0;i<cells.Count;i++){
             var cell=cells[i];int index=start+i;bool active=i<needed&&index<count;
             if(cell.button.gameObject.activeSelf!=active)cell.button.gameObject.SetActive(active);if(!active){cell.id=-1;continue;}
-            var entry=shop.Items[index];cell.rect.anchoredPosition=new Vector2((index%Columns)*(cellWidth+Gap),-(index/Columns)*RowHeight);cell.rect.sizeDelta=new Vector2(cellWidth,CellHeight);
+            var entry=shop.Items[index];cell.rect.anchoredPosition=new Vector2(game.TutorialSaleActive?(width-cellWidth)*.5f:(index%columns)*(cellWidth+Gap),-(index/columns)*RowHeight);cell.rect.sizeDelta=new Vector2(cellWidth,CellHeight);
             if(cell.id!=entry.Id){cell.id=entry.Id;cell.order.text="#"+entry.Order;cell.name.text=entry.Product.DisplayName;
                 cell.info.text=ForgeMaterialGuide.Find(entry.Product.Material).Name+" · 열 "+entry.Product.FinalHeat+"\n"+ForgeMaterialHud.FormatCount(ForgePricing.Quote(entry.Product).SalePrice)+"G";
                 if(preview==null)preview=new ForgeProductPreview();

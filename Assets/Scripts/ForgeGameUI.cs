@@ -157,8 +157,16 @@ public sealed partial class ForgeGameUI:MonoBehaviour
  public void GuideExample(string source,string notes){if(!guideExample)guideExample=ForgeGuideExample.Create(texts["GuideBody"]);guideExample.Show(source,notes);}
  Button inventoryShortcut;
  public void InventoryShortcut(){if(inventoryShortcut)return;inventoryShortcut=Instantiate(salePrefab,salesList);ForgeSfxButton.Bind(inventoryShortcut);inventoryShortcut.name="OpenProductInventory";ForgeLegacyUIFont.Apply(inventoryShortcut.transform);inventoryShortcut.GetComponentInChildren<Text>().text="완성품 목록 열기";inventoryShortcut.onClick.AddListener(()=>{game.GameUIAction("products");Refresh();});}
- ForgeProductInventory inventory;
- public void Inventory(bool visible,ForgeShop shop){if(!inventory)inventory=GetComponentInChildren<ForgeProductInventory>(true);if(!inventory)return;inventory.Bind(game,shop,texts["Products"].font);if(inventory.gameObject.activeSelf!=visible)inventory.gameObject.SetActive(visible);if(visible)inventory.Refresh();}
+ ForgeProductInventory inventory,tutorialInventory;
+ public void Inventory(bool visible,ForgeShop shop){
+ if(!inventory){inventory=Node("ProductsInventory").GetComponent<ForgeProductInventory>();if(!inventory)return;
+ tutorialInventory=Instantiate(inventory,Node("Tutorial"));tutorialInventory.name="TutorialProductInventory";tutorialInventory.gameObject.SetActive(false);}
+ bool practice=game.TutorialSaleActive;var target=practice?tutorialInventory:inventory;
+ target.Bind(game,shop,texts["Products"].font);
+ inventory.gameObject.SetActive(visible&&!practice);tutorialInventory.gameObject.SetActive(visible&&practice);
+ if(visible){if(practice){var rect=(RectTransform)target.transform;var root=(RectTransform)transform;float panel=TutorialSalePanelWidth(root.rect.width);rect.anchorMin=Vector2.zero;rect.anchorMax=Vector2.one;rect.offsetMin=new Vector2(12,12);rect.offsetMax=new Vector2(-panel-24,-136);}
+ target.Refresh();}
+ }
  public void CenterGuide(){StartCoroutine(CenterGuideAfterLayout());}
  System.Collections.IEnumerator CenterGuideAfterLayout(){
  yield return null;

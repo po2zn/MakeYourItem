@@ -35,6 +35,11 @@ public static class BlueprintLexer
             return prefix;
         }
     }
+    static int DecimalEnd(string source,int start){
+        int end=start;while(end<source.Length&&source[end]>='0'&&source[end]<='9')end++;
+        if(end+1>=source.Length||source[end]!='.'||source[end+1]<'0'||source[end+1]>'9')return start;
+        end+=2;while(end<source.Length&&source[end]>='0'&&source[end]<='9')end++;return end;
+    }
     static bool IsSymbol(char c) => "()[]{}:,.=+-*/%<>!~?|".IndexOf(c)>=0;
     public static List<BlueprintToken> Scan(string source, bool tolerant = false)
     {
@@ -51,7 +56,7 @@ public static class BlueprintLexer
                 raw.Add(new BlueprintToken(BlueprintTokenKind.NewLine, "\n",start,index-start,line++)); statementStart=true; continue;
             }
             if(char.IsWhiteSpace(c)) { index++; continue; }
-            int begin=index;
+            int begin=index,decimalEnd=DecimalEnd(source,index);
             BlueprintTokenKind kind;
             if(c=='#') { while(index<source.Length && source[index]!='\r' && source[index]!='\n') index++; kind=BlueprintTokenKind.Comment; }
             else if(c=='\'' || c=='"') {
@@ -68,6 +73,7 @@ public static class BlueprintLexer
             // Longest conditional symbol first: 01? must remain one raw token.
             else if(index+2<source.Length && source.Substring(index,3)=="01?") { index+=3; kind=BlueprintTokenKind.Symbol; }
             else if(index+1<source.Length && (source.Substring(index,2)=="1?" || source.Substring(index,2)=="0?" || source.Substring(index,2)=="6?" || source.Substring(index,2)=="9?")) { index+=2; kind=BlueprintTokenKind.Symbol; }
+            else if(decimalEnd>index){index=decimalEnd;kind=BlueprintTokenKind.Number;}
             else if(IsSymbol(c)) {
                 index++;
                 if(index<source.Length) {

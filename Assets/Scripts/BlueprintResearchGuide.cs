@@ -18,7 +18,7 @@ public static class BlueprintResearchGuide
             case BlueprintFeature.SmithFavor:return smiths!=null&&smiths.favorUnlocked;
             case BlueprintFeature.SmithPosition:return smiths!=null&&smiths.positionUnlocked;
             case BlueprintFeature.SmithDemand:return smiths!=null&&smiths.demandUnlocked;
-            case BlueprintFeature.GiantRune:case BlueprintFeature.RuneList:case BlueprintFeature.RuneFamily:case BlueprintFeature.RuneGrade:case BlueprintFeature.Slots:return tech.Owns(BlueprintFeature.Rune);
+            case BlueprintFeature.GiantRune:case BlueprintFeature.GiantRuneTime:case BlueprintFeature.RuneList:case BlueprintFeature.RuneFamily:case BlueprintFeature.RuneGrade:case BlueprintFeature.Slots:return tech.Owns(BlueprintFeature.Rune);
             case BlueprintFeature.Unwrap:case BlueprintFeature.SealCount:return tech.Owns(BlueprintFeature.Wrap);
             case BlueprintFeature.Strength:return tech.Owns(BlueprintFeature.Charge);
             default:return true;
@@ -59,7 +59,7 @@ public static class BlueprintResearchGuide
                 if(Regex.IsMatch(part,@"(?<![A-Za-z0-9_])"+Regex.Escape(alias.English)+@"(?![A-Za-z0-9_])"))return false;
                 if(alias.Symbol.Length>0&&Regex.IsMatch(part,@"(?<![0-9])"+Regex.Escape(alias.Symbol)+@"\s*\("))return false;
             }
-            for(int i=4;i<=9;i++)if(!tech.MaterialAvailable(i)&&part.Contains(ForgeMaterialGuide.Find(i).Name))return false;
+            for(int i=4;i<=9;i++)if(!tech.MaterialAvailable(i)&&Regex.IsMatch(part,@"(?<![가-힣A-Za-z0-9_])"+Regex.Escape(ForgeMaterialGuide.Find(i).Name)+@"(?=$|[^가-힣A-Za-z0-9_]|(?:은|는|이|가|을|를|의|로|으로|과|와|도금)(?=$|[^가-힣A-Za-z0-9_]))"))return false;
             return true;
         }));
     }

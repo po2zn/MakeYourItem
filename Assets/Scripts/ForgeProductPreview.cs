@@ -26,8 +26,9 @@ public sealed class ForgeProductPreview : IDisposable
             foreach(var child in model.GetComponentsInChildren<Transform>(true))child.gameObject.layer=31;
             foreach(var collider in model.GetComponentsInChildren<Collider>())collider.enabled=false;
             camera.targetTexture=texture;camera.Render();
-        }finally{camera.targetTexture=null;model.SetActive(false);UnityEngine.Object.Destroy(model);}
+        }finally{camera.targetTexture=null;model.SetActive(false);Release(model);}
         return texture;
     }
-    public void Dispose(){if(stage)UnityEngine.Object.Destroy(stage);}
+    public static void Release(UnityEngine.Object value){if(!value)return;if(Application.isPlaying)UnityEngine.Object.Destroy(value);else UnityEngine.Object.DestroyImmediate(value);}
+    public void Dispose(){Release(stage);}
 }

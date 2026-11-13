@@ -36,9 +36,13 @@ public static class ForgeTutorialChecks
         Require(lesson.AdvanceSale(out message)&&lesson.Stage==9&&!lesson.Complete&&lesson.PracticeGold==0,"select before sale");
         var selected=ForgeTutorialLesson.Restore(lesson.Stage,lesson.Code);
         Require(selected.Stage==9&&selected.AdvanceSale(out message)&&selected.PracticeGold==price,"resume selected sale");
-        Require(lesson.AdvanceSale(out message)&&lesson.Complete&&lesson.PracticeGold==price,"sell once for quoted gold");
+        Require(lesson.AdvanceSale(out message)&&lesson.Sold&&!lesson.Complete&&lesson.PracticeGold==price,"sell once for quoted gold");
         Require(!lesson.AdvanceSale(out message)&&lesson.PracticeGold==price,"no duplicate sale");
-        Require(ForgeTutorialLesson.Restore(10,lesson.Code).Complete&&ForgeTutorialLesson.Restore(10,lesson.Code).PracticeGold==price,"completed sale checkpoint");
+        Require(ForgeTutorialLesson.Restore(10,lesson.Code).Sold&&!ForgeTutorialLesson.Restore(10,lesson.Code).Complete&&ForgeTutorialLesson.Restore(10,lesson.Code).PracticeGold==price,"completed sale checkpoint");
+        Require(lesson.PracticeShop.Count==0,"sold practice sword removed");
+        Require(lesson.ReturnToForge()&&lesson.Complete&&!lesson.ReturnToForge(),"return completes exactly once");
+        Require(ForgeTutorialLesson.Restore(11,lesson.Code).Complete,"completion checkpoint");
+        Require(lesson.Previous()&&lesson.Stage==10,"rewind return");
         Require(lesson.Previous()&&lesson.Stage==9&&lesson.PracticeGold==0,"rewind sale");
         Require(lesson.Previous()&&lesson.Stage==8,"rewind selection");
         for(int target=7;target>=0;target--){
@@ -60,7 +64,7 @@ public static class ForgeTutorialChecks
             Require(lesson.SubmitDocument(document,out message)&&lesson.Code==document,"editable document stage "+stage);
         }
         Require(lesson.Crafted&&!lesson.Complete&&lesson.RemainingIron==8,"editor completion without duplicate resource use");
-        Require(lesson.AdvanceSale(out message)&&lesson.AdvanceSale(out message)&&lesson.Complete,"document then sale then enter game");
+        Require(lesson.AdvanceSale(out message)&&lesson.AdvanceSale(out message)&&lesson.ReturnToForge()&&lesson.Complete,"document then sale then enter game");
         for(int stage=2;stage<=6;stage++)Require(ForgeTutorialLesson.Instructions[stage].Contains("\n\n"),"blank line after function explanation "+stage);
         Require(ForgeTutorialLesson.Instructions[2].Contains("숫자 언어 못 들어보셨나요?"),"numeric language dialogue");
         Console.WriteLine("PASS tutorial: material choice, variable, five processes, sword submission, mistakes/retries, sale selection/payment, checkpoint restore, rewind and duplicate prevention");

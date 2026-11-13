@@ -29,7 +29,7 @@ public sealed class ForgeTechnology
         internal Offer(string id,ForgePurchaseKind kind,int price,string name,string description,int tier,int lane,int material,BlueprintFeature feature,params string[] parents)
         {Id=id;Kind=kind;Price=kind==ForgePurchaseKind.Material?price:ForgeBalance.ResearchPrice(id,price);Name=name;Description=description;Tier=tier+(kind!=ForgePurchaseKind.Material&&id!=AutomationRoot?1:0);Lane=lane;Material=material;Feature=feature;
             Parents=Array.AsReadOnly(parents.Length==0&&kind!=ForgePurchaseKind.Material&&id!=AutomationRoot?new[]{AutomationRoot}:parents.Select(CanonicalId).ToArray());
-            Features=Array.AsReadOnly(id==AutomationRoot?(BlueprintFeature[])ControlFeatures.Clone():kind!=ForgePurchaseKind.Function||feature==BlueprintFeature.None?Array.Empty<BlueprintFeature>():feature==BlueprintFeature.Match?new[]{feature,BlueprintFeature.Case,BlueprintFeature.Default}:feature==BlueprintFeature.Min?new[]{feature,BlueprintFeature.Max}:feature==BlueprintFeature.IsDay?new[]{feature,BlueprintFeature.NightTime}:feature==BlueprintFeature.Lucky?new[]{feature,BlueprintFeature.LuckyCode}:new[]{feature});}
+            Features=Array.AsReadOnly(id==AutomationRoot?(BlueprintFeature[])ControlFeatures.Clone():kind!=ForgePurchaseKind.Function||feature==BlueprintFeature.None?Array.Empty<BlueprintFeature>():feature==BlueprintFeature.Rune?new[]{feature,BlueprintFeature.GiantRune,BlueprintFeature.GiantRuneTime}:feature==BlueprintFeature.Match?new[]{feature,BlueprintFeature.Case,BlueprintFeature.Default}:feature==BlueprintFeature.Min?new[]{feature,BlueprintFeature.Max}:feature==BlueprintFeature.IsDay?new[]{feature,BlueprintFeature.NightTime}:feature==BlueprintFeature.Lucky?new[]{feature,BlueprintFeature.LuckyCode}:new[]{feature});}
     }
     static Offer F(BlueprintFeature f,int price,int tier,int lane,params string[] parents)
     {var a=BlueprintAliases.Find(f);return new Offer("function-"+f,ForgePurchaseKind.Function,price,a.Symbol+"() · "+a.English,a.Description,tier,lane,0,f,parents);}
@@ -68,7 +68,7 @@ public sealed class ForgeTechnology
         MaterialBundle(9,BlueprintFeature.Refine,10000,6,1,"용뼈 + 10()","material-7","function-Charge"),
         MaterialBundle(6,BlueprintFeature.Charge,15000,1,4,"마력 수정 + 9()"),
         F(BlueprintFeature.Inspect,15,2,3,"material-6"),
-        F(BlueprintFeature.Rune,50,3,4,"function-Charge"),
+        new Offer("function-Rune",ForgePurchaseKind.Function,50,"룬 각인·거대한 룬","각인 211()과 거대한 룬 설치 90910(), 남은 시간 조회 90911()을 함께 해금합니다. 룬 번호와 같은 번호의 재료 1개를 사용합니다. 거대한 룬은 다이아 25/50/75개도 필요하며 게임 시간 48시간 동안 유지됩니다.",3,4,0,BlueprintFeature.Rune,"function-Charge"),
         F(BlueprintFeature.Magic,50,3,3,"function-Inspect"),
         F(BlueprintFeature.Resonate,50,4,3,"function-Magic"),
         F(BlueprintFeature.Protect,50,3,5,"function-Charge"),
@@ -86,6 +86,7 @@ public sealed class ForgeTechnology
     static string CanonicalId(string id)
     {
         foreach(var f in ControlFeatures)if(id=="function-"+f)return AutomationRoot;
+        if(id=="function-GiantRune"||id=="function-GiantRuneTime")return "function-Rune";
         return id=="function-Case"||id=="function-Default"?"function-Match":id=="function-Max"?"function-Min":id=="material-6"?"function-Charge":id=="material-9"?"function-Refine":id=="material-4"?"function-Fuel":id=="function-NightTime"?"function-IsDay":id=="function-LuckyCode"?"function-Lucky":id=="function-Speed"?"speed-1":id;
     }
     public static Offer Find(string id)=>Offers.FirstOrDefault(o=>o.Id==CanonicalId(id));

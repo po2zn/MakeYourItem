@@ -36,7 +36,7 @@ public partial class ForgeMvp
         tutorialPreviousOffset=workspaceOffset;tutorialPreviousZoom=workspaceZoom;
         tutorialInput=lesson.Code;tutorialEditorScroll=Vector2.zero;tutorialPendingCaret=-1;tutorialSuccessAt=-100;
         tutorialFeedback="연습용 재료입니다. 실제 골드와 재고는 소비되지 않습니다.";
-        tutorialHint=false;showTutorial=true;
+        tutorialHint=false;showTutorial=true;showProductInventory=lesson.Sold&&!lesson.Complete;
         showTutorialWelcome=lesson.Stage==0;tutorialWelcomeScroll=Vector2.zero;
         tutorialCameraBlend=0;tutorialFade=0;tutorialScreenFade=0;tutorialCameraActive=false;
         tutorialCameraFocus=craftMotion.TutorialFocus;
@@ -131,7 +131,7 @@ public partial class ForgeMvp
     {
         if(tutorialAnimating)return;
         tutorialWindowInteraction.Cancel();SetResizeCursor(0);
-        showTutorial=false;DayCycle.Paused=tutorialWasPaused;
+        showTutorial=false;showProductInventory=false;DayCycle.Paused=tutorialWasPaused;
         workspaceOffset=tutorialPreviousOffset;workspaceZoom=tutorialPreviousZoom;UpdateWorkspaceCamera();
         craftMotion.BeginRun();SaveProgress();ClearUIFocus();
     }
@@ -145,7 +145,7 @@ public partial class ForgeMvp
     void SubmitTutorial()
     {
         if(tutorialAnimating)return;
-        if(lesson.Crafted){if(lesson.AdvanceSale(out tutorialFeedback)){tutorialScroll=Vector2.zero;ClearUIFocus();SaveProgress();}return;}
+        if(lesson.Crafted){if(lesson.Sold?lesson.ReturnToForge():lesson.AdvanceSale(out tutorialFeedback)){tutorialScroll=Vector2.zero;ClearUIFocus();SaveProgress();}return;}
         StartCoroutine(SubmitTutorialCode(tutorialInput));
     }
     IEnumerator SubmitTutorialCode(string submittedCode)

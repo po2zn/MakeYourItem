@@ -46,8 +46,8 @@ public partial class ForgeMvp
     public void StopHierarchySmithJobs(){StopSmithJobs();smithMessage="이미 소비한 재료는 유지됩니다.";}
     public string HierarchySmithDetails()
     {
-        var text=new StringBuilder("선물: 일치 +15 / 불일치 -10 · 요구 수량 1~9\n호감도: 게임 2시간마다 -1\n불타는 대장장이: 대성공 50%, 속도 변화 없음\n\n거대한 룬: 90910(룬 번호, x, y)\n룬 각인 연구 후 수정 1개 + 다이아 25/50/75개\n자신과 상하좌우 한 칸에 적용\n\n");
-        foreach(var rune in blacksmiths.runes)text.AppendLine("거대한 룬 "+rune.rune+" · ("+rune.x+", "+rune.y+")");
+        var text=new StringBuilder("선물: 일치 +15 / 불일치 -10 · 요구 수량 1~9\n호감도: 게임 2시간마다 -1\n불타는 대장장이: 대성공 50%, 속도 변화 없음\n\n거대한 룬: 90910(룬 번호, x, y)\n룬 연구 후 해당 번호 재료 1개 + 다이아 25/50/75개\n중심에서 좌우·상하 0.25씩 적용 · 게임 48시간\n1/2/3등급: 대성공 +2/10/15%p · 파괴 −1/2/3%p · 판매 +10/20/25%\n남은 시간: 90911(룬 번호, x, y)\n\n");
+        foreach(var rune in blacksmiths.runes)text.AppendLine("거대한 룬 "+rune.rune+" · ("+rune.x+", "+rune.y+") · 남은 "+blacksmiths.Remaining(rune.rune,rune.x,rune.y,SmithHours).ToString("0.0")+"시간");
         for(int i=0;i<blacksmiths.smiths.Count;i++){blacksmiths.Chances(i,SmithHours,out double destruction,out double great);text.AppendLine(SmithInfo(i));text.AppendLine("파괴 "+(destruction*100).ToString("0.0")+"% · 대성공 "+(great*100).ToString("0.0")+"%\n");}
         return text.ToString();
     }

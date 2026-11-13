@@ -115,7 +115,7 @@ public sealed partial class BlueprintRuntime
             Action(method==1?2:method==2?4:3,p,correct?"봉인 해제 · 남은 층 "+d.seals.Count:"경고: 잘못된 해제 · 해당 층 보너스 손실");break;
         case BlueprintFeature.SealCount:return d.seals.Count;
         case BlueprintFeature.Rune:
-            ColdBlade(p);int rune=RuneNumber(args[1]);if(d.runes.Count>=3)Fail("룬 슬롯이 가득 찼습니다.");foreach(int existing in d.runes)if((existing-1)%3==(rune-1)%3)Fail("같은 계열의 룬은 중복 각인할 수 없습니다.");Consume(6);d.runes.Add(rune);Action(211,p,"룬 "+rune+" 각인 · 남은 슬롯 "+(3-d.runes.Count));break;
+            ColdBlade(p);int rune=RuneNumber(args[1]);if(d.runes.Count>=3)Fail("룬 슬롯이 가득 찼습니다.");foreach(int existing in d.runes)if((existing-1)%3==(rune-1)%3)Fail("같은 계열의 룬은 중복 각인할 수 없습니다.");Consume(rune);d.runes.Add(rune);Action(211,p,"룬 "+rune+" 각인 · 남은 슬롯 "+(3-d.runes.Count));break;
         case BlueprintFeature.Slots:return 3-d.runes.Count;
         case BlueprintFeature.Magic:if(d.magic)Fail("이미 마력 단조가 활성화되었습니다.");Consume(6);d.magic=true;Action(401,p,"마력 단조 활성화");break;
         case BlueprintFeature.Strength:return (int)Strength(p);

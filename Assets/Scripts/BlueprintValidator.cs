@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-public enum BlueprintType { Unknown, Int, Bool, None, String, Piece, List, Tuple, Set, Dict, Void }
+public enum BlueprintType { Unknown, Int, Bool, None, String, Piece, List, Tuple, Set, Dict, Void, Float }
 public sealed class BlueprintProgram
 {
     public List<BlueprintStatement> Body;
@@ -142,7 +142,7 @@ public sealed class BlueprintValidator
     }
     BlueprintType ExprCore(BlueprintExpr e,Dictionary<string,BlueprintType> names,bool allowProcess)
     {
-        if(e.Kind==BlueprintExprKind.Literal)return e.Value==null?BlueprintType.None:e.Value is int?BlueprintType.Int:e.Value is bool?BlueprintType.Bool:BlueprintType.String;
+        if(e.Kind==BlueprintExprKind.Literal)return e.Value==null?BlueprintType.None:e.Value is double?BlueprintType.Float:e.Value is int?BlueprintType.Int:e.Value is bool?BlueprintType.Bool:BlueprintType.String;
         // Variables are dynamic bindings in the current runtime scope. A value may
         // have been assigned by an earlier iteration or a selected branch. This
         // single-pass validator cannot prove its presence/type at the point of use.
@@ -172,7 +172,11 @@ public sealed class BlueprintValidator
                 return e.Process==1?BlueprintType.Piece:BlueprintType.None;
             }
             if(ForgeSmithLanguage.IsSmith(e.Feature))return e.Feature==BlueprintFeature.SmithPosition?BlueprintType.Tuple:e.Feature==BlueprintFeature.SmithGift?BlueprintType.None:BlueprintType.Int;
-            if(e.Feature==BlueprintFeature.GiantRune)return BlueprintType.None;
+            if(ForgeSmithLanguage.IsGiantRune(e.Feature)){
+                if(!Known(args[0],BlueprintType.Int))Error(e.Token,"룬 번호는 정수입니다.");
+                for(int i=1;i<3;i++)if(!Known(args[i],BlueprintType.Int,BlueprintType.Float))Error(e.Token,"룬 좌표는 정수 또는 소수입니다.");
+                return e.Feature==BlueprintFeature.GiantRuneTime?BlueprintType.Float:BlueprintType.None;
+            }
             if(ForgeDragonBone.IsFeature(e.Feature)){
                 if(technology!=null&&!technology.MaterialAvailable(9))Error(e.Token,"용뼈 공급을 먼저 해금하세요.");
                 if(!Known(args[0],BlueprintType.Piece))Error(e.Token,"첫 인자는 용뼈 작업물이어야 합니다.");
@@ -214,10 +218,10 @@ public sealed class BlueprintValidator
         if(e.Kind==BlueprintExprKind.Slice){if(!Known(args[0],BlueprintType.List,BlueprintType.Tuple,BlueprintType.String))Error(e.Token,"슬라이싱에는 리스트, 튜플 또는 문자열이 필요합니다.");for(int i=1;i<4;i++)if(!Known(args[i],BlueprintType.Int,BlueprintType.None))Error(e.Token,"슬라이스 범위와 간격은 정수여야 합니다.");return args[0];}
         if(e.Kind==BlueprintExprKind.Index){if(!Known(args[0],BlueprintType.List,BlueprintType.Tuple,BlueprintType.Dict)||!Known(args[1],BlueprintType.Int))Error(e.Token,"정수 인덱스와 리스트/튜플/딕셔너리가 필요합니다.");return BlueprintType.Int;}
         if(e.Kind==BlueprintExprKind.List||e.Kind==BlueprintExprKind.Tuple||e.Kind==BlueprintExprKind.Set||e.Kind==BlueprintExprKind.Dict){foreach(var a in args)if(!Known(a,BlueprintType.Int))Error(e.Token,"컬렉션은 정수만 담을 수 있습니다.");return e.Kind==BlueprintExprKind.List?BlueprintType.List:e.Kind==BlueprintExprKind.Tuple?BlueprintType.Tuple:e.Kind==BlueprintExprKind.Set?BlueprintType.Set:BlueprintType.Dict;}
-        if(e.Kind==BlueprintExprKind.Unary){if(!Known(args[0],e.Token.Raw=="not"?BlueprintType.Bool:BlueprintType.Int))Error(e.Token,"단항 연산의 타입이 잘못되었습니다.");return e.Token.Raw=="not"?BlueprintType.Bool:BlueprintType.Int;}
+        if(e.Kind==BlueprintExprKind.Unary){if(e.Token.Raw=="not"?!Known(args[0],BlueprintType.Bool):!Known(args[0],BlueprintType.Int,BlueprintType.Float))Error(e.Token,"단항 연산의 타입이 잘못되었습니다.");return e.Token.Raw=="not"?BlueprintType.Bool:args[0];}
         if(e.Token.Raw=="and"||e.Token.Raw=="or"){foreach(var a in args)if(!Known(a,BlueprintType.Bool))Error(e.Token,"논리 연산에는 bool이 필요합니다.");return BlueprintType.Bool;}
         if(e.Token.Raw=="=="||e.Token.Raw=="!="||e.Token.Raw=="in")return BlueprintType.Bool;
-        foreach(var a in args)if(!Known(a,BlueprintType.Int))Error(e.Token,"정수 연산이 필요합니다.");
-        return e.Token.Raw=="<"||e.Token.Raw==">"||e.Token.Raw=="<="||e.Token.Raw==">="?BlueprintType.Bool:BlueprintType.Int;
+        foreach(var a in args)if(!Known(a,BlueprintType.Int,BlueprintType.Float))Error(e.Token,"숫자 연산이 필요합니다.");
+        return e.Token.Raw=="<"||e.Token.Raw==">"||e.Token.Raw=="<="||e.Token.Raw==">="?BlueprintType.Bool:e.Token.Raw=="/"||args.Contains(BlueprintType.Float)?BlueprintType.Float:BlueprintType.Int;
     }
 }

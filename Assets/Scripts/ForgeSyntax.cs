@@ -22,7 +22,7 @@ public static class ForgeSyntax
             if(token.Length==0)continue;
             var kind=Kind.Plain;
             if(token.Kind==BlueprintTokenKind.Comment)kind=Kind.Comment;
-            else if(ForgeSmithLanguage.IsSmith(token.Feature))kind=Kind.Blacksmith;
+            else if((ForgeSmithLanguage.IsSmith(token.Feature)||ForgeSmithLanguage.IsGiantRune(token.Feature)))kind=Kind.Blacksmith;
             else if(token.Feature!=BlueprintFeature.None)kind=BlueprintAliases.Find(token.Feature).Syntax==BlueprintSyntaxKind.Builtin?Kind.Function:Kind.Reserved;
             else if(token.Kind==BlueprintTokenKind.Name&&PythonIdentifier.IsKeyword(token.Raw))kind=Kind.Reserved;
             else if(token.Raw=="!")kind=Kind.Keyword;

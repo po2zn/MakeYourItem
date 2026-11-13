@@ -32,6 +32,6 @@ public static class BlueprintHelp
             if(f.Callee.Raw=="8"&&f.Argument==1)return "화로 온도 · 100~1200°C · 석탄 1개";
             if(f.Callee.Raw=="1"&&f.Argument==1)return int.TryParse(token.Raw,out int material)&&ForgeMaterialGuide.Find(material)!=null?"재료 · "+ForgeMaterialGuide.Find(material).Name+" · 0G":"등록되지 않은 재료 번호";
             if(f.Callee.Raw=="4"&&f.Argument==2)return token.Raw=="0"?"냉각 재료 · 공기 · 비용0G":token.Raw=="3"?"냉각 재료 · 물 1개 · 850°C 이상에서 가열·타격 후 담금질":token.Raw=="8"?"냉각 재료 · 서리수 1개 · 100~900°C에서 서리 문양":"지원하지 않는 냉각 재료";
-        }}return "정수 값 "+token.Raw;
+        }}return (token.Raw.Contains(".")?"소수 값 ":"정수 값 ")+token.Raw;
     }
 }

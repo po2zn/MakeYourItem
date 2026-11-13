@@ -9,18 +9,22 @@ public sealed class ForgeTutorialLesson
     public int Stage { get; private set; }
     public string Code { get; private set; }="";
     public bool Crafted => Stage>=8;
-    public bool Complete => Stage==10;
+    public bool Sold => Stage>=10;
+    public bool Complete => Stage==11;
+    ForgeShop practiceShop;
+    public ForgeShop PracticeShop { get { if(practiceShop==null){practiceShop=new ForgeShop();if(Crafted&&!Sold)practiceShop.Add(Evaluation.product);}return practiceShop; } }
+    public bool ReturnToForge(){if(Stage!=10)return false;Stage=11;return true;}
     public int PracticeGold { get; private set; }
-    public string Heading => Crafted?(Complete?"튜토리얼 완료":"첫 검 판매 · "+(Stage-7)+" / 2"):"첫 검 만들기 · "+(Stage+1)+" / 8";
-    public string SaleAction => Stage==8?"완성한 검 선택":"선택한 검 판매 · +"+ForgePricing.Quote(Evaluation.product).SalePrice+"G";
-    public string SaleInstructions => Complete?"제작과 판매를 모두 배웠습니다!\n\n판매 연습으로 "+PracticeGold+"G를 받았습니다. 실제 골드와 재고는 변하지 않습니다.\n\n본게임에서는 완성품 창에서 검을 선택해 판매하고, 번 골드로 재료와 테크 트리를 구매하세요.":Stage==8?"!Blade로 제출한 검은 완성품이 됩니다. 아직 판매한 것은 아닙니다.\n\n아래 ‘완성한 검 선택’을 눌러 판매할 검을 선택하세요.":"판매가를 확인한 뒤 아래 판매 버튼을 누르세요. 판매한 검은 완성품 목록에서 사라지고 골드를 받습니다.\n\n"+ForgePricing.Describe(Evaluation.product,false)+"\n\n연습 판매이므로 실제 골드는 변하지 않습니다.";
+    public string Heading => Crafted?(Complete?"튜토리얼 완료":"첫 검 판매 · "+(Stage-7)+" / 3"):"첫 검 만들기 · "+(Stage+1)+" / 8";
+    public string SaleAction => Sold?"대장간으로 돌아가기":Stage==8?"완성한 검 선택":"선택한 검 판매 · +"+ForgePricing.Quote(Evaluation.product).SalePrice+"G";
+    public string SaleInstructions => Complete?"첫 검의 제작과 판매를 모두 배웠습니다!\n\n이제 직접 도면을 작성하고, 판매한 골드로 재료와 테크 트리를 구매해 보세요.\n\n‘튜토리얼 마치기’를 누르면 본게임이 시작됩니다.":Sold?"판매 완료! 연습 골드 +"+PracticeGold+"G\n\n반짝이는 ‘대장간으로’ 버튼을 눌러 돌아가세요.":Stage==8?"!Blade로 제출한 검은 완성품이 됩니다.\n\n왼쪽 위의 반짝이는 ‘완성품’을 눌러 검을 확인하세요.":"선택한 검 아래의 반짝이는 ‘판매’ 버튼을 누르세요.\n\n판매가: "+ForgePricing.Quote(Evaluation.product).SalePrice+"G\n\n판매하면 검은 목록에서 사라지고 골드를 받습니다.";
     public bool AdvanceSale(out string message){
         message="먼저 검을 완성하세요.";
         if(Stage==8){Stage=9;message="완성한 검을 선택했습니다. 판매가를 확인하세요.";return true;}
         if(Stage!=9)return false;
-        var practice=new ForgeShop();int id=practice.Add(Evaluation.product),gold=0;
-        if(!practice.TrySell(id,ref gold,out _))return false;
-        PracticeGold=gold;Stage=10;message="판매 완료! 연습 골드 +"+gold+"G. 이제 본게임에 입장하세요.";return true;
+        var practice=PracticeShop;int gold=0;
+        if(practice.Count!=1||!practice.TrySell(practice.Items[0].Id,ref gold,out _))return false;
+        PracticeGold=gold;Stage=10;message="판매 완료! 대장간으로 돌아가세요.";return true;
     }
     public ForgeMvp.Evaluation Evaluation { get; private set; }
     public static readonly string[] Titles={"재료 번호 알아보기","변수에 이름 붙이기","1() · 작업대에 올리기","2() · 가열하기","3() · 검날 성형","4() · 냉각하기","5() · 손잡이 만들기","완성 검 제출"};
@@ -94,17 +98,18 @@ public sealed class ForgeTutorialLesson
         string prefix="";
         for(int i=0;i<Math.Min(target-1,7);i++)prefix+=lines[i]+"\n";
         var previous=Restore(target,prefix);
-        Stage=previous.Stage;Code=previous.Code;Evaluation=previous.Evaluation;PracticeGold=previous.PracticeGold;
+        Stage=previous.Stage;Code=previous.Code;Evaluation=previous.Evaluation;PracticeGold=previous.PracticeGold;practiceShop=null;
         return true;
     }
     public static ForgeTutorialLesson Restore(int stage,string code)
     {
         var lesson=new ForgeTutorialLesson();
-        if(stage<=0||stage>10)return lesson;
+        if(stage<=0||stage>11)return lesson;
         lesson.SelectMaterial(1,out _);
         foreach(string line in (code??"").Split('\n'))if(!string.IsNullOrWhiteSpace(line)&&!lesson.Submit(line,out _))return new ForgeTutorialLesson();
         if(stage>=9&&lesson.Stage==8)lesson.AdvanceSale(out _);
-        if(stage==10&&lesson.Stage==9)lesson.AdvanceSale(out _);
+        if(stage>=10&&lesson.Stage==9)lesson.AdvanceSale(out _);
+        if(stage==11)lesson.ReturnToForge();
         return lesson.Stage==stage?lesson:new ForgeTutorialLesson();
     }
 }

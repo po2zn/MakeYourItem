@@ -72,7 +72,7 @@ public partial class ForgeMvp : ISerializationCallbackReceiver
     [Serializable] public class SavedProgress {
         public int windowDataVersion,activeCodeWindow,nextCodeWindowId;public Vector2 viewOffset;public float viewZoom;
         public ForgeBlacksmiths blacksmiths;
-        public int introStage;public string introCode;public string[] technologyNodes;public bool campaignComplete,endingSeen;
+        public int introStage,introSaleVersion;public string introCode;public string[] technologyNodes;public bool campaignComplete,endingSeen;
         public string savedAt;public long nextProductOrder;
         public long savedAtUtcTicks;public List<SavedItem> titleSwords;
         public int version=1,gold,iron,day,seed,diamonds,sales,tutorial;public long earned;public double hour;public float speed;public bool autoSell;
@@ -95,7 +95,9 @@ public partial class ForgeMvp : ISerializationCallbackReceiver
             var restoredHistory=DisplayHistory(saved);
             ResetProgressForDebug(false);titleSwordHistory=restoredHistory;
             gold=saved.gold;iron=saved.iron;worldSeed=saved.seed;diamonds=saved.diamonds;totalSales=saved.sales;tutorialStage=saved.tutorial;earnedGold=saved.earned;
-            lesson=ForgeTutorialLesson.Restore(saved.introStage,saved.introCode);
+            // Older saves completed the tutorial immediately on sale (stage 10).
+            int restoredIntro=saved.introSaleVersion==0&&saved.introStage==10?11:saved.introStage;
+            lesson=ForgeTutorialLesson.Restore(restoredIntro,saved.introCode);
             craftSpeed=Mathf.Clamp(saved.speed,1,5);autoSell=saved.autoSell;materialStocks=saved.stocks??Array.Empty<ForgeMaterialStock>();technology.Restore(saved.features,saved.technologyNodes,saved.stocks);campaignComplete=saved.campaignComplete;endingSeen=saved.endingSeen;
             RestoreMaterialPurchaseQuantities(saved.materialPurchaseQuantities);
             craftSpeed=technology.RestoreSpeed(craftSpeed);
@@ -134,7 +136,7 @@ public partial class ForgeMvp : ISerializationCallbackReceiver
             for(int material=1;material<10;material++)saved.materialPurchaseQuantities[material]=MaterialPurchaseQuantity(material);
             saved.nextProductOrder=shop.NextOrder;
             saved.savedAtUtcTicks=DateTime.UtcNow.Ticks;saved.titleSwords=new List<SavedItem>(titleSwordHistory);
-            saved.introStage=lesson.Stage;saved.introCode=lesson.Code;
+            saved.introStage=lesson.Stage;saved.introSaleVersion=1;saved.introCode=lesson.Code;
             saved.blacksmiths=blacksmiths;
             for(int i=0;i<codeWindows.Count;i++){var w=codeWindows[i];saved.windows.Add(new SavedWindow{id=w.id,name=w.name,text=w.text,rect=w.rect,seed=w.seed,collapsed=w.collapsed,expandedHeight=w.expandedHeight});}
             saved.items=CaptureProducts(shop);

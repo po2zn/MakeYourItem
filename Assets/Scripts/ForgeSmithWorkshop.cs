@@ -9,6 +9,8 @@ public partial class ForgeMvp
     sealed class SmithJob { public BlueprintRuntime.Session session; public ForgeProductionLedger ledger=new ForgeProductionLedger(); public int cursor; public Coroutine coroutine; public int ownerId,line;public string module;public readonly Dictionary<int,WindowSnapshot> sources=new Dictionary<int,WindowSnapshot>(); }
     readonly Dictionary<int,SmithJob> smithJobs=new Dictionary<int,SmithJob>();
     readonly List<ForgeCraftMotion> smithMotions=new List<ForgeCraftMotion>();
+    readonly HashSet<ForgeBlacksmiths.GiantRune> arrivingRunes=new HashSet<ForgeBlacksmiths.GiantRune>();
+    readonly List<ForgeBlacksmiths.GiantRune> giantRuneBindings=new List<ForgeBlacksmiths.GiantRune>();
     readonly List<GameObject> giantRuneViews=new List<GameObject>();
     readonly List<Material> giantRuneMaterials=new List<Material>();
     bool showSmithTree;
@@ -38,18 +40,24 @@ public partial class ForgeMvp
         for(int i=0;i<smithMotions.Count;i++)smithMotions[i].SetBurning(blacksmiths.Burning(i,SmithHours));
         UpdateGiantRuneViews();
     }
+    static void ReleaseRuneObject(UnityEngine.Object value){if(!value)return;if(Application.isPlaying)Destroy(value);else DestroyImmediate(value);}
     void UpdateGiantRuneViews()
     {
-        while(giantRuneViews.Count>blacksmiths.runes.Count){int last=giantRuneViews.Count-1;Destroy(giantRuneViews[last]);Destroy(giantRuneMaterials[last]);giantRuneViews.RemoveAt(last);giantRuneMaterials.RemoveAt(last);}
+        arrivingRunes.RemoveWhere(r=>!blacksmiths.runes.Contains(r));
+        while(giantRuneViews.Count>blacksmiths.runes.Count){int last=giantRuneViews.Count-1;ReleaseRuneObject(giantRuneViews[last]);ReleaseRuneObject(giantRuneMaterials[last]);giantRuneViews.RemoveAt(last);giantRuneMaterials.RemoveAt(last);giantRuneBindings.RemoveAt(last);}
         for(int i=0;i<blacksmiths.runes.Count;i++){
             var rune=blacksmiths.runes[i];
             if(i==giantRuneViews.Count){
-                var view=GameObject.CreatePrimitive(PrimitiveType.Cylinder);view.name="Giant rune";view.transform.SetParent(transform,false);Destroy(view.GetComponent<Collider>());
-                var material=new Material(Shader.Find("Universal Render Pipeline/Unlit")??Shader.Find("Unlit/Color"));view.GetComponent<Renderer>().sharedMaterial=material;giantRuneMaterials.Add(material);giantRuneViews.Add(view);
+                var view=GameObject.CreatePrimitive(PrimitiveType.Cube);view.name="Giant rune";view.transform.SetParent(transform,false);var collider=view.GetComponent<Collider>();collider.enabled=false;ReleaseRuneObject(collider);
+                var material=new Material(Shader.Find("Universal Render Pipeline/Unlit")??Shader.Find("Unlit/Color"));view.GetComponent<Renderer>().sharedMaterial=material;giantRuneMaterials.Add(material);giantRuneViews.Add(view);giantRuneBindings.Add(null);
             }
             int family=(rune.rune-1)%3,grade=(rune.rune-1)/3+1;
-            giantRuneViews[i].transform.localPosition=new Vector3(1.2f+rune.x*4.5f,.02f,rune.y*4.5f);
-            giantRuneViews[i].transform.localScale=new Vector3(1.6f+grade*.2f,.02f,1.6f+grade*.2f);
+            var floor=new Vector3(1.2f+(float)rune.x*4.5f,.02f,(float)rune.y*4.5f);
+            var arrival=giantRuneViews[i].GetComponent<ForgeGiantRuneArrival>();
+            if(giantRuneBindings[i]!=rune){if(arrival&&arrival.Playing)arrival.Sample(ForgeGiantRuneArrival.DropSeconds+ForgeGiantRuneArrival.BounceSeconds);giantRuneBindings[i]=rune;}
+            if(!arrival||!arrival.Playing)giantRuneViews[i].transform.localPosition=floor;
+            giantRuneViews[i].transform.localScale=new Vector3(2.25f,.02f,2.25f);
+            if(arrivingRunes.Remove(rune)){if(!arrival)arrival=giantRuneViews[i].AddComponent<ForgeGiantRuneArrival>();arrival.Begin(floor);}
             giantRuneMaterials[i].color=family==0?new Color(.5f,.25f,.9f):family==1?new Color(.2f,.65f,.9f):new Color(.9f,.65f,.15f);
         }
     }
@@ -60,6 +68,12 @@ public partial class ForgeMvp
         RefreshResources=session=>session.SetResources(gold,iron,SmithMaterials())
     };
     int SmithInt(object value){if(!(value is int))throw new ArgumentException("정수 인자가 필요합니다.");return (int)value;}
+    static double RuneCoordinate(object value){
+        if(!(value is int)&&!(value is double)&&!(value is float))throw new ArgumentException("룬 좌표에는 숫자가 필요합니다.");
+        double number=Convert.ToDouble(value);
+        if(!ForgeBlacksmiths.ValidCoordinate(number))throw new ArgumentException("룬 좌표는 0~3의 유한한 숫자입니다. 소수도 사용할 수 있습니다.");
+        return number;
+    }
     int CheckSmith(int id){if(id<0||id>=blacksmiths.smiths.Count)throw new ArgumentException("고용하지 않은 대장장이 번호: "+id);return id;}
     bool SmithBusy(int id)=>(id<smithMotions.Count&&smithMotions[id]&&smithMotions[id].IsStunned)||smithJobs.ContainsKey(id)||(id==0&&(busy||executionSession!=null));
     object SmithCall(int current,BlueprintFeature feature,List<object> args)
@@ -67,17 +81,22 @@ public partial class ForgeMvp
         blacksmiths.Tick(DayCycle.Day,SmithHours);
         if(feature==BlueprintFeature.SmithCount)return blacksmiths.smiths.Count;
         if(feature==BlueprintFeature.SmithSelf)return current;
-        if(feature==BlueprintFeature.GiantRune){
-            if(args.Count!=3)throw new ArgumentException("90910(룬 번호, x, y)로 호출하세요.");
-            int rune=SmithInt(args[0]),x=SmithInt(args[1]),y=SmithInt(args[2]);
-            if(!technology.Owns(BlueprintFeature.Rune))throw new ArgumentException("먼저 룬 각인을 연구하세요.");
-            if(rune<1||rune>9||x<0||x>3||y<0||y>3)throw new ArgumentException("룬은 1~9, 좌표는 각각 0~3입니다.");
-            int price=((rune-1)/3+1)*25;var crystal=Array.Find(materialStocks,s=>s!=null&&s.material==6&&s.unlocked);
-            if(diamonds<price||crystal==null||crystal.count<1)throw new ArgumentException("거대한 룬: 다이아 "+price+"개와 수정 1개가 필요합니다.");
+        if(ForgeSmithLanguage.IsGiantRune(feature)){
+            if(args.Count!=3)throw new ArgumentException("룬 번호, x, y 인자 3개가 필요합니다.");
+            int rune=SmithInt(args[0]);double x=RuneCoordinate(args[1]),y=RuneCoordinate(args[2]);
+            if(!technology.Owns(BlueprintFeature.GiantRune))throw new ArgumentException("먼저 룬 각인·거대한 룬을 연구하세요.");
+            if(rune<1||rune>9)throw new ArgumentException("룬 번호는 정수 1~9입니다.");
+            if(feature==BlueprintFeature.GiantRuneTime)return blacksmiths.Remaining(rune,x,y,SmithHours);
+            int price=((rune-1)/3+1)*25;
+            var stock=Array.Find(materialStocks??Array.Empty<ForgeMaterialStock>(),v=>v!=null&&v.material==rune&&v.unlocked);
+            if(diamonds<price||(rune==1?iron<1:stock==null||stock.count<1))throw new ArgumentException("거대한 룬: 다이아 "+price+"개와 "+ForgeMaterialGuide.Find(rune).Name+" 1개가 필요합니다.");
             int family=(rune-1)%3;
-            var existing=blacksmiths.runes.Find(r=>r.x==x&&r.y==y&&(r.rune-1)%3==family);
+            var existing=blacksmiths.runes.Find(r=>ForgeBlacksmiths.SamePosition(r,x,y)&&(r.rune-1)%3==family);
             if(existing!=null&&existing.rune>=rune)throw new ArgumentException("이 위치에 같은 계열의 같거나 더 강한 룬이 있습니다.");
-            diamonds-=price;crystal.count--;if(existing!=null)existing.rune=rune;else blacksmiths.runes.Add(new ForgeBlacksmiths.GiantRune{rune=rune,x=x,y=y});
+            // Validate everything before either shared resource is spent.
+            diamonds-=price;if(rune==1)iron--;else stock.count--;
+            if(existing==null){existing=new ForgeBlacksmiths.GiantRune{x=x,y=y};blacksmiths.runes.Add(existing);}
+            existing.rune=rune;existing.timed=true;existing.expiresAt=SmithHours+ForgeBlacksmiths.RuneLifetimeHours;arrivingRunes.Add(existing);
             SaveProgress();return null;
         }
         if(feature==BlueprintFeature.SmithGift){
@@ -187,7 +206,7 @@ public partial class ForgeMvp
                 for(int material=1;material<data.materials.Length;material++)for(int n=0;n<data.materials[material];n++)RefundMaterial(material);
                 AppendDebug("대장장이 "+id+" · 대성공! 재료 반환 · 2개 생산 · 판매 ×"+data.smithSaleMultiplier.ToString("0.00"));
             }
-            data.smithSaleMultiplier=Math.Max(1,data.smithSaleMultiplier)*(1+blacksmiths.RuneBonus(id,3)*5);
+            data.smithSaleMultiplier=Math.Max(1,data.smithSaleMultiplier)*(1+blacksmiths.RuneBonus(id,3,SmithHours));
         }
         var completed=new ForgeProduct(product.BlueprintName,product.FinalHeat,product.Shaped,product.Traits,product.CashCost,product.IronConsumed,product.Material,data,product.ProductionSeconds);
         for(int i=0;i<copies;i++){selectedProductId=shop.Add(completed);CompleteProgress(completed);if(autoSell)SellProductInternal(selectedProductId);}

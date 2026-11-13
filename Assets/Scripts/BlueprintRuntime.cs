@@ -121,7 +121,7 @@ public sealed partial class BlueprintRuntime
             case BlueprintExprKind.Attribute:
                 var target=await Eval(e.Args[0],env);currentLine=e.Token.Line;return Member(target,e.Name);
             case BlueprintExprKind.Increment:return await Increment(e,env);
-            case BlueprintExprKind.Unary:var unary=await Eval(e.Args[0],env);currentLine=e.Token.Line;return e.Token.Raw=="not"?(object)!Bool(unary):checked(-Int(unary));
+            case BlueprintExprKind.Unary:var unary=await Eval(e.Args[0],env);currentLine=e.Token.Line;return e.Token.Raw=="not"?(object)!Bool(unary):unary is double real?(object)(-real):checked(-Int(unary));
             case BlueprintExprKind.Binary:return await Binary(e,env);
             case BlueprintExprKind.Call:
                 object callable=e.Callee!=null?await Eval(e.Callee,env):e.Process==0&&e.Feature==BlueprintFeature.None?Lookup(e.Name,env):null;
@@ -170,6 +170,17 @@ public sealed partial class BlueprintRuntime
         if(op=="and"||op=="or")return Compared(Bool(b));
         if(op=="=="||op=="!="){bool equal=Equal(a,b);return Compared(op=="=="?equal:!equal);}
         if(op=="in") {int item=Int(a);if(b is Dictionary<int,int> d)return d.ContainsKey(item);if(b is HashSet<int> s)return s.Contains(item);return Sequence(b).Contains(item);}
+        if(a is double||b is double||op=="/"){
+            if(!(a is int)&&!(a is double)||!(b is int)&&!(b is double))Fail("숫자가 필요합니다.");
+            double left=Convert.ToDouble(a),right=Convert.ToDouble(b),answer;
+            switch(op){
+                case "<":return Compared(left<right);case ">":return Compared(left>right);case "<=":return Compared(left<=right);case ">=":return Compared(left>=right);
+                case "+":answer=left+right;break;case "-":answer=left-right;break;case "*":answer=left*right;break;
+                case "/":case "//":case "%":if(right==0)Fail("0으로 나눌 수 없습니다.");answer=op=="/"?left/right:op=="//"?Math.Floor(left/right):left-Math.Floor(left/right)*right;break;
+                default:Fail("지원하지 않는 소수 연산자");return null;
+            }
+            if(double.IsNaN(answer)||double.IsInfinity(answer))Fail("소수 연산 범위 초과");return answer;
+        }
         int x=Int(a),y=Int(b);
         switch(op){case "+":return checked(x+y);case "-":return checked(x-y);case "*":return checked(x*y);
             case "//":case "%":if(y==0)Fail("0으로 나눌 수 없습니다.");long q=(long)x/y,r=(long)x%y;if(r!=0&&(r<0)!=(y<0)){q--;r+=y;}return checked((int)(op=="//"?q:r));
@@ -178,7 +189,7 @@ public sealed partial class BlueprintRuntime
     }
     bool Equal(object a,object b)
     {
-        if(a==null||b==null)return a==b;if(a.GetType()!=b.GetType())return false;
+        if(a==null||b==null)return a==b;if((a is double||b is double)&&(a is int||a is double)&&(b is int||b is double))return Convert.ToDouble(a)==Convert.ToDouble(b);if(a.GetType()!=b.GetType())return false;
         if(a is HashSet<int> s)return s.SetEquals((HashSet<int>)b);
         if(a is Dictionary<int,int> d){var other=(Dictionary<int,int>)b;if(d.Count!=other.Count)return false;foreach(var pair in d)if(!other.TryGetValue(pair.Key,out int n)||n!=pair.Value)return false;return true;}
         if(a is IList<int> l){var other=(IList<int>)b;if(l.Count!=other.Count)return false;for(int i=0;i<l.Count;i++)if(l[i]!=other[i])return false;return true;}
@@ -192,6 +203,7 @@ public sealed partial class BlueprintRuntime
         if(value is string text)return text;
         if(value is bool flag)return flag?"True":"False";
         if(value is int number)return number.ToString(CultureInfo.InvariantCulture);
+        if(value is double real)return real.ToString("G",CultureInfo.InvariantCulture);
         if(value is ForgeMvp.Piece piece)return "작업물(재료="+ForgeMaterialGuide.Find(piece.material).Name+", 열="+PrintValue(piece.heat)+", 성형="+PrintValue(piece.shaped)+", 특성="+piece.traits+")";
         if(value is Dictionary<int,int> map){
             var pairs=new List<string>();foreach(var pair in map)pairs.Add(PrintValue(pair.Key)+": "+PrintValue(pair.Value));
@@ -214,7 +226,7 @@ public sealed partial class BlueprintRuntime
     {
         if(e.Process>0)return Process(e.Process,args);
         if(e.Feature==BlueprintFeature.SmithRun)return DispatchSmith(args);
-        if(ForgeSmithLanguage.IsSmith(e.Feature)||e.Feature==BlueprintFeature.GiantRune){
+        if(ForgeSmithLanguage.IsSmith(e.Feature)||ForgeSmithLanguage.IsGiantRune(e.Feature)){
             if(context.SmithCall==null)Fail("대장장이 함수는 실제 공방 실행에서 사용할 수 있습니다.");
             try{return context.SmithCall(e.Feature,args);}catch(ArgumentException error){Fail(error.Message);}
         }

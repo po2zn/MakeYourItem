@@ -32,8 +32,8 @@ public static class ForgeBlacksmithChecks
         state.smiths[0].favor=-99;state.smiths[0].required=1;state.Gift(0,2,ref diamonds);Require(state.smiths[0].favor==-100,"lower clamp");
         diamonds=ForgeBlacksmiths.HireCosts.Sum()+100;for(int tier=0;tier<5;tier++){int before=diamonds;Require(state.Hire(ref diamonds,33)&&state.smiths.Count==ForgeBlacksmiths.Counts[tier+1]&&before-diamonds==ForgeBlacksmiths.HireCosts[tier],"hire tier "+tier);}
         Require(!state.Hire(ref diamonds,33),"max hire cap");
-        state.runes.Add(new ForgeBlacksmiths.GiantRune{rune=1,x=0,y=0});state.runes.Add(new ForgeBlacksmiths.GiantRune{rune=7,x=0,y=1});
-        Require(Math.Abs(state.RuneBonus(0,1)-.03)<1e-8&&state.RuneBonus(15,1)==0,"rune range and strongest only");
+        state.runes.Add(new ForgeBlacksmiths.GiantRune{rune=1,x=0,y=0});state.runes.Add(new ForgeBlacksmiths.GiantRune{rune=7,x=.25,y=.25});
+        Require(Math.Abs(state.RuneBonus(0,1)-.15)<1e-8&&state.RuneBonus(15,1)==0,"rune range and strongest only");
         var restored=JsonUtility.FromJson<ForgeBlacksmiths>(JsonUtility.ToJson(state));restored.Normalize(33);
         Require(restored.smiths.Count==16&&restored.smiths[0].favor==-100&&restored.burningUntil==state.burningUntil&&restored.runes.Count==2,"save roundtrip");
         foreach(var alias in ForgeSmithLanguage.Aliases.Where(a=>ForgeSmithLanguage.IsSmith(a.Id)))foreach(string spelling in new[]{alias.Symbol,alias.English})
@@ -92,6 +92,7 @@ public static class ForgeBlacksmithChecks
                     case BlueprintFeature.SmithBusy:return 0;
                     case BlueprintFeature.SmithGift:Require(state.Gift(id,(int)args[1],ref diamonds),"guide gift");return null;
                     case BlueprintFeature.GiantRune:return null;
+                    case BlueprintFeature.GiantRuneTime:return 48d;
                 }
                 throw new Exception("unsupported guide feature");
             },
@@ -114,7 +115,7 @@ public static class ForgeBlacksmithChecks
         var work=GameObject.CreatePrimitive(PrimitiveType.Cube);work.transform.SetParent(root.transform);
         var motion=root.AddComponent<ForgeCraftMotion>();motion.Initialize(work);
         Set(host,"craftMotion",motion);Set(host,"work",work);Set(host,"showTitle",false);Set(host,"craftSpeed",5f);
-        Set(host,"materialStocks",new[]{new ForgeMaterialStock{material=2,count=20,unlocked=true},new ForgeMaterialStock{material=6,count=10,unlocked=true}});
+        Set(host,"materialStocks",new[]{new ForgeMaterialStock{material=2,count=20,unlocked=true},new ForgeMaterialStock{material=6,count=10,unlocked=true},new ForgeMaterialStock{material=7,count=10,unlocked=true}});
         Set(host,"gold",1000);Set(host,"iron",20);Set(host,"diamonds",1000);
         var state=(ForgeBlacksmiths)Get(host,"blacksmiths");state.hireTier=2;state.Normalize(8);state.burningDay=cycle.Day;state.burningUntil=0;
         Call(host,"UpdateSmiths");
@@ -146,7 +147,7 @@ public static class ForgeBlacksmithChecks
             int before=((ForgeShop)Get(host,"shop")).Items.Count;int beforeIron=(int)Get(host,"iron");
             var data=new ForgeItemData{handle=2};data.materials[1]=1;data.materials[2]=1;
             var result=(ForgeProduct)Call(host,"FinishSmithProduct",0,new ForgeProduct("check",0,true,ForgeTraits.None,0,1,1,data));
-            Require(((ForgeShop)Get(host,"shop")).Items.Count==before+2&&(int)Get(host,"iron")==beforeIron+1&&result.Data.smithSaleMultiplier>=1.25&&result.Data.smithSaleMultiplier<=3.25,"great success actual refund and double output");
+            Require(((ForgeShop)Get(host,"shop")).Items.Count==before+2&&(int)Get(host,"iron")==beforeIron+1&&result.Data.smithSaleMultiplier>=1.25&&result.Data.smithSaleMultiplier<=3.25*1.25,"great success actual refund and double output");
             PlayResult="PASS: two concurrent animated workers, busy rejection, atomic shared inventory, rune cost, tooltip origin, great success refunds and two products";
         }catch(Exception error){PlayResult="FAIL: "+error;}
         finally{Call(host,"StopSmithJobs");UnityEngine.Object.Destroy(root);}
