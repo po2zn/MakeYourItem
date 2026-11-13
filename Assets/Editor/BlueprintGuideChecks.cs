@@ -43,7 +43,7 @@ public static class BlueprintGuideChecks {
  foreach(bool english in new[]{false,true})foreach(var offer in ForgeTechnology.Offers)Require(!BlueprintResearchGuide.OfferInfo(offer,english).Contains("선행 구매 필요"),"guide prerequisite text removed "+offer.Id);
  Require(!entries.Single(e=>e.Feature==BlueprintFeature.SmithRun).ShowResearch&&entries.Single(e=>e.Feature==BlueprintFeature.SmithRun).ResearchFor(false)==""&&entries.Single(e=>e.Feature==BlueprintFeature.SmithRun).NoteFor(false)=="","smith run guide shows usage without research or extra notes");
  var master=EvaluateGuide(entries.Single(e=>e.Id=="masterwork-example").Example);
- Require(master.error==null&&master.product.Data.materials[7]==1&&master.product.Data.materials[5]==1&&master.product.Data.materials[9]==1&&master.product.Data.materials[3]==2&&master.product.Data.materials[6]==4,"masterwork example stock requirements");
+ Require(master.error==null&&master.product.Data.materials[7]==1&&master.product.Data.materials[5]==1&&master.product.Data.materials[9]==1&&master.product.Data.materials[3]==2&&master.product.Data.materials[6]==7&&master.product.Data.materials[2]==6&&ForgePricing.QuoteWithoutSmithBonus(master.product).SalePrice>=7000,"masterwork example stock requirements");
  log.AppendLine("PASS current tree offer coverage, research metadata, speed reward, smith hiring and masterwork materials");
  log.AppendLine("PASS numeric-only examples, equal execution, hidden English, unlock restoration and search");
  log.AppendLine(BlueprintGuideUnlockChecks.Run());

@@ -6,11 +6,23 @@ public static class ForgeDragonChecks {
  static void Check(bool c,string m){if(!c)throw new Exception(m);}
  static ForgeMvp.Piece Bone()=>new ForgeMvp.Piece{id=4,material=9,data=new ForgeItemData{dragonBone=new ForgeDragonBone(10,new[]{2,4,7})}};
  static ForgeRunContext Context(ForgeMvp.Piece b)=>new ForgeRunContext{PracticeBlade=b,DragonUnlocked=true};
- static Dictionary<int,long> Stocks()=>new Dictionary<int,long>{{9,10},{4,10},{3,10}};
+ static Dictionary<int,long> Stocks()=>new Dictionary<int,long>{{9,10},{4,10},{3,10},{6,10}};
  static ForgeMvp.Evaluation Eval(ForgeMvp.Piece b,string code)=>BlueprintRuntime.Evaluate(code,0,10,"test",1,materialStocks:Stocks(),context:Context(b));
  static void Ok(ForgeMvp.Evaluation e)=>Check(e.error==null,e.error);
  static void Cut(ForgeDragonBone b,int p){Action cancel;var done=b.BeginCut(p,1,out cancel);done();}
  public static string Run(){var log=new StringBuilder();int count=0;Action<string,Action> test=(n,a)=>{a();count++;log.AppendLine("PASS "+n);};
+ test("refinement setting 6 consumes water and crystal atomically",()=>{
+  const string prefix="p=1(1)\n2(p)\n3(p)\n4(p,0)\n6(p)\nb=1(9)\n";
+  var stock=new Dictionary<int,long>{{9,1},{3,1},{6,1}};
+  var good=ForgeMvp.Evaluate(prefix+"10(b,p,100,6)",availableIron:10,materialStocks:stock);Ok(good);
+  var receipt=good.steps.Single(x=>x.process==10);Check(receipt.consumed[3]==1&&receipt.consumed[6]==1&&((ForgeMvp.Piece)good.values["b"]).data.refined,"ingredients and state");
+  foreach(int missing in new[]{3,6}){var inventory=new Dictionary<int,long>(stock);inventory[missing]=0;
+   var failed=ForgeMvp.Evaluate(prefix+"10(b,p,100,6)",availableIron:10,materialStocks:inventory);
+   Check(failed.errorLine==7&&failed.error!=null&&!failed.steps.Any(x=>x.process==10)&&!((ForgeMvp.Piece)failed.values["b"]).data.refined,"shortage state");
+   Check(failed.steps.All(x=>x.consumed==null||!x.consumed.ContainsKey(3)&&!x.consumed.ContainsKey(6)),"no partial ingredient receipt");
+  }
+  var old=ForgeMvp.Evaluate(prefix+"10(b,p,100,13)",availableIron:10,materialStocks:stock);Check(old.errorLine==7&&!((ForgeMvp.Piece)old.values["b"]).data.refined,"old setting rejected");
+ });
  test("5000 fixed independent valid generations and invalid settings",()=>{for(uint seed=0;seed<5000;seed++){var b=ForgeDragonBone.Create(seed,new ForgeDragonSettings());Check(b.Count>=3&&b.Count<=7,"count");int last=0;for(int i=0;i<b.Count;i++){int p=b.Position(i);Check(p>last&&p<b.Length,"position");last=p;}var clone=b.Clone();Cut(clone,clone.Position(0));Check(b.Cost==0&&b.Position(0)==clone.Position(0),"independent");}try{ForgeDragonBone.Create(1,new ForgeDragonSettings{length=7});throw new Exception("accepted invalid");}catch(ArgumentException){} });
  test("90-95 distinct registration, locked validation",()=>{foreach(int n in Enumerable.Range(90,6))Check(BlueprintAliases.All.Count(a=>a.Symbol==n.ToString())==1,"collision");var b=Bone();var e=BlueprintRuntime.Evaluate("90(Bone)",0,0,"test",1,context:new ForgeRunContext{PracticeBlade=b});Check(e.error!=null,"permission");});
  test("costs 24 and 20 and real duration once",()=>{foreach(var order in new[]{new[]{2,4,7},new[]{4,2,7}}){var b=Bone();var e=Eval(b,string.Join("\n",order.Select(p=>"93(Bone,"+p+")"))+"\nn=91(Bone)\np=92(Bone,0)\nc=95(Bone)\nd=94(Bone,2)");Ok(e);int expected=order[0]==2?24:20;Check(b.data.dragonBone.Cost==expected&&Math.Abs(e.steps.Sum(s=>s.duration)-expected*.1)<.0001,"cost duration");Check((int)e.values["n"]==3&&(int)e.values["p"]==2&&(int)e.values["c"]==expected&&(bool)e.values["d"],"fixed queries");}});

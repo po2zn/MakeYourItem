@@ -2,7 +2,7 @@ using System.Collections.Generic;
 // Central tuning values; legacy purchased-node IDs are migrated by ForgeTechnology.
 public static class ForgeBalance {
  public const int DefaultFurnaceTemperature=900, MinimumForgeTemperature=850, MaximumIdealTemperature=1100, QuenchBonus=19, PerfectQuenchBonus=81;
- public const int PolishBonus=75,PlateBonus=250,StarBonus=90,StarlightBonus=120,FrostBonus=80,ChargeBonus=150,DragonHandleBonus=380,DragonPulseBonus=120,ResonanceBonus=650,SealLayerBonus=140,MagicGradeBonus=25,RuneGradeBonus=20,TripleRuneBonus=60,CurseMultiplier=3;
+ public const int PolishBonus=75,PlateBonus=250,StarBonus=90,StarlightBonus=250,FrostBonus=80,ChargeBonus=150,DragonHandleBonus=380,DragonPulseBonus=120,ResonanceBonus=650,SealLayerBonus=140,MagicGradeBonus=25,RuneGradeBonus=20,TripleRuneBonus=60,CurseMultiplier=3;
  static readonly Dictionary<string,int> Research=new Dictionary<string,int>{
  {"automation-root",500},{"research-import",500},{"research-english-keywords",150000},{"function-Heat",500},{"function-Polish",800},{"material-5",3000},{"function-Plate",20000},{"material-7",50000},{"material-8",60000},{"function-Refine",10000},
  {"function-Inspect",1200},{"function-Charge",15000},{"function-Rune",30000},{"function-Magic",16000},{"function-Resonate",50000},{"function-Protect",24000},{"function-Curse",180000},

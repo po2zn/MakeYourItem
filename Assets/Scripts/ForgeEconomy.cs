@@ -73,7 +73,9 @@ public sealed class ForgeQuote
 
 public static class ForgePricing
 {
-    public static ForgeQuote Quote(ForgeProduct product)
+    public static ForgeQuote Quote(ForgeProduct product)=>Quote(product,true);
+    public static ForgeQuote QuoteWithoutSmithBonus(ForgeProduct product)=>Quote(product,false);
+    static ForgeQuote Quote(ForgeProduct product,bool includeSmithBonus)
     {
         if (product == null) throw new ArgumentNullException(nameof(product));
 
@@ -81,11 +83,11 @@ public static class ForgePricing
         // Future quenching/handle bonuses belong here, keyed by traits earned by successful processes.
         // Air cooling has no bonus. Never infer a bonus from cost, heat calls or blueprint names.
         int basePrice=product.Kind==ForgeProductKind.Unfinished?0:product.Material==7?40:28;
-        int bonus=0;foreach(var line in Bonuses(product))bonus+=line.Value;
+        int bonus=0;foreach(var line in Bonuses(product,includeSmithBonus))bonus+=line.Value;
         return new ForgeQuote(basePrice,bonus,product.CashCost);
     }
 
-    public static Dictionary<string,int> Bonuses(ForgeProduct product)
+    public static Dictionary<string,int> Bonuses(ForgeProduct product,bool includeSmithBonus=true)
     {
         var result=new Dictionary<string,int>();if(product.Kind==ForgeProductKind.Unfinished)return result;var d=product.Data;
         if(d.hardness>=7)result["담금질 경도 7"]=ForgeBalance.QuenchBonus;
@@ -108,7 +110,7 @@ public static class ForgePricing
         int value=product.Material==7?40:28;foreach(int b in result.Values)value+=b;
         if(d.cracked){result["균열 감점"]=-value/2;value-=value/2;}
         if(d.cursed){result["저주 배율"]=value*(ForgeBalance.CurseMultiplier-1);value*=ForgeBalance.CurseMultiplier;}
-        if(d.smithSaleMultiplier>1)result["대장장이 판매 배율 ×"+d.smithSaleMultiplier.ToString("0.00")]=(int)Math.Round(value*(d.smithSaleMultiplier-1));
+        if(includeSmithBonus&&d.smithSaleMultiplier>1)result["대장장이 판매 배율 ×"+d.smithSaleMultiplier.ToString("0.00")]=(int)Math.Round(value*(d.smithSaleMultiplier-1));
         return result;
     }
     public static string Describe(ForgeProduct product, bool preview)

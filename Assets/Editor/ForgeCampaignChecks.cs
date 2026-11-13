@@ -9,8 +9,8 @@ public static class ForgeCampaignChecks
     const string Plated="p=1(1)\n2(p)\n3(p)\n4(p,3)\n6(p)\n7(p)\n5(p,2)\n!p";
     const string Star="p=1(7)\n2(p)\n3(p)\n4(p,3)\n6(p)\n7(p)\n5(p,2)\n!p";
     const string Charged="p=1(7)\n2(p)\n3(p)\n4(p,3)\n6(p)\n7(p)\n5(p,2)\n9(p,1)\n9(p,1)\n9(p,1)\n!p";
-    const string Dragon="p=1(7)\n2(p)\n3(p)\n4(p,3)\n6(p)\n7(p)\nb=1(9)\n10(b,p,100,13)\n5(p,b)\n9(p,1)\n9(p,1)\n9(p,1)\n!p";
-    public const string Final="p=1(7)\n2(p)\n3(p)\n4(p,3)\n6(p)\n7(p)\nb=1(9)\n10(b,p,100,13)\n5(p,b)\n9(p,1)\n9(p,1)\n9(p,1)\n123(r in [7,8,9]):\n    211(p,r)\n!p";
+    const string Dragon="p=1(7)\n2(p)\n3(p)\n4(p,3)\n6(p)\n7(p)\nb=1(9)\n10(b,p,100,6)\n5(p,b)\n9(p,1)\n9(p,1)\n9(p,1)\n!p";
+    public const string Final="p=1(7)\n2(p)\n3(p)\n4(p,3)\n6(p)\n7(p)\nb=1(9)\n10(b,p,100,6)\n5(p,b)\n9(p,1)\n9(p,1)\n9(p,1)\n123(r in [7,8,9]):\n    211(p,r)\n!p";
     sealed class Run
     {
         public readonly ForgeTechnology Tech=new ForgeTechnology();
@@ -63,20 +63,24 @@ public static class ForgeCampaignChecks
         var before=run.Craft(Final);
         Require(ForgeCampaign.IsMasterwork(before)&&!ForgeCampaign.CanComplete(run.Tech,before),"commission must be accepted");
         run.Buy(ForgeTechnology.MasterCommission);
-        var master=run.Craft(Final);
+        var example=BlueprintGuide.Entries.Single(e=>e.Id=="masterwork-example").Example;
+        var evaluated=ForgeMvp.Evaluate(example);Require(evaluated.error==null,evaluated.error);
+        var master=evaluated.product;
         Require(ForgeCampaign.CanComplete(run.Tech,master),"actual route reaches ending");
         Require(run.Gold>=0&&run.Iron>=0&&run.Stocks.All(s=>s.count>=0),"resources non-negative");
-        foreach(string name in new[]{"crack","no star","handle","charge","runes","duplicate family"}){
-            var data=master.Data;
-            if(name=="crack")data.cracked=true;
-            if(name=="no star")data.star=false;
-            if(name=="handle")data.handle=2;
-            if(name=="charge")data.charge=2;
-            if(name=="runes")data.runes.RemoveAt(0);
-            if(name=="duplicate family")data.runes=new List<int>{1,4,7};
-            var invalid=new ForgeProduct("test",0,true,master.Traits,0,0,7,data);
-            Require(!ForgeCampaign.CanComplete(run.Tech,invalid),"reject false ending "+name);
+        Require(!ForgeCampaign.CanComplete(run.Tech,before),"previous material recipe below threshold no longer completes");
+        foreach(int price in new[]{6999,7000,7001})foreach(double multiplier in new[]{1d,3.25d,20d}){
+            var bone=new ForgeDragonBone(10,new[]{2,4,7},gold:price-28-ForgeBalance.DragonHandleBonus);
+            foreach(int position in new[]{2,4,7}){Action cancel;bone.BeginCut(position,1,out cancel)();}bone.Heated(1000);
+            var product=new ForgeProduct("price boundary",0,true,ForgeTraits.None,0,0,1,new ForgeItemData{handle=9,dragonBone=bone,smithSaleMultiplier=multiplier});
+            Require(ForgePricing.QuoteWithoutSmithBonus(product).SalePrice==price,"intrinsic price");
+            Require(ForgeCampaign.CanComplete(run.Tech,product)==(price>=7000),"threshold independent of smith multiplier");
+            Require(ForgePricing.Quote(product).SalePrice==(int)Math.Round(price*multiplier),"actual sale keeps multiplier");
         }
+        Require(!ForgeCampaign.CanComplete(new ForgeTechnology(),master),"high price still requires commission");
+        Require(!ForgeCampaign.CanComplete(run.Tech,null),"null rejected");
+        var destroyed=master.Data;destroyed.destroyed=true;
+        Require(!ForgeCampaign.CanComplete(run.Tech,new ForgeProduct("destroyed",0,true,master.Traits,0,0,7,destroyed)),"destroyed rejected");
         var restored=new ForgeTechnology();restored.Restore(run.Tech.Export(),run.Tech.ExportNodes());
         Require(ForgeCampaign.CanComplete(restored,master),"saved commission persists");
         string result="PASS campaign route: "+run.Sales+" sales, revenue "+run.Revenue+"G, balance "+run.Gold+"G; final value "+ForgePricing.Quote(master).SalePrice+"G";

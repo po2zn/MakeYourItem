@@ -62,9 +62,17 @@ public sealed class ForgeStarlightPanel : MonoBehaviour
     void Refresh(){heading.text=practice!=null?"별철 연습 · 실제 재료/골드에 영향 없음":caption;if(shown==null)return;state.text="위치: 값 · 【 】는 동작 대상\n"+ArrayText(shown,selectedA,selectedB)+"\n현재 "+shown.Count+"개 · 교환 "+shown.Swaps+"회 · 제거 "+shown.Removals+"회\n"+(practice!=null?"예상":"누적")+" 추가 가공 시간 "+shown.Seconds.ToString("0.00")+"초 · 정제 보너스 +"+(practice!=null&&!practiceEvaluated?0:shown.Bonus)+"G";history.text=string.Join("\n",lines);}
     void Log(string message){lines.Enqueue(message);while(lines.Count>30)lines.Dequeue();}
     public static void Receipt(ForgeMvp.Step step,bool before,string station){
-        if(step.data?.starlight==null)return;var view=Get();view.lastProduction=step.data.starlight.Clone();if(view.practice!=null)return;
-        view.canvas.enabled=true;view.LayoutPanel(false);view.caption=station+" · 별철 #"+step.pieceId;
-        view.ShowReceipt(step,before);
+        if(step.data?.starlight==null)return;
+        // Production never creates or opens the standalone practice canvas.
+        if(instance)instance.lastProduction=step.data.starlight.Clone();
+        if(!before){var game=FindAnyObjectByType<ForgeMvp>();if(game)game.AppendStarlightReceipt(step,station);}
+    }
+    public static string DebugReceipt(ForgeMvp.Step step,string station){
+        var data=step.data?.starlight;if(data==null)return "";
+        int a=step.process==73?-1:step.starA,b=step.process==73?-1:step.starB;
+        return station+" · "+step.line+"줄 · 별철 #"+step.pieceId+" · "+step.text+"\n"+
+            "위치: 값 (【 】 동작 대상) "+ArrayText(data,a,b)+"\n"+
+            "별빛 "+data.Count+"개 · 교환 "+data.Swaps+"회 · 제거 "+data.Removals+"회 · 추가 가공 "+data.Seconds.ToString("0.00")+"초 · 정제 보너스 +"+data.Bonus+"G";
     }
     void ShowReceipt(ForgeMvp.Step step,bool before){if(practice!=null)practiceEvaluated=true;shown=(before?step.starlightBefore:step.data.starlight)?.Clone()??step.data.starlight.Clone();selectedA=step.starA;selectedB=step.starB;if(!before){Log(step.line+"줄 · "+step.text+" → "+ArrayText(shown));if(step.process==73)selectedA=selectedB=-1;}Refresh();}
     public void OpenPractice(ForgeStarlight source=null){
@@ -87,4 +95,8 @@ public sealed class ForgeStarlightPanel : MonoBehaviour
     }
     void Close(){StopPractice();practice=null;practiceControls.SetActive(false);content.Find("연습 진입").gameObject.SetActive(true);canvas.enabled=false;}
     void OnDestroy(){StopPractice();if(instance==this)instance=null;}
+}
+
+public partial class ForgeMvp {
+    public void AppendStarlightReceipt(Step step,string station){if(showDebugWindow)AppendDebug(ForgeStarlightPanel.DebugReceipt(step,station));}
 }

@@ -94,7 +94,9 @@ public sealed partial class BlueprintRuntime
         case BlueprintFeature.Charge:
             ColdBlade(p);if(d.handle==0)Fail("손잡이가 필요합니다.");int power=Int(args[1]);if(power<1||power>3)Fail("주입 세기는 1~3입니다.");if(d.charge>=3)Fail("이미 충전 완료되었습니다.");if(d.charge==0)Consume(6);if(power!=1)d.cracked=true;else d.charge++;Action(9,p,"마력 주입 · "+d.charge+"/3"+(power!=1?" · 강한 주입으로 균열":""));break;
         case BlueprintFeature.Refine:
-            var blade=Piece(args[1]);ColdBlade(blade);if(p.material!=9||d.refined||!blade.data.polished||blade.data.cracked||Int(args[2])!=100||Int(args[3])!=13)Fail("미정제 용뼈, 연마된 무균열 검날, 수온 100, 설정값 13이 필요합니다.");Consume(3);d.refined=true;Action(10,p,"용뼈 정제 완료",3);break;
+            var blade=Piece(args[1]);ColdBlade(blade);if(p.material!=9||d.refined||!blade.data.polished||blade.data.cracked||Int(args[2])!=100||Int(args[3])!=6)Fail("미정제 용뼈, 연마된 무균열 검날, 수온 100, 설정값 6이 필요합니다.");// Validate both ingredients before consuming either one.
+            if(stocks!=null){foreach(int ingredient in new[]{3,6})if(!stocks.TryGetValue(ingredient,out long amount)||amount<1)Fail("용뼈 정제에는 물 1개와 마력 수정 1개가 필요합니다. "+ForgeMaterialGuide.Find(ingredient).Name+" 재료 부족");}
+            Consume(3);Consume(6);d.refined=true;Action(10,p,"용뼈 정제 완료",3);break;
         case BlueprintFeature.Lucky:
             ColdBlade(p);if(d.handle==0||d.cracked)Fail("손잡이가 있는 무균열 완성 검이 필요합니다.");if(Int(args[0])!=context.LuckyCode)Fail("오늘의 행운 코드가 아닙니다. 777?()로 다시 조회하세요.");
             if(d.luckyDay==0){d.luckyDay=context.Day();d.luckyCode=Int(args[0]);Action(777,p,"Day "+d.luckyDay+" 행운 적용 · 코드 "+d.luckyCode,1.6f);}return p;

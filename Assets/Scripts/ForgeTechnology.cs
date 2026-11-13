@@ -80,7 +80,7 @@ public sealed class ForgeTechnology
         Speed(1,100),Speed(2,150),Speed(3,200),Speed(4,300),Speed(5,450),
         new Offer("function-AutoSell",ForgePurchaseKind.Function,300000,"자동판매 · 225()","스피드 5단계 이후 별도 구매합니다. 구매하면 자동판매가 켜집니다. 225(0)으로 끄고 225(1)로 다시 켤 수 있습니다.",9,6,0,BlueprintFeature.AutoSell,"speed-5"),
         Bundle(BlueprintFeature.Lucky,BlueprintFeature.LuckyCode,500,1,2,"오늘의 행운 · 777() + 777?()"),
-        new Offer(MasterCommission,ForgePurchaseKind.Commission,800,"명장의 마지막 의뢰","별무늬 별철 검 + 정제 용뼈 손잡이 + 충전 3회 + 서로 다른 계열 룬 3개. 균열 없이 완성해 제출하면 엔딩입니다.",8,1,0,BlueprintFeature.None,"function-Refine","function-Rune")
+        new Offer(MasterCommission,ForgePurchaseKind.Commission,800,"명장의 마지막 의뢰","검 자체 판매가 7,000G 이상으로 완성해 제출하면 엔딩입니다. 불타는 대장장이를 포함한 대장장이 판매 배율은 제외합니다.",8,1,0,BlueprintFeature.None,"function-Refine","function-Rune")
     });
     readonly HashSet<string> purchased=new HashSet<string>(StringComparer.Ordinal);
     static string CanonicalId(string id)

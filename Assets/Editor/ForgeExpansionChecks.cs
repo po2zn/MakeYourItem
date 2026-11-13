@@ -60,7 +60,7 @@ public static class ForgeExpansionChecks
   Require(Good(Cold+"6(p)\n7(p)\n!p").product.Data.plated,"plating");
   Require(!Good(Cold+"7(p)\n!p").product.Data.plated,"wrong order loses bonus");
   var star=Good(Blade.Replace("1(1)","1(7)")+"4(p,8)\n!p");Require(star.product.Data.star&&star.product.Data.frost,"combined traits");
-  var bone=Good(Cold+"6(p)\nb = 1(9)\n10(b,p,100,13)\n5(p,b)\n9(p,1)\n9(p,1)\n9(p,1)\n!p");Require(bone.product.Data.handle==9&&ForgePricing.Bonuses(bone.product).ContainsKey("용의 맥동"),"dragon combo");
+  var bone=Good(Cold+"6(p)\nb = 1(9)\n10(b,p,100,6)\n5(p,b)\n9(p,1)\n9(p,1)\n9(p,1)\n!p");Require(bone.product.Data.handle==9&&ForgePricing.Bonuses(bone.product).ContainsKey("용의 맥동"),"dragon combo");
  });
  check("lucky daily identity, validation, duplicate application and midnight",()=>{
   Require(BlueprintAliases.Find(BlueprintFeature.LuckyCode).Symbol=="777?","canonical lucky query");
