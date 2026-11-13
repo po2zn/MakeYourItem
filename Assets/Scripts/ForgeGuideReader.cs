@@ -86,7 +86,11 @@ public sealed partial class ForgeGuideReader
         codeStyle=new GUIStyle(bodyStyle){fontSize=fontSize,wordWrap=false,padding=new RectOffset(6,6,6,6)};
         codeStyle.normal.textColor=new Color(.94f,.94f,.94f);
         tabStyle=new GUIStyle(GUIStyle.none){wordWrap=true,font=font,fontSize=fontSize,fontStyle=FontStyle.Bold,alignment=TextAnchor.MiddleCenter,richText=false,padding=new RectOffset(0,0,0,0)};
-        foreach(var state in new[]{tabStyle.normal,tabStyle.hover,tabStyle.active,tabStyle.focused,tabStyle.onNormal,tabStyle.onHover,tabStyle.onActive,tabStyle.onFocused}){state.background=null;state.scaledBackgrounds=new Texture2D[0];state.textColor=new Color(.98f,.94f,.83f);}
+        foreach(var state in new[]{tabStyle.normal,tabStyle.hover,tabStyle.active,tabStyle.focused,tabStyle.onNormal,tabStyle.onHover,tabStyle.onActive,tabStyle.onFocused}){state.background=null;
+#if UNITY_EDITOR
+state.scaledBackgrounds=new Texture2D[0];
+#endif
+state.textColor=new Color(.98f,.94f,.83f);}
         foreach(var style in new[]{bodyStyle,titleStyle,sectionStyle,entryStyle,codeStyle,buttonStyle,searchStyle,tabStyle})FixTextColor(style);
     }
     static void FixTextColor(GUIStyle style)

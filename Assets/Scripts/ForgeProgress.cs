@@ -206,7 +206,9 @@ public partial class ForgeMvp : ISerializationCallbackReceiver
     }
     bool SellProductInternal(int id)
     {
+        int beforeSaleGold=gold;
         if(!shop.TrySell(id,ref gold,out var sold))return false;
+        ForgeLeaderboardData.Record(gold-beforeSaleGold,sold.Kind==ForgeProductKind.Sword,showTutorial);
         ForgeSoundEffects.ProductSold();
         if(coolingProductId==id){CoolingView.Clear();coolingPanel?.TargetChanged();coolingProductId=-1;}
         reportError=false;totalSales++;earnedGold+=ForgePricing.Quote(sold).SalePrice;tutorialStage=Math.Max(tutorialStage,6);selectedProductId=-1;
@@ -353,12 +355,14 @@ public partial class ForgeMvp
             menuButton=new GUIStyle(GUI.skin.button){font=codeStyle.font,fontSize=22,wordWrap=true,padding=new RectOffset(12,12,10,10)};
             ForgeTitleStyle.Button(menuButton);
         }
+        if(titlePage==5){DrawLeaderboard();return;}
+        if(leaderboard&&leaderboard.Opened)leaderboard.Close();
         if(titlePage==4){DrawSettingsScreen();return;}
         ForgeTitleStyle.Fill(new Rect(0,0,Screen.width,Screen.height),new Color(.04f,.07f,.11f,.18f));
         float width=Screen.width>=760?Mathf.Min(620,Screen.width*.46f):Mathf.Max(1,Screen.width-32);
         bool wide=Screen.width>=760;
         float topReserve=wide?16:130;
-        float height=Mathf.Max(1,Mathf.Min(titlePage==0?460:700,Screen.height-topReserve-16));
+        float height=Mathf.Max(1,Mathf.Min(titlePage==0?540:700,Screen.height-topReserve-16));
         Rect panel=new Rect(wide?Screen.width-width-24:(Screen.width-width)/2,topReserve+(Screen.height-topReserve-16-height)/2,width,height);
         ForgeTitleStyle.Logo(new Rect(16,wide?Mathf.Max(16,Screen.height*.06f):16,wide?Screen.width*.5f-32:Screen.width-32,100),menuTitle);
         ForgeTitleStyle.Window(panel,titlePage!=0);
@@ -372,6 +376,8 @@ public partial class ForgeMvp
             if(ForgeSoundEffects.LayoutButton("게임 시작",menuButton,GUILayout.MinHeight(58))){titlePage=1;titleMessage="";}
             GUILayout.Space(14);
             if(ForgeSoundEffects.LayoutButton("이어하기",menuButton,GUILayout.MinHeight(58))){titlePage=2;titleMessage="";}
+            GUILayout.Space(14);
+            if(ForgeSoundEffects.LayoutButton("리더보드",menuButton,GUILayout.MinHeight(58)))OpenLeaderboard();
             GUILayout.Space(14);
             if(ForgeSoundEffects.LayoutButton("설정",SettingsButton,GUILayout.MinHeight(58))){titlePage=4;RefreshDisplaySizes();settingsDropdown=0;settingsMessage="";}
             GUILayout.Space(14);

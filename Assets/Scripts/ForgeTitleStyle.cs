@@ -57,7 +57,11 @@ public static class ForgeTitleStyle
         // Labels also use hover states: keep every layer of the logo unchanged.
         foreach(var state in new[]{style.normal,style.hover,style.active,style.focused,
             style.onNormal,style.onHover,style.onActive,style.onFocused}){
-            state.textColor=color;state.background=null;state.scaledBackgrounds=new Texture2D[0];
+            state.textColor=color;state.background=null;
+#if UNITY_EDITOR
+state.scaledBackgrounds=new Texture2D[0];
+#endif
+
         }
     }
     public static void Window(Rect rect,bool header=true)

@@ -287,7 +287,11 @@ public partial class ForgeMvp : MonoBehaviour
         codeStyle = new GUIStyle { fontSize = 18, wordWrap = false, alignment = TextAnchor.UpperLeft, padding = new RectOffset(8, 8, 8, 8), richText = false };
         codeStyle.font = Font.CreateDynamicFontFromOSFont(new[] { "Consolas", "Malgun Gothic" }, 18);
         foreach (var state in new[] { codeStyle.normal, codeStyle.hover, codeStyle.active, codeStyle.focused, codeStyle.onNormal, codeStyle.onHover, codeStyle.onActive, codeStyle.onFocused })
-        { state.background = null; state.scaledBackgrounds = new Texture2D[0]; state.textColor = Color.white; }
+        { state.background = null;
+#if UNITY_EDITOR
+state.scaledBackgrounds = new Texture2D[0];
+#endif
+ state.textColor = Color.white; }
         inputStyle = new GUIStyle(codeStyle);
         foreach (var state in new[] { inputStyle.normal, inputStyle.hover, inputStyle.active, inputStyle.focused, inputStyle.onNormal, inputStyle.onHover, inputStyle.onActive, inputStyle.onFocused })
             state.textColor = Color.clear;
