@@ -3,7 +3,7 @@ using UnityEngine.UI;
 
 public sealed partial class ForgeGameUI
 {
- CanvasGroup tutorialGroup;
+ CanvasGroup tutorialGroup,tutorialPanelGroup;
  Image tutorialBlackout;
  bool tutorialStyled;
  string tutorialLastHeading;
@@ -132,6 +132,7 @@ public sealed partial class ForgeGameUI
  public static float TutorialSalePanelWidth(float width)=>Mathf.Min(460,(width-36)*.48f);
  // Shrink, move while small, then grow. The final size is the familiar guide size.
  public static float TutorialSaleScale(float t)=>t<.25f?Mathf.Lerp(1,.72f,Mathf.SmoothStep(0,1,t/.25f)):t<.75f?.72f:Mathf.Lerp(.72f,1,Mathf.SmoothStep(0,1,(t-.75f)/.25f));
+ public static float TutorialSaleAlpha(float t)=>t<.25f?1-Mathf.SmoothStep(0,1,t/.25f):t<.75f?0:Mathf.SmoothStep(0,1,(t-.75f)/.25f);
  void EnsureTutorialSaleHud()
  {
   if(tutorialGoldTile)return;
@@ -161,10 +162,14 @@ public sealed partial class ForgeGameUI
   float move=Mathf.SmoothStep(0,1,Mathf.Clamp01((t-.25f)/.5f));
   float scale=sale?TutorialSaleScale(t):1;
   rect.localScale=Vector3.one*scale;
+  if(!tutorialPanelGroup){tutorialPanelGroup=rect.GetComponent<CanvasGroup>();if(!tutorialPanelGroup)tutorialPanelGroup=rect.gameObject.AddComponent<CanvasGroup>();}
+  tutorialPanelGroup.alpha=sale?TutorialSaleAlpha(t):1;
+  tutorialPanelGroup.interactable=!sale||t>=1;
+  tutorialPanelGroup.blocksRaycasts=!sale||t>=1;
   rect.anchoredPosition=new Vector2(Mathf.Lerp(12,root.rect.width-width-12,move)+width*(1-scale)*.5f,-12-(root.rect.height-24)*(1-scale)*.5f);
   // Inventory and HUD are children of the same tutorial CanvasGroup: pause/intro
   // gates every practice action, while the panel's scroll viewport remains usable.
-  if(tutorialGoldTile){tutorialGoldTile.gameObject.SetActive(visible);tutorialProductsTile.gameObject.SetActive(visible&&!game.TutorialInventoryOpen&&game.TutorialSaleStage!=11);
+  if(tutorialGoldTile){tutorialGoldTile.gameObject.SetActive(visible&&!game.TutorialInventoryOpen);tutorialProductsTile.gameObject.SetActive(visible&&!game.TutorialInventoryOpen&&game.TutorialSaleStage!=11);
    tutorialGoldLabel.text="연습 골드\n"+game.TutorialGold+"G";tutorialProductsLabel.text="완성품\n"+(game.TutorialSaleStage<10?1:0);
    tutorialProductsButton.interactable=game.TutorialSaleReady&&t>=1;
    ForgeTutorialAttention.Set(tutorialProductsButton,visible&&game.TutorialSaleReady&&t>=1&&!game.TutorialInventoryOpen&&game.TutorialSaleStage<10);

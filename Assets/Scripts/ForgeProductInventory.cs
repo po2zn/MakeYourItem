@@ -57,7 +57,7 @@ public sealed class ForgeProductInventory : MonoBehaviour
         Layout();
         if(game.TutorialSaleActive&&game.TutorialSaleStage==9&&selected<0&&shop.Count==1){selected=shop.Items[0].Id;selectedEntry=shop.Items[0];}
         if(revision!=shop.Revision){revision=shop.Revision;heading.text="완성품 · "+shop.Count.ToString("N0")+"개";emptyMessage.gameObject.SetActive(shop.Count==0);
-            gridScroll.content.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical,ContentHeight(shop.Count));
+            gridScroll.content.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical,GridContentHeight(shop.Count));
             var p=gridScroll.content.anchoredPosition;p.y=Mathf.Clamp(p.y,0,Mathf.Max(0,ContentHeight(shop.Count)-gridScroll.viewport.rect.height));gridScroll.content.anchoredPosition=p;
             if(shop.Find(selected)!=selectedEntry){selected=-1;selectedEntry=null;}foreach(var cell in cells)cell.id=-1;Populate();if(game.TutorialSaleActive&&game.TutorialSaleStage==9)gridScroll.verticalNormalizedPosition=0;}
         var item=shop.Find(selected);sellButton.interactable=item!=null;
@@ -71,22 +71,19 @@ public sealed class ForgeProductInventory : MonoBehaviour
     void Layout()
     {
         var root=(RectTransform)transform;var current=root.rect.size;
-        if(size!=current){size=current;bool practice=game.TutorialSaleActive;bool wide=size.x>=1100;
-            if(practice){
-                detailsArea.gameObject.SetActive(false);
-                gridArea.anchorMin=gridArea.anchorMax=gridArea.pivot=new Vector2(0,1);gridArea.anchoredPosition=new Vector2(12,-112);gridArea.sizeDelta=new Vector2(size.x-24,Mathf.Max(80,size.y-124));
-                var hr=heading.rectTransform;hr.anchorMin=hr.anchorMax=hr.pivot=new Vector2(0,1);hr.anchoredPosition=new Vector2(12,-8);hr.sizeDelta=new Vector2(size.x-24,40);heading.fontSize=22;
-                var br=(RectTransform)backButton.transform;br.anchorMin=br.anchorMax=br.pivot=new Vector2(0,1);br.anchoredPosition=new Vector2(12,-56);br.sizeDelta=new Vector2(size.x-24,44);
-                Canvas.ForceUpdateCanvases();viewportSize=Vector2.zero;return;
-            }
+        if(size!=current){size=current;bool wide=size.x>=1100;bool narrow=size.x<550;
+            detailsArea.gameObject.SetActive(true);
+            var hr=heading.rectTransform;hr.anchorMin=hr.anchorMax=hr.pivot=new Vector2(0,1);hr.anchoredPosition=new Vector2(12,-8);hr.sizeDelta=new Vector2(narrow?size.x-24:size.x-240,40);heading.fontSize=22;
+            var br=(RectTransform)backButton.transform;br.anchorMin=br.anchorMax=br.pivot=new Vector2(0,1);br.anchoredPosition=new Vector2(narrow?12:size.x-220,narrow?-56:-12);br.sizeDelta=new Vector2(narrow?size.x-24:208,44);
+            float top=narrow?112:72;
             gridArea.anchorMin=gridArea.anchorMax=gridArea.pivot=new Vector2(0,1);
             detailsArea.anchorMin=detailsArea.anchorMax=detailsArea.pivot=new Vector2(0,1);
-            float detailWidth=wide?320:size.x-24,detailHeight=wide?size.y-84:186;
-            gridArea.anchoredPosition=new Vector2(12,-72);gridArea.sizeDelta=new Vector2(wide?size.x-356:size.x-24,wide?size.y-84:size.y-282);
-            detailsArea.anchoredPosition=new Vector2(wide?size.x-332:12,wide?-72:-(size.y-198));detailsArea.sizeDelta=new Vector2(detailWidth,detailHeight);
+            float detailWidth=wide?320:size.x-24,detailHeight=wide?size.y-top-12:Mathf.Min(186,Mathf.Max(90,(size.y-top)*.3f));
+            gridArea.anchoredPosition=new Vector2(12,-top);gridArea.sizeDelta=new Vector2(wide?size.x-356:size.x-24,Mathf.Max(60,wide?size.y-top-12:size.y-top-detailHeight-24));
+            detailsArea.anchoredPosition=new Vector2(wide?size.x-332:12,wide?-top:-(size.y-detailHeight-12));detailsArea.sizeDelta=new Vector2(detailWidth,detailHeight);
             Canvas.ForceUpdateCanvases();MeasureDetails();}
         var viewport=gridScroll.viewport.rect.size;
-        if(viewportSize!=viewport){viewportSize=viewport;Populate();}
+        if(viewportSize!=viewport){viewportSize=viewport;if(shop!=null){float height=GridContentHeight(shop.Count);gridScroll.content.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical,height);var offset=gridScroll.content.anchoredPosition;offset.y=Mathf.Clamp(offset.y,0,Mathf.Max(0,height-viewport.y));gridScroll.content.anchoredPosition=offset;}Populate();}
     }
     void MeasureDetails(){if(!detailText)return;Canvas.ForceUpdateCanvases();float h=detailText.preferredHeight+16+(detailPreview&&detailPreview.gameObject.activeSelf?216:0);detailScroll.content.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical,h);}
     Cell CreateCell()
@@ -116,7 +113,7 @@ public sealed class ForgeProductInventory : MonoBehaviour
         lastClickedEntry=entry;lastClickedAt=now;
         selected=entry.Id;selectedEntry=entry;
         game.TutorialSelectProduct(entry.Id);
-        if(doubleClick&&!game.TutorialSaleActive){SellEntry(entry);return;}
+        if(doubleClick){SellEntry(entry);return;}
         Populate();Refresh();
         if(game.TutorialSaleActive)gridScroll.verticalNormalizedPosition=0;
     }
@@ -127,18 +124,20 @@ public sealed class ForgeProductInventory : MonoBehaviour
         if(entry==null||!ReferenceEquals(shop.Find(entry.Id),entry))return;
         game.SellInventoryProduct(entry.Id);Refresh();
     }
+    int VisibleColumns=>Mathf.Clamp(Mathf.FloorToInt((gridScroll.viewport.rect.width+Gap)/148),1,Columns);
+    float GridContentHeight(int count)=>Mathf.Max(0,((count+VisibleColumns-1)/VisibleColumns)*RowHeight-Gap);
     void Populate()
     {
         if(shop==null||!gameObject.activeInHierarchy)return;
         float width=gridScroll.viewport.rect.width;if(width<=0)return;
         int count=shop.Count,needed=Math.Min(count,PoolLimit(gridScroll.viewport.rect.height));
         while(cells.Count<needed)CreateCell();
-        int start=FirstRow(gridScroll.content.anchoredPosition.y,Rows(count))*Columns;
-        int columns=game.TutorialSaleActive?1:Columns;float cellWidth=game.TutorialSaleActive?Mathf.Min(260,width):(width-Gap*(Columns-1))/Columns;
+        int columns=VisibleColumns;int start=FirstRow(gridScroll.content.anchoredPosition.y,(count+columns-1)/columns)*columns;
+        float cellWidth=(width-Gap*(columns-1))/columns;
         for(int i=0;i<cells.Count;i++){
             var cell=cells[i];int index=start+i;bool active=i<needed&&index<count;
             if(cell.button.gameObject.activeSelf!=active)cell.button.gameObject.SetActive(active);if(!active){cell.id=-1;continue;}
-            var entry=shop.Items[index];cell.rect.anchoredPosition=new Vector2(game.TutorialSaleActive?(width-cellWidth)*.5f:(index%columns)*(cellWidth+Gap),-(index/columns)*RowHeight);cell.rect.sizeDelta=new Vector2(cellWidth,CellHeight);
+            var entry=shop.Items[index];cell.rect.anchoredPosition=new Vector2((index%columns)*(cellWidth+Gap),-(index/columns)*RowHeight);cell.rect.sizeDelta=new Vector2(cellWidth,CellHeight);
             if(cell.id!=entry.Id){cell.id=entry.Id;cell.order.text="#"+entry.Order;cell.name.text=entry.Product.DisplayName;
                 cell.info.text=ForgeMaterialGuide.Find(entry.Product.Material).Name+" · 열 "+entry.Product.FinalHeat+"\n"+ForgeMaterialHud.FormatCount(ForgePricing.Quote(entry.Product).SalePrice)+"G";
                 if(preview==null)preview=new ForgeProductPreview();

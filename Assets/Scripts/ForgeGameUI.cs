@@ -164,7 +164,7 @@ public sealed partial class ForgeGameUI:MonoBehaviour
  bool practice=game.TutorialSaleActive;var target=practice?tutorialInventory:inventory;
  target.Bind(game,shop,texts["Products"].font);
  inventory.gameObject.SetActive(visible&&!practice);tutorialInventory.gameObject.SetActive(visible&&practice);
- if(visible){if(practice){var rect=(RectTransform)target.transform;var root=(RectTransform)transform;float panel=TutorialSalePanelWidth(root.rect.width);rect.anchorMin=Vector2.zero;rect.anchorMax=Vector2.one;rect.offsetMin=new Vector2(12,12);rect.offsetMax=new Vector2(-panel-24,-136);}
+ if(visible){if(practice){var rect=(RectTransform)target.transform;var root=(RectTransform)transform;float panel=TutorialSalePanelWidth(root.rect.width);rect.anchorMin=Vector2.zero;rect.anchorMax=Vector2.one;rect.offsetMin=new Vector2(12,12);rect.offsetMax=new Vector2(-panel-24,-12);}
  target.Refresh();}
  }
  public void CenterGuide(){StartCoroutine(CenterGuideAfterLayout());}
