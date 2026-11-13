@@ -15,7 +15,7 @@ public sealed class ForgeItemData
     public double smithSaleMultiplier=1;
     public int[] materials=new int[10];
     public List<int> seals=new List<int>(), runes=new List<int>();
-    public ForgeItemData Clone(){var c=(ForgeItemData)MemberwiseClone();c.dragonBone=dragonBone?.Clone();c.starlight=starlight?.Clone();c.cooling=cooling?.Clone();c.materials=(int[])materials.Clone();c.seals=new List<int>(seals);c.runes=new List<int>(runes);return c;}
+    public ForgeItemData Clone(){var c=(ForgeItemData)MemberwiseClone();c.dragonBone=dragonBone?.Clone();c.starlight=starlight?.Clone();c.cooling=cooling?.Clone();c.materials=new int[10];if(materials!=null)Array.Copy(materials,c.materials,Math.Min(materials.Length,c.materials.Length));c.seals=seals==null?new List<int>():new List<int>(seals);c.runes=runes==null?new List<int>():new List<int>(runes);return c;}
 }
 public sealed class ForgeRunContext
 {

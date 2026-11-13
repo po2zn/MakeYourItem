@@ -19,7 +19,7 @@ public sealed class ForgeCoolingGraph {
     public Vector2 Position(int point){Check(point);return positions[point];}
     public void Check(int point){if(point<0||point>=count)throw new ArgumentException("지점 "+point+" 접근 불가. 유효 위치는 0~"+(count-1)+"입니다.");}
     public int Cost(int a,int b){Check(a);Check(b);return costs[a*count+b];}
-    public ForgeCoolingGraph Clone(){var c=(ForgeCoolingGraph)MemberwiseClone();c.costs=(int[])costs.Clone();c.positions=(Vector2[])positions.Clone();return c;}
+    public ForgeCoolingGraph Clone(){if(count<4||count>8||costs==null||costs.Length!=count*count||positions==null||positions.Length!=count||start<0||start>=count||end<0||end>=count||start==end)return null;var c=(ForgeCoolingGraph)MemberwiseClone();c.costs=(int[])costs.Clone();c.positions=(Vector2[])positions.Clone();return c;}
     public static int StockUnits(int cost)=>checked(cost*StockUnitsPerCost);
     public int PathCost(IList<int> path){
         if(path==null||path.Count<2||path.Count>MaxPathLength)throw new ArgumentException("경로는 정수 지점 2~"+MaxPathLength+"개로 구성하세요.");

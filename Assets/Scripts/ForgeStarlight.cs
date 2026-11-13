@@ -22,7 +22,7 @@ public sealed class ForgeStarlight
         foreach(int value in source)if(value<0||value>9)throw new ArgumentException("별빛 값은 0~9입니다.");
         initial=(int[])source.Clone(); Reset();
     }
-    public ForgeStarlight Clone(){var c=(ForgeStarlight)MemberwiseClone();c.initial=(int[])initial.Clone();c.values=new List<int>(values);c.revealed=new List<bool>(revealed);return c;}
+    public ForgeStarlight Clone(){if(initial==null||initial.Length!=5||values==null||revealed==null||values.Count!=revealed.Count)return null;var c=(ForgeStarlight)MemberwiseClone();c.initial=(int[])initial.Clone();c.values=new List<int>(values);c.revealed=new List<bool>(revealed);return c;}
     public void Reset(){values=new List<int>(initial);revealed=new List<bool>(new bool[initial.Length]);swaps=removals=0;seconds=0;}
     public void CheckIndex(int index){if(index<0||index>=Count)throw new ArgumentException("별빛 위치 "+index+"는 범위를 벗어났습니다. 현재 개수 "+Count+", 위치는 0부터 시작합니다.");}
     public int Read(int index){CheckIndex(index);revealed[index]=true;return values[index];}
