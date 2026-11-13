@@ -8,6 +8,6 @@ public static class ForgeBalance {
  {"function-Inspect",1200},{"function-Charge",15000},{"function-Rune",30000},{"function-Magic",16000},{"function-Resonate",50000},{"function-Protect",300000},{"function-Curse",180000},
  {"function-Fuel",2400},{"function-Recover",1800},{"function-Wrap",8000},{"speed-1",1200},{"speed-2",6000},{"speed-3",30000},{"speed-4",80000},{"speed-5",150000},
  {"function-Lucky",500},{"function-IsDay",800},{"function-Abs",300},{"function-Min",5000},{"function-Len",300},{"function-Set",600},{"function-Random",1000},{"function-Match",5000},{"master-commission",500000}};
- public static int HandleBonus(int material)=>material==0?0:material==1?2:material==5?57:material==9?DragonHandleBonus:22;
+ public static int HandleBonus(int material)=>material==0?0:material==1?6:material==5?57:material==9?DragonHandleBonus:22;
  public static int ResearchPrice(string id,int fallback)=>Research.TryGetValue(id,out int value)?value:fallback;
 }

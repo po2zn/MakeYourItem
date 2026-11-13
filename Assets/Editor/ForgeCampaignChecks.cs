@@ -58,23 +58,29 @@ public static class ForgeCampaignChecks
         run.Recipe=Plated;
         run.Buy("material-7");run.Recipe=Star;
         run.Buy("function-Charge");run.Recipe=Charged;
+        foreach(var id in new[]{"function-Inspect","function-Magic","function-Resonate"})run.Buy(id);
         run.Buy("function-Refine");run.Recipe=Dragon;
-        run.Buy("function-Rune");run.Recipe=Final;
+        run.Buy("function-Rune");run.Buy("material-8");run.Recipe=Final;
         var before=run.Craft(Final);
         Require(ForgeCampaign.IsMasterwork(before)&&!ForgeCampaign.CanComplete(run.Tech,before),"commission must be accepted");
         run.Buy(ForgeTechnology.MasterCommission);
-        var example=BlueprintGuide.Entries.Single(e=>e.Id=="masterwork-example").Example;
-        var evaluated=ForgeMvp.Evaluate(example);Require(evaluated.error==null,evaluated.error);
+        var hint=BlueprintGuide.Entries.Single(e=>e.Id=="master-commission");
+        Require(!BlueprintGuide.Entries.Any(e=>e.Id=="masterwork-example")&&string.IsNullOrEmpty(hint.Example),"commission guide must not supply a complete solution");
+        var example="p = 1(7)\n2(p)\n3(p)\n4(p, 3)\n6(p)\n7(p)\nb = 1(9)\n10(b, p, 100, 6)\n5(p, b)\n9(p, 1)\n9(p, 1)\n9(p, 1)\n123(r in [7, 8, 9]):\n    211(p, r)\n123(i in 6):\n    201(p, 3)\n123(i in 6):\n    202(p, 3)\nc = 1(6)\n123(i in 9):\n    8((i + 1) * 100)\n    2(c)\n    1?(501(c) == 0):\n        !!\n4(c, 0)\n5(p, c)\n667(p)\n666(p)\n!p";
+        example=example.Replace("b = 1(9)\n", "b = 1(9)\n"+ForgeDragonGuide.Practice.Replace("Bone","b")+"\n");
+        example=example.Replace("p = 1(7)\n", "p = 1(7)\ni = 0\n888(i < 70(p)):\n    1?(71(p, i) == 0):\n        73(p, i)\n    0?:\n        i = i + 1\n123(i in 70(p)):\n    123(j in 70(p)):\n        1?(i < j and 71(p, i) > 71(p, j)):\n            72(p, i, j)\ni = 1\n888(i < 70(p)):\n    1?(71(p, i) == 71(p, i - 1)):\n        73(p, i)\n    0?:\n        i = i + 1\n");
+        example=example.Replace("667(p)","74(p)\n667(p)");
+        var evaluated=ForgeMvp.Evaluate(example,clockHour:()=>2d,context:new ForgeRunContext{DragonUnlocked=true,CoolingUnlocked=true});Require(evaluated.error==null,evaluated.error);
         var master=evaluated.product;
-        Require(ForgeCampaign.CanComplete(run.Tech,master),"actual route reaches ending");
+        Require(ForgeCampaign.CanComplete(run.Tech,master),"actual route reaches ending: "+ForgePricing.QuoteWithoutSmithBonus(master).SalePrice+" / "+string.Join(", ",ForgePricing.Bonuses(master).Select(p=>p.Key+"="+p.Value)));
         Require(run.Gold>=0&&run.Iron>=0&&run.Stocks.All(s=>s.count>=0),"resources non-negative");
         Require(!ForgeCampaign.CanComplete(run.Tech,before),"previous material recipe below threshold no longer completes");
-        foreach(int price in new[]{6999,7000,7001})foreach(double multiplier in new[]{1d,3.25d,20d}){
+        foreach(int price in new[]{9999,10000,10001})foreach(double multiplier in new[]{1d,3.25d,20d}){
             var bone=new ForgeDragonBone(10,new[]{2,4,7},gold:price-28-ForgeBalance.DragonHandleBonus);
             foreach(int position in new[]{2,4,7}){Action cancel;bone.BeginCut(position,1,out cancel)();}bone.Heated(1000);
             var product=new ForgeProduct("price boundary",0,true,ForgeTraits.None,0,0,1,new ForgeItemData{handle=9,dragonBone=bone,smithSaleMultiplier=multiplier});
             Require(ForgePricing.QuoteWithoutSmithBonus(product).SalePrice==price,"intrinsic price");
-            Require(ForgeCampaign.CanComplete(run.Tech,product)==(price>=7000),"threshold independent of smith multiplier");
+            Require(ForgeCampaign.CanComplete(run.Tech,product)==(price>=10000),"threshold independent of smith multiplier");
             Require(ForgePricing.Quote(product).SalePrice==(int)Math.Round(price*multiplier),"actual sale keeps multiplier");
         }
         Require(!ForgeCampaign.CanComplete(new ForgeTechnology(),master),"high price still requires commission");

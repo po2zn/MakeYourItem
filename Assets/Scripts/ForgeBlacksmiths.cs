@@ -10,6 +10,7 @@ public sealed class ForgeBlacksmiths
     public const double RuneLifetimeHours=48, RuneHalfExtent=.25;
     public static double GradeBonus(int grade,int effect)=>effect==1?(grade==1?.02:grade==2?.10:.15):effect==2?grade*.01:grade==1?.10:grade==2?.20:.25;
     public static bool ValidCoordinate(double value)=>!double.IsNaN(value)&&!double.IsInfinity(value)&&value>=0&&value<=3;
+    public bool RuneAreaOccupied(double x,double y,double now)=>runes.Exists(r=>(!r.timed||r.expiresAt>now)&&Math.Abs(r.x-x)<=RuneHalfExtent*2+1e-9&&Math.Abs(r.y-y)<=RuneHalfExtent*2+1e-9);
     public static bool SamePosition(GiantRune r,double x,double y)=>Math.Abs(r.x-x)<1e-9&&Math.Abs(r.y-y)<1e-9;
     public double Remaining(int rune,double x,double y,double now){var r=runes.Find(v=>v.rune==rune&&SamePosition(v,x,y));return r==null?0:Math.Max(0,r.expiresAt-now); }
     public const int FavorResearchCost=25,PositionResearchCost=25,DemandResearchCost=50;
@@ -113,7 +114,7 @@ public static class ForgeSmithLanguage
         new BlueprintAlias(BlueprintFeature.SmithCount,"smith_count","90905",BlueprintSyntaxKind.Builtin,"고용한 대장장이 수. 번호는 0부터 시작합니다.","90905() → 정수",0),
         new BlueprintAlias(BlueprintFeature.SmithSelf,"smith_self","90906",BlueprintSyntaxKind.Builtin,"현재 코드를 실행하는 대장장이 번호.","90906() → 정수",0),
         new BlueprintAlias(BlueprintFeature.SmithBusy,"smith_busy","90907",BlueprintSyntaxKind.Builtin,"대장장이가 작업 중이면 1, 대기 중이면 0.","90907(번호) → 정수",1),
-        new BlueprintAlias(BlueprintFeature.GiantRune,"giant_rune","90910",BlueprintSyntaxKind.Builtin,"룬 번호와 같은 번호의 재료 1개 + 다이아 25/50/75개로 설치합니다. x, y에 소수를 쓸 수 있습니다. 설치 좌표 중심으로 좌우·상하 0.25씩, 가로·세로 0.5 범위에 적용합니다.\n1등급(1~3): 대성공 +2%p / 파괴 −1%p / 판매가 +10%\n2등급(4~6): 대성공 +10%p / 파괴 −2%p / 판매가 +20%\n3등급(7~9): 대성공 +15%p / 파괴 −3%p / 판매가 +25%\n범위 안 대장장이에게 세 효과를 모두 적용하며, 겹치면 최고 등급만 적용합니다. 게임 시간 48시간 후 사라집니다. 정지는 시간을 소모하지 않습니다. 남은 시간: 90911(룬 번호, x, y).", "90910(룬 번호 1~9, x 0~3, y 0~3) → None",3),
+        new BlueprintAlias(BlueprintFeature.GiantRune,"giant_rune","90910",BlueprintSyntaxKind.Builtin,"룬 번호와 같은 번호의 재료 1개 + 다이아 25/50/75개로 설치합니다. x, y에 소수를 쓸 수 있습니다. 설치 좌표 중심으로 좌우·상하 0.25씩, 가로·세로 0.5 범위에 적용합니다.\n1등급(1~3): 대성공 +2%p / 파괴 −1%p / 판매가 +10%\n2등급(4~6): 대성공 +10%p / 파괴 −2%p / 판매가 +20%\n3등급(7~9): 대성공 +15%p / 파괴 −3%p / 판매가 +25%\n범위 안 대장장이에게 세 효과를 모두 적용합니다. 기존 거대한 룬의 효과 범위와 겹치거나 맞닿는 곳에는 추가 설치할 수 없습니다. 게임 시간 48시간 후 사라집니다. 정지는 시간을 소모하지 않습니다. 남은 시간: 90911(룬 번호, x, y).", "90910(룬 번호 1~9, x 0~3, y 0~3) → None",3),
         new BlueprintAlias(BlueprintFeature.GiantRuneTime,"giant_rune_time","90911",BlueprintSyntaxKind.Builtin,"지정한 룬 번호와 설치 좌표의 남은 게임 시간을 소수 시간 단위로 반환합니다. 24.5는 24시간 30분입니다. 없거나 만료됐다면 0을 반환합니다. 조회로 지속 시간이 늘어나지 않습니다. 룬 각인·거대한 룬 연구에 함께 포함됩니다.","90911(룬 번호 1~9, x 0~3, y 0~3) → 소수 시간",3)
     };
 }

@@ -4,8 +4,8 @@ using UnityEngine;
 // Ending is awarded from a committed product, never from a preview or source text.
 public static class ForgeCampaign
 {
-    public const int RequiredSwordPrice=7000;
-    public const string FinalGoal="대장장이 판매 배율을 제외한 검 자체 판매가 7,000G 이상";
+    public const int RequiredSwordPrice=10000;
+    public const string FinalGoal="대장장이 판매 배율을 제외한 검 자체 판매가 10,000G 이상";
     public static bool IsMasterwork(ForgeProduct product)
     {
         if(product==null||product.Kind!=ForgeProductKind.Sword||product.Material!=7)return false;
@@ -64,7 +64,7 @@ public partial class ForgeMvp
         GUILayout.Space(40);
         ForgeTextLayout.LayoutLabel("당신의 도면이 전설이 되었습니다",endingTitle);
         GUILayout.Space(24);
-        ForgeTextLayout.LayoutLabel("작은 철 조각으로 시작한 공방에서, 검 자체의 가치가 7,000G 이상인 명검을 완성했습니다.\n\n재료의 성질을 읽고 코드로 연결한 당신은 이제 공방의 명장입니다.",endingBody);
+        ForgeTextLayout.LayoutLabel("작은 철 조각으로 시작한 공방에서, 검 자체의 가치가 10,000G 이상인 명검을 완성했습니다.\n\n재료의 성질을 읽고 코드로 연결한 당신은 이제 공방의 명장입니다.",endingBody);
         GUILayout.Space(20);
         ForgeTextLayout.LayoutLabel("명장의 마지막 의뢰 완료\n"+ForgeCampaign.FinalGoal+"\n\nDay "+DayCycle.Day+" · 판매 "+totalSales+"개 · 누적 판매액 "+earnedGold+"G",endingBody);
         GUILayout.Space(28);

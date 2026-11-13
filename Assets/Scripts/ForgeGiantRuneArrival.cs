@@ -4,7 +4,7 @@ using UnityEngine.Rendering;
 // Cosmetic only: resources, expiry and effects are owned by saved rune state.
 public sealed class ForgeGiantRuneArrival : MonoBehaviour
 {
-    public const float DropSeconds=1.5f,BounceSeconds=.3f;
+    public const float DropSeconds=.6f,BounceSeconds=.2f;
     public bool Playing {get;private set;}
     Vector3 floor;float elapsed;GameObject shadow;Material shadowMaterial;
     public void Begin(Vector3 position)

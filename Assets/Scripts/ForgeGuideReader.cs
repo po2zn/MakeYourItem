@@ -208,7 +208,7 @@ public sealed partial class ForgeGuideReader
         }
         GUI.EndScrollView();
     }
-    const string IntroductionText="기본 공정으로 검을 만들고 판매해 연구 자금을 모으세요. 철·나무·물은 재료 상점에서 구매할 수 있습니다.\n\n구매하지 않은 기술의 설명과 예제는 숨겨져 있습니다. 테크 트리에서 연구를 구매하면 사용할 수 있는 내용이 안내서에 추가되며, 반짝이는 알림과 책갈피로 알려드립니다.\n\n책갈피는 마우스 휠로 넘깁니다. 각 페이지의 준비물을 확인하고 실행하세요. 예제를 복사해도 재료는 지급되지 않습니다.";
+    const string IntroductionText="아무리 숫자 언어라고 하지만, Python을 바탕으로 둔 언어입니다.\n\n기본 공정으로 검을 만들고 판매해 연구 자금을 모으세요. 철·나무·물은 재료 상점에서 구매할 수 있습니다.\n\n구매하지 않은 기술의 설명과 예제는 숨겨져 있습니다. 테크 트리에서 연구를 구매하면 사용할 수 있는 내용이 안내서에 추가되며, 반짝이는 알림과 책갈피로 알려드립니다.\n\n책갈피는 마우스 휠로 넘깁니다. 각 페이지의 준비물을 확인하고 실행하세요. 예제를 복사해도 재료는 지급되지 않습니다.";
     void DrawIntroduction(Rect page)
     {
         float width=Mathf.Max(1,page.width-22);

@@ -76,6 +76,7 @@ public partial class ForgeMvp : ISerializationCallbackReceiver
         public string savedAt;public long nextProductOrder;
         public long savedAtUtcTicks;public List<SavedItem> titleSwords;
         public int version=1,gold,iron,day,seed,diamonds,sales,tutorial;public long earned;public double hour;public float speed;public bool autoSell;
+        public int frostRevealVersion;public bool frostRevealSeen;
         public int[] materialPurchaseQuantities;
         public ForgeMaterialStock[] stocks;public BlueprintFeature[] features;public string[] discoveries;
         public List<SavedWindow> windows=new List<SavedWindow>();public List<SavedItem> items=new List<SavedItem>();
@@ -99,6 +100,7 @@ public partial class ForgeMvp : ISerializationCallbackReceiver
             int restoredIntro=saved.introSaleVersion==0&&saved.introStage==10?11:saved.introStage;
             lesson=ForgeTutorialLesson.Restore(restoredIntro,saved.introCode);
             craftSpeed=Mathf.Clamp(saved.speed,1,5);autoSell=saved.autoSell;materialStocks=saved.stocks??Array.Empty<ForgeMaterialStock>();technology.Restore(saved.features,saved.technologyNodes,saved.stocks);campaignComplete=saved.campaignComplete;endingSeen=saved.endingSeen;
+            frostRevealSeen=saved.frostRevealVersion>=1?saved.frostRevealSeen:technology.MaterialAvailable(8);
             RestoreMaterialPurchaseQuantities(saved.materialPurchaseQuantities);
             craftSpeed=technology.RestoreSpeed(craftSpeed);
             bool legacySpeed=saved.technologyNodes==null?Array.Exists(saved.features??Array.Empty<BlueprintFeature>(),f=>f==BlueprintFeature.Speed||f==BlueprintFeature.AutoSell):Array.Exists(saved.technologyNodes,id=>id=="function-Speed");
@@ -132,6 +134,7 @@ public partial class ForgeMvp : ISerializationCallbackReceiver
         try {
             if(hierarchyGame)hierarchyGame.CommitCodeWindowBounds();
             var saved=new SavedProgress{windowDataVersion=1,activeCodeWindow=activeWindow,nextCodeWindowId=nextWindowId,viewOffset=workspaceOffset,viewZoom=workspaceZoom,savedAt=DateTime.Now.ToString("yyyy-MM-dd HH:mm"),gold=gold,iron=iron,seed=worldSeed,diamonds=diamonds,sales=totalSales,tutorial=tutorialStage,earned=earnedGold,day=DayCycle.Day,hour=DayCycle.CurrentHour,speed=craftSpeed,autoSell=autoSell,stocks=materialStocks,features=technology.Export(),technologyNodes=technology.ExportNodes(),campaignComplete=campaignComplete,endingSeen=endingSeen,discoveries=new List<string>(discoveries).ToArray()};
+            saved.frostRevealVersion=1;saved.frostRevealSeen=frostRevealSeen;
             saved.materialPurchaseQuantities=new int[10];
             for(int material=1;material<10;material++)saved.materialPurchaseQuantities[material]=MaterialPurchaseQuantity(material);
             saved.nextProductOrder=shop.NextOrder;
@@ -150,7 +153,7 @@ public partial class ForgeMvp : ISerializationCallbackReceiver
         if(hierarchyGame)hierarchyGame.DiscardCodeViews();
         codeSavePending=false;
         RestoreMaterialPurchaseQuantities(null);
-        StopSmithJobs();blacksmiths=new ForgeBlacksmiths();showSmithTree=false;
+        StopSmithJobs();ResetFrostRevealProgress();blacksmiths=new ForgeBlacksmiths();showSmithTree=false;
         EndWorkspaceDrag();CancelHierarchyTreeDrag();guideBook.CancelDrag();
         GUIUtility.hotControl=0;if(Event.current!=null)ClearUIFocus();
         campaignComplete=false;endingSeen=false;

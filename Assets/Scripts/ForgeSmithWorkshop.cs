@@ -60,6 +60,7 @@ public partial class ForgeMvp
             if(arrivingRunes.Remove(rune)){if(!arrival)arrival=giantRuneViews[i].AddComponent<ForgeGiantRuneArrival>();arrival.Begin(floor);}
             giantRuneMaterials[i].color=family==0?new Color(.5f,.25f,.9f):family==1?new Color(.2f,.65f,.9f):new Color(.9f,.65f,.15f);
         }
+        UpdateGiantRuneGround();
     }
     ForgeWorkshopAssets runeWorkshopAssets;
     bool ApplyGiantRuneModel(GameObject view,int grade){
@@ -99,12 +100,11 @@ public partial class ForgeMvp
             if(!technology.Owns(BlueprintFeature.GiantRune))throw new ArgumentException("먼저 룬 각인·거대한 룬을 연구하세요.");
             if(rune<1||rune>9)throw new ArgumentException("룬 번호는 정수 1~9입니다.");
             if(feature==BlueprintFeature.GiantRuneTime)return blacksmiths.Remaining(rune,x,y,SmithHours);
+            if(blacksmiths.RuneAreaOccupied(x,y,SmithHours))throw new ArgumentException("거대한 룬 효과 범위가 겹칩니다. 기존 룬과 x 또는 y 간격을 0.5보다 크게 두세요.");
             int price=((rune-1)/3+1)*25;
             var stock=Array.Find(materialStocks??Array.Empty<ForgeMaterialStock>(),v=>v!=null&&v.material==rune&&v.unlocked);
             if(diamonds<price||(rune==1?iron<1:stock==null||stock.count<1))throw new ArgumentException("거대한 룬: 다이아 "+price+"개와 "+ForgeMaterialGuide.Find(rune).Name+" 1개가 필요합니다.");
-            int family=(rune-1)%3;
-            var existing=blacksmiths.runes.Find(r=>ForgeBlacksmiths.SamePosition(r,x,y)&&(r.rune-1)%3==family);
-            if(existing!=null&&existing.rune>=rune)throw new ArgumentException("이 위치에 같은 계열의 같거나 더 강한 룬이 있습니다.");
+            ForgeBlacksmiths.GiantRune existing=null;
             // Validate everything before either shared resource is spent.
             diamonds-=price;if(rune==1)iron--;else stock.count--;
             if(existing==null){existing=new ForgeBlacksmiths.GiantRune{x=x,y=y};blacksmiths.runes.Add(existing);}

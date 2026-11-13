@@ -37,14 +37,28 @@ public static class ForgeRuneUIChecks
    }
    File.WriteAllText("Artifacts/Runes/ui-results.txt",report.ToString());
   }finally{UnityEngine.Object.DestroyImmediate(host);UnityEngine.Object.DestroyImmediate(ui.gameObject);UnityEngine.Object.DestroyImmediate(owner);UnityEngine.Object.DestroyImmediate(cameraRoot);}
-  CheckArrival();
+  CheckArrival();CheckExpandedFloor();
+ }
+ static void CheckExpandedFloor(){
+  var root=new GameObject("Rune floor integration");root.SetActive(false);var game=root.AddComponent<ForgeMvp>();var flags=BindingFlags.Instance|BindingFlags.NonPublic;
+  var state=(ForgeBlacksmiths)typeof(ForgeMvp).GetField("blacksmiths",flags).GetValue(game);var rune=new ForgeBlacksmiths.GiantRune{rune=7,x=1,y=1,timed=true,expiresAt=100};state.runes.Add(rune);
+  ((HashSet<ForgeBlacksmiths.GiantRune>)typeof(ForgeMvp).GetField("arrivingRunes",flags).GetValue(game)).Add(rune);
+  typeof(ForgeMvp).GetMethod("UpdateGiantRuneViews",flags).Invoke(game,null);
+  var view=((List<GameObject>)typeof(ForgeMvp).GetField("giantRuneViews",flags).GetValue(game))[0];var ground=root.GetComponentInChildren<ForgeRuneGround>(true);var stage=new GameObject("Visible floor stage");view.transform.SetParent(stage.transform,false);ground.transform.SetParent(stage.transform,false);
+  var shadow=root.transform.Find("거대한 룬 착지 그림자");if(shadow)shadow.SetParent(stage.transform,false);
+  var assets=Resources.Load<ForgeWorkshopAssets>("BlacksmithWorkshopAssets");UnityEngine.Object.Instantiate(assets.floor,stage.transform,false);
+  var cameraRoot=new GameObject("Floor camera",typeof(Camera));var camera=cameraRoot.GetComponent<Camera>();camera.orthographic=true;camera.orthographicSize=7;camera.transform.position=new Vector3(12,12,-10);camera.transform.LookAt(new Vector3(4,1,2));camera.clearFlags=CameraClearFlags.SolidColor;camera.backgroundColor=new Color(.12f,.13f,.18f);
+  var light=new GameObject("Floor light",typeof(Light));light.GetComponent<Light>().type=LightType.Directional;light.GetComponent<Light>().intensity=1.5f;light.transform.rotation=Quaternion.Euler(45,-30,0);
+  var target=new RenderTexture(1280,720,24);camera.targetTexture=target;
+  try{var arrival=view.GetComponent<ForgeGiantRuneArrival>();float previous=0;foreach(float t in new[]{0f,.3f,.6f,.8f}){arrival.Sample(t);ground.Advance(t-previous);previous=t;Capture(camera,target,"expanded-floor-"+t.ToString("0.0",System.Globalization.CultureInfo.InvariantCulture));}Require(ground.Extents.z>=7&&ground.Extents.w>=4.75f,"actual model covered by extended floor");}
+  finally{camera.targetTexture=null;UnityEngine.Object.DestroyImmediate(stage);UnityEngine.Object.DestroyImmediate(root);UnityEngine.Object.DestroyImmediate(cameraRoot);UnityEngine.Object.DestroyImmediate(light);UnityEngine.Object.DestroyImmediate(target);}
  }
  static void CheckArrival(){
   var root=new GameObject("Rune arrival stage");var cameraRoot=new GameObject("Rune arrival camera",typeof(Camera));var camera=cameraRoot.GetComponent<Camera>();camera.orthographic=true;camera.orthographicSize=5.8f;camera.clearFlags=CameraClearFlags.SolidColor;camera.backgroundColor=new Color(.12f,.13f,.18f);camera.transform.position=new Vector3(7,9,-10);camera.transform.LookAt(new Vector3(1.2f,3,0));
   var ground=GameObject.CreatePrimitive(PrimitiveType.Cube);ground.transform.SetParent(root.transform,false);ground.transform.position=new Vector3(1.2f,-.12f,0);ground.transform.localScale=new Vector3(10,.2f,10);var groundMaterial=new Material(Shader.Find("Universal Render Pipeline/Unlit"));groundMaterial.color=new Color(.55f,.5f,.4f);ground.GetComponent<Renderer>().sharedMaterial=groundMaterial;
   var rune=GameObject.CreatePrimitive(PrimitiveType.Cube);rune.transform.SetParent(root.transform,false);rune.transform.localScale=new Vector3(2.25f,.02f,2.25f);var material=new Material(Shader.Find("Universal Render Pipeline/Unlit"));material.color=new Color(.5f,.25f,.9f);rune.GetComponent<Renderer>().sharedMaterial=material;var arrival=rune.AddComponent<ForgeGiantRuneArrival>();var floor=new Vector3(1.2f,.02f,0);arrival.Begin(floor);
   var target=new RenderTexture(1280,720,24);camera.targetTexture=target;
-  try{foreach(float time in new[]{0f,.75f,1.5f,1.65f,1.8f}){arrival.Sample(time);Require(Mathf.Abs(rune.transform.localPosition.y-floor.y-ForgeGiantRuneArrival.HeightAt(time))<.001f,"arrival height");Capture(camera,target,"arrival-"+time.ToString("0.00",System.Globalization.CultureInfo.InvariantCulture));}Require(!arrival.Playing&&Vector3.Distance(rune.transform.localPosition,floor)<.001f,"landed once");Require(!root.transform.Find("거대한 룬 착지 그림자").gameObject.activeSelf,"shadow cleaned after landing");}
+  try{foreach(float time in new[]{0f,.3f,.6f,.7f,.8f}){arrival.Sample(time);Require(Mathf.Abs(rune.transform.localPosition.y-floor.y-ForgeGiantRuneArrival.HeightAt(time))<.001f,"arrival height");Capture(camera,target,"arrival-"+time.ToString("0.00",System.Globalization.CultureInfo.InvariantCulture));}Require(!arrival.Playing&&Vector3.Distance(rune.transform.localPosition,floor)<.001f,"landed once");Require(!root.transform.Find("거대한 룬 착지 그림자").gameObject.activeSelf,"shadow cleaned after landing");}
   finally{camera.targetTexture=null;UnityEngine.Object.DestroyImmediate(root);UnityEngine.Object.DestroyImmediate(cameraRoot);UnityEngine.Object.DestroyImmediate(target);UnityEngine.Object.DestroyImmediate(material);UnityEngine.Object.DestroyImmediate(groundMaterial);}
  }
 }
