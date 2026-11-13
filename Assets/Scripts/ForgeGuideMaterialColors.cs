@@ -52,11 +52,13 @@ public sealed class ForgeGuideMaterialColors : BaseMeshEffect
   if(cached!=source||material==null){cached=source;material=MaterialMask(source);}
   var indices=ForgeCodeColors.GlyphIndices(source,mesh.currentVertCount/4);
   Color32 pink=MaterialColor(((Text)graphic).color);
+  int routeStart=source.IndexOf(ForgeCoolingGuide.MinimumRoute,System.StringComparison.Ordinal);
   for(int quad=0;quad<indices.Count&&quad*4+3<mesh.currentVertCount;quad++){
-   if(!material[indices[quad]])continue;
+   bool route=routeStart>=0&&indices[quad]>=routeStart&&indices[quad]<routeStart+ForgeCoolingGuide.MinimumRoute.Length;
+   if(!route&&!material[indices[quad]])continue;
    for(int corner=0;corner<4;corner++){
     int index=quad*4+corner;var vertex=new UIVertex();mesh.PopulateUIVertex(ref vertex,index);
-    pink.a=vertex.color.a;vertex.color=pink;mesh.SetUIVertex(vertex,index);
+    Color32 tint=route?new Color32(25,85,190,255):pink;tint.a=vertex.color.a;vertex.color=tint;mesh.SetUIVertex(vertex,index);
    }
   }
  }

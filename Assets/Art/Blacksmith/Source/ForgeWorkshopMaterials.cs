@@ -6,16 +6,18 @@ public sealed partial class ForgeWorkshopVisuals
     Transform frostTarget,ingredient,frostRipple;
     GameObject frostStation;
     int ingredientId;
-    bool frostObstacleAdded;
+    bool frostObstacleAdded;Bounds frostHitBounds;
     MaterialPropertyBlock rawHeat;
-    public bool HitFrostStation(Ray ray,out float distance){distance=0;if(!FrostStationVisible)return false;var rs=frostStation.GetComponentsInChildren<Renderer>();var bounds=rs[0].bounds;foreach(var r in rs)bounds.Encapsulate(r.bounds);return bounds.IntersectRay(ray,out distance);}
+    public bool HitFrostStation(Ray ray,out float distance){distance=0;if(!FrostStationVisible)return false;return new Bounds(frostHitBounds.center+transform.position,frostHitBounds.size).IntersectRay(ray,out distance);}
     public bool FrostStationVisible=>frostStation&&frostStation.activeSelf;
     public Vector3 FrostWorkPosition=>frostTarget?frostTarget.position:Vector3.zero;
     public void SetFrostUnlocked(bool unlocked){
         if(unlocked&&!frostStation&&assets.frostStation){
             frostStation=Spawn(assets.frostStation,"Frost water workstation",new Vector3(3.5f,0,0));
+            frostStation.transform.localRotation*=Quaternion.Euler(0,180,0);
             frostTarget=frostStation.transform.Find("FrostTarget");
-            if(!frostObstacleAdded){var rs=frostStation.GetComponentsInChildren<Renderer>();var bounds=rs[0].bounds;foreach(var r in rs)bounds.Encapsulate(r.bounds);bounds.center-=transform.position;obstacles.Add(bounds);frostObstacleAdded=true;}
+            if(!frostObstacleAdded){var rs=frostStation.GetComponentsInChildren<Renderer>();var bounds=rs[0].bounds;foreach(var r in rs)bounds.Encapsulate(r.bounds);bounds.center-=transform.position;frostHitBounds=bounds;obstacles.Add(bounds);frostObstacleAdded=true;}
+            frostStation.AddComponent<ForgeFrostStationReveal>().Initialize();
         }
         if(frostStation)frostStation.SetActive(unlocked);
         if(!unlocked)HideFrostRipple();

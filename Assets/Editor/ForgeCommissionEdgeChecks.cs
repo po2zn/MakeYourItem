@@ -1,0 +1,15 @@
+using System;
+using System.IO;
+using System.Linq;
+using UnityEditor;
+using UnityEngine;
+using UnityEngine.UI;
+public static class ForgeCommissionEdgeChecks {
+ public static void RunBatch(){GameObject root=null;Camera camera=null;RenderTexture target=null;try{
+ Directory.CreateDirectory("Artifacts/CommissionEdge");root=UnityEngine.Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/UI/ForgeResearchUI.prefab"));root.SetActive(true);var panel=root.GetComponent<ForgeTreePanel>();var edge=panel.edges.Single(e=>e.parentOffer=="function-Rune");var card=panel.cards.Single(c=>c.offerId==ForgeTechnology.MasterCommission);var node=(RectTransform)card.transform;var up=edge.lines[1].rectTransform;
+ if(Mathf.Abs(up.anchoredPosition.x-(node.anchoredPosition.x+node.rect.width*.5f))>.1f||Mathf.Abs(up.anchoredPosition.y-(node.anchoredPosition.y-node.rect.height))>.1f)throw new Exception("Commission edge does not enter bottom center");
+ foreach(var line in edge.lines){if(line.raycastTarget)throw new Exception("Edge blocks input");var r=line.rectTransform;var bounds=new Rect(r.anchoredPosition.x,-r.anchoredPosition.y,r.rect.width,r.rect.height);foreach(var c in panel.cards.Where(c=>c.transform.parent==card.transform.parent)){var rect=(RectTransform)c.transform;var body=new Rect(rect.anchoredPosition.x+4,-rect.anchoredPosition.y+4,rect.rect.width-8,rect.rect.height-8);if(bounds.Overlaps(body))throw new Exception("Edge overlaps card "+c.offerId);}}
+ var header=root.transform.Find("Header");if(header)header.gameObject.SetActive(false);for(int i=0;i<panel.pages.Length;i++)panel.pages[i].SetActive(i==0);foreach(var map in panel.maps)map.enabled=false;var view=(RectTransform)panel.pages[0].transform;view.offsetMin=view.offsetMax=Vector2.zero;var content=panel.maps[0].content;content.localScale=Vector3.one*.55f;content.anchoredPosition=new Vector2(-700,70);var scaler=root.GetComponent<CanvasScaler>();scaler.enabled=false;panel.tooltip.gameObject.SetActive(false);
+ camera=new GameObject("Edge capture camera").AddComponent<Camera>();camera.clearFlags=CameraClearFlags.SolidColor;camera.backgroundColor=new Color(.06f,.09f,.13f);target=new RenderTexture(1280,720,24);camera.targetTexture=target;panel.canvas.renderMode=RenderMode.ScreenSpaceCamera;panel.canvas.worldCamera=camera;panel.canvas.planeDistance=10;Canvas.ForceUpdateCanvases();camera.Render();var old=RenderTexture.active;RenderTexture.active=target;var texture=new Texture2D(1280,720,TextureFormat.RGB24,false);texture.ReadPixels(new Rect(0,0,1280,720),0,0);texture.Apply();File.WriteAllBytes("Artifacts/CommissionEdge/route.png",texture.EncodeToPNG());UnityEngine.Object.DestroyImmediate(texture);RenderTexture.active=old;Debug.Log("COMMISSION_EDGE_PASS");EditorApplication.Exit(0);
+ }catch(Exception e){Debug.LogException(e);EditorApplication.Exit(1);}finally{if(camera){camera.targetTexture=null;UnityEngine.Object.DestroyImmediate(camera.gameObject);}if(target)UnityEngine.Object.DestroyImmediate(target);if(root)UnityEngine.Object.DestroyImmediate(root);}}
+}

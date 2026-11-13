@@ -45,8 +45,16 @@ public static class ForgeResearchUIBuilder
         }
         return card;
     }
-    static ForgeTreePanel.Edge Edge(Transform parent,Rect from,Rect to,string offer=null,int smith=-1)
+    static ForgeTreePanel.Edge Edge(Transform parent,Rect from,Rect to,string offer=null,int smith=-1,string targetOffer=null)
     {
+        // Approach the commission from below, separate from its refinement prerequisite.
+        if(targetOffer==ForgeTechnology.MasterCommission&&offer=="function-Rune"){
+            float entry=to.center.x;
+            return new ForgeTreePanel.Edge{parentOffer=offer,parentSmith=smith,lines=new[]{
+                Image(Rect("RuneToCommissionHorizontal",parent,from.xMax,from.center.y,entry-from.xMax+3,3),Color.gray),
+                Image(Rect("RuneToCommissionUp",parent,entry,to.yMax,3,from.center.y-to.yMax+3),Color.gray),
+                Image(Rect("RuneToCommissionEntry",parent,entry,to.yMax,3,3),Color.gray)}};
+        }
         float mid=(from.xMax+to.x)/2;var lines=new List<Image>();
         lines.Add(Image(Rect("HorizontalFrom",parent,from.xMax,from.center.y,Mathf.Max(2,mid-from.xMax),3),Color.gray));
         lines.Add(Image(Rect("Vertical",parent,mid,Mathf.Min(from.center.y,to.center.y),3,Mathf.Abs(from.center.y-to.center.y)+3),Color.gray));
@@ -84,7 +92,7 @@ public static class ForgeResearchUIBuilder
                 var positions=new Dictionary<string,Rect>();int material=0;
                 foreach(var offer in ForgeTechnology.Offers){if((offer.Kind==ForgePurchaseKind.Material)!=(tab==1))continue;var r=tab==1?new Rect(24+(material%3)*340,24+(material++/3)*200,300,176):new Rect(24+offer.Tier*340,24+offer.Lane*200,300,176);positions.Add(offer.Id,r);cards.Add(Card(cardRoot,offer.Id,offer.Title,r.x,r.y,-1,offer.Id,tab==1));}
                 if(tab==0){var baseRect=new Rect(24,824,300,176);var basic=Rect("BaseWorkshop",cardRoot,baseRect.x,baseRect.y,300,176);Image(basic,new Color(.12f,.3f,.23f));Text("Title",basic,18,12,264,152,"기본 공방 · 제공\n철 / 나무 / 물\n1~5 공정",24,true);
-                    foreach(var offer in ForgeTechnology.Offers.Where(o=>o.Kind!=ForgePurchaseKind.Material)){if(offer.Parents.Count==0)edges.Add(Edge(edgeRoot,baseRect,positions[offer.Id]));foreach(var parent in offer.Parents)if(positions.ContainsKey(parent))edges.Add(Edge(edgeRoot,positions[parent],positions[offer.Id],parent));}
+                    foreach(var offer in ForgeTechnology.Offers.Where(o=>o.Kind!=ForgePurchaseKind.Material)){if(offer.Parents.Count==0)edges.Add(Edge(edgeRoot,baseRect,positions[offer.Id]));foreach(var parent in offer.Parents)if(positions.ContainsKey(parent))edges.Add(Edge(edgeRoot,positions[parent],positions[offer.Id],parent,targetOffer:offer.Id));}
                     foreach(var pair in new[]{("금속 가공",0),("행운",2),("마력 가공",3),("공방 운영",6),("시간",8),("기술 연구",10)})Text(pair.Item1,content,24,24+pair.Item2*200,280,80,pair.Item1,28,true);
                     map.mapSize=new Vector2(positions.Values.Max(r=>r.xMax)+24,positions.Values.Max(r=>r.yMax)+24);map.focusPosition=new Vector2(16,baseRect.y-160);
                 }else{map.mapSize=new Vector2(1024,624);map.focusPosition=new Vector2(16,-16);}

@@ -164,9 +164,13 @@ public sealed partial class ForgeGameUI
   if(!complete)tutorialCompleteMotion=0;
   else if(game.TutorialInputReady)tutorialCompleteMotion=Mathf.Min(1,tutorialCompleteMotion+delta/1.05f);
   var rect=(RectTransform)Node("TutorialScroll");var root=(RectTransform)transform;
-  float width=TutorialSalePanelWidth(root.rect.width),t=tutorialSaleMotion;
+  float regularWidth=TutorialSalePanelWidth(root.rect.width),t=tutorialSaleMotion;
+  float completionMove=complete?Mathf.SmoothStep(0,1,Mathf.Clamp01((tutorialCompleteMotion-.25f)/.5f)):0;
+  float squareSize=Mathf.Min(520,Mathf.Min(root.rect.width,root.rect.height)-24);
+  float width=Mathf.Lerp(regularWidth,squareSize,completionMove);
+  float height=Mathf.Lerp(root.rect.height-24,squareSize,completionMove);
   rect.anchorMin=rect.anchorMax=rect.pivot=new Vector2(0,1);
-  rect.sizeDelta=new Vector2(width,root.rect.height-24);
+  rect.sizeDelta=new Vector2(width,height);
   float move=Mathf.SmoothStep(0,1,Mathf.Clamp01((t-.25f)/.5f));
   float transition=complete?tutorialCompleteMotion:t;
   float scale=sale?TutorialSaleScale(transition):1;
@@ -176,14 +180,14 @@ public sealed partial class ForgeGameUI
   tutorialPanelGroup.interactable=!sale||transition>=1;
   tutorialPanelGroup.blocksRaycasts=!sale||transition>=1;
   float panelX=Mathf.Lerp(12,root.rect.width-width-12,move);
-  if(complete)panelX=Mathf.Lerp(root.rect.width-width-12,(root.rect.width-width)*.5f,Mathf.SmoothStep(0,1,Mathf.Clamp01((tutorialCompleteMotion-.25f)/.5f)));
-  rect.anchoredPosition=new Vector2(panelX+width*(1-scale)*.5f,-12-(root.rect.height-24)*(1-scale)*.5f);
+  if(complete)panelX=Mathf.Lerp(root.rect.width-regularWidth*.5f-12,root.rect.width*.5f,completionMove)-width*.5f;
+  rect.anchoredPosition=new Vector2(panelX+width*(1-scale)*.5f,-(root.rect.height-height)*.5f-height*(1-scale)*.5f);
   // Inventory and HUD are children of the same tutorial CanvasGroup: pause/intro
   // gates every practice action, while the panel's scroll viewport remains usable.
   if(tutorialGoldTile){tutorialGoldTile.gameObject.SetActive(visible&&!game.TutorialInventoryOpen);tutorialProductsTile.gameObject.SetActive(visible&&!game.TutorialInventoryOpen&&game.TutorialSaleStage!=11);
    tutorialGoldLabel.text="연습 골드\n"+game.TutorialGold+"G";tutorialProductsLabel.text="완성품\n"+(game.TutorialSaleStage<10?1:0);
    tutorialProductsButton.interactable=game.TutorialSaleReady&&t>=1;
-   ForgeTutorialAttention.Set(tutorialProductsButton,visible&&game.TutorialSaleReady&&t>=1&&!game.TutorialInventoryOpen&&game.TutorialSaleStage<10);
+   ForgeTutorialAttention.Set(tutorialProductsButton,visible&&game.TutorialSaleReady&&t>=1&&!game.TutorialInventoryOpen&&game.TutorialSaleStage<10,new Color(1,1,0));
   }
   // Bring instructions above the practice inventory without overlapping its bounds.
   rect.SetAsLastSibling();

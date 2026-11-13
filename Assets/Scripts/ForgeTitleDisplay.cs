@@ -26,7 +26,8 @@ public partial class ForgeMvp
         var prefab=Resources.Load<GameObject>("BlacksmithTitleRack");
         if(!prefab)return;
         titleSwordRack=Instantiate(prefab,transform);titleSwordRack.name="Title sword display";
-        titleSwordRack.transform.position=new Vector3(.55f,0,-.65f);
+        // Beside the anvil, directly in front of the quench bucket at (3.5, 0, 2).
+        titleSwordRack.transform.position=new Vector3(3.5f,0,.75f);
         titleSwordRack.transform.localScale=Vector3.one*.65f;
         SavedProgress newest=null;long newestTime=long.MinValue;
         for(int slot=1;slot<=SlotCount;slot++){

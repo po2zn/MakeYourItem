@@ -25,6 +25,7 @@ public sealed class ForgeCraftMotion : MonoBehaviour
     public Bounds SmithBounds { get {var b=new Bounds(SmithPosition+Vector3.up*.9f,new Vector3(.9f,1.9f,.7f));return b;} }
     public readonly ForgeCoolingViewState StationCoolingView=new ForgeCoolingViewState();
     public bool HitFrostStation(Ray ray,out float distance){distance=0;return workshop&&workshop.HitFrostStation(ray,out distance);}
+    public void NoticeFrostStation(){var reveal=GetComponentInChildren<ForgeFrostStationReveal>();if(reveal)reveal.Acknowledge();}
     public void SetFrostUnlocked(bool value){if(workshop)workshop.SetFrostUnlocked(value);}
     public void SetStationOffset(Vector3 offset){transform.localPosition=offset;}
     public void SetBurning(bool value){if(workshop){workshop.SetBurning(value);return;}if(value==burning||!apron)return;burning=value;apron.material.color=value?new Color(1f,.05f,.05f):new Color(.3f,.18f,.1f);}

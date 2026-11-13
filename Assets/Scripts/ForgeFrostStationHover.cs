@@ -19,6 +19,7 @@ public sealed class ForgeFrostStationHover : MonoBehaviour
     }
     public void Hide(){gameObject.SetActive(false);owner=null;}
     public void Show(ForgeGameUI ui,ForgeCraftMotion motion,int id,Vector2 pointer,long water){
+        motion.NoticeFrostStation();
         bool changed=owner!=motion||!gameObject.activeSelf;owner=motion;station=id;gameObject.SetActive(true);transform.SetAsLastSibling();
         var bounds=((RectTransform)ui.transform).rect;float width=Mathf.Min(550,bounds.width-24),height=Mathf.Min(560,bounds.height-24);panel.sizeDelta=new Vector2(width,height);
         Camera camera=ui.canvas.renderMode==RenderMode.ScreenSpaceOverlay?null:ui.canvas.worldCamera;
