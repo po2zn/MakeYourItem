@@ -6,6 +6,11 @@ using UnityEngine;
 // Temporary single-scene frontend; the evaluator owns no Unity or inventory state.
 public partial class ForgeMvp : MonoBehaviour
 {
+    public ForgeDragonSettings dragonSettings=new ForgeDragonSettings();
+    public ForgeCoolingSettings coolingSettings=new ForgeCoolingSettings();
+    public bool StarPanelAllowed => !showTitle&&!showTutorial&&!showGameMenu;
+    [Header("별빛 정제 · 속도 1배 기준 초")][Min(0)] public float starSwapSeconds=.4f;
+    [Min(0)] public float starRemoveSeconds=.25f;
     [SerializeField] Color reservedColor = new Color(197f/255f, 134f/255f, 192f/255f, 1f);
     const string InitialSource = "";
     string source = InitialSource, report = "▷로 한 줄씩 실행하거나 ▶로 전체 실행하세요. 실제 재료가 소비됩니다.", hover = "";
@@ -322,8 +327,14 @@ public partial class ForgeMvp : MonoBehaviour
     }
     GameObject work;
     ForgeCraftMotion craftMotion;
-    public class Piece { public ForgeItemData data=new ForgeItemData(); public int id; public int material=1; public int heat; public bool shaped; public ForgeTraits traits; }
-    public class Step { public int day,minute,absorbedPiece; public bool warning; public ForgeItemData data; public Dictionary<int,int> consumed; public float duration=.8f; public float workSpeed=1; public int setting, settingValue, refund; public double productionSeconds; public int line, cost, iron, heat, process, material, materialCount, pieceId; public bool shaped, finished, debugOutput; public ForgeTraits traits; public string text, module; }
+    public class Piece { public bool coolingBusy; public ForgeItemData data=new ForgeItemData(); public int id; public int material=1; public int heat; public bool shaped; public ForgeTraits traits; }
+    public class Step { public Action completeWork,cancelWork; public int bonePosition=-1,boneLeft,boneRight;
+ public void CompleteWork(){var work=completeWork;completeWork=null;cancelWork=null;work?.Invoke();}
+ public void CancelWork(){completeWork=null;var cancel=cancelWork;cancelWork=null;cancel?.Invoke();}
+ public int coolingCall,coolingA=-1,coolingB=-1,coolingCost; public int[] coolingPath; public Piece coolingTarget;
+        public void ReleaseCooling(){if(coolingTarget!=null){coolingTarget.coolingBusy=false;coolingTarget=null;}}
+        public ForgeStarlight starlightBefore; public int starA=-1,starB=-1;
+        public int day,minute,absorbedPiece; public bool warning; public ForgeItemData data; public Dictionary<int,int> consumed; public float duration=.8f; public float workSpeed=1; public int setting, settingValue, refund; public double productionSeconds; public int line, cost, iron, heat, process, material, materialCount, pieceId; public bool shaped, finished, debugOutput; public ForgeTraits traits; public string text, module; }
     public class Evaluation { public List<Step> steps = new List<Step>(); public string error; public int cost, ironConsumed, errorLine; public string errorMessage, errorModule; public bool compileError; public ForgeProduct product; public bool skipped, debugOnly; public Dictionary<string, object> values = new Dictionary<string, object>(); }
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void Boot() { if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == "SampleScene" && FindAnyObjectByType<ForgeMvp>() == null) new GameObject("Forge MVP").AddComponent<ForgeMvp>(); }

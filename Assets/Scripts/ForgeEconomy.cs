@@ -28,7 +28,7 @@ public sealed class ForgeProduct
     {
         if (ForgeMaterialGuide.Find(material) == null) throw new ArgumentException("등록되지 않은 재료입니다.");
         if (cashCost < 0 || ironConsumed < 0) throw new ArgumentOutOfRangeException(nameof(cashCost));
-        data=(itemData??new ForgeItemData()).Clone();ProductionSeconds=productionSeconds;
+        data=(itemData??new ForgeItemData()).Clone();if((material==1||material==7)&&data.cooling==null)data.cooling=ForgeCoolingGraph.Legacy(blueprintName,material);ProductionSeconds=productionSeconds;
         Material = material;
         Kind = !data.destroyed && !data.recovered && data.seals.Count==0 && (material==1||material==7) && shaped && finalHeat==0 ? data.handle>0?ForgeProductKind.Sword:material==7?ForgeProductKind.StarBlade:ForgeProductKind.IronBlade : ForgeProductKind.Unfinished;
         BlueprintName = blueprintName ?? "";
@@ -91,9 +91,11 @@ public static class ForgePricing
         if(d.hardness>=7)result["담금질 경도 7"]=ForgeBalance.QuenchBonus;
         if(d.hardness>=7&&d.perfectQuench)result["적정 온도 담금질"]=ForgeBalance.PerfectQuenchBonus;
         if(d.handle>0)result["손잡이"]=ForgeBalance.HandleBonus(d.handle);
+        if(d.handle==9&&d.dragonBone!=null&&d.dragonBone.Bonus>0)result["용뼈 절단 후 가열"]=d.dragonBone.Bonus;
         if(d.polished)result["연마"]=ForgeBalance.PolishBonus;
         if(d.plated)result["은도금"]=ForgeBalance.PlateBonus;
         if(d.star)result["별무늬"]=ForgeBalance.StarBonus;
+        if(product.Material==7&&d.starlight!=null&&d.starlight.Bonus>0)result["별빛 정제"]=d.starlight.Bonus;
         if(d.frost)result["서리 문양"]=ForgeBalance.FrostBonus;
         if(d.charge>=3)result["마력 전도"]=ForgeBalance.ChargeBonus;
         if(d.charge>=3&&d.handle==9)result["용의 맥동"]=ForgeBalance.DragonPulseBonus;

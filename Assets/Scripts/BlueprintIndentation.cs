@@ -16,7 +16,7 @@ public static class BlueprintIndentation
         var tokens=BlueprintLexer.Scan(prefix,true).FindAll(t=>t.Length>0&&t.Kind!=BlueprintTokenKind.Comment&&t.Kind!=BlueprintTokenKind.NewLine);
         if(tokens.Count>0&&tokens[tokens.Count-1].Raw==":"){
             var feature=tokens[0].Feature;
-            if(feature==BlueprintFeature.Def||feature==BlueprintFeature.If||feature==BlueprintFeature.Elif||feature==BlueprintFeature.Else||feature==BlueprintFeature.For||feature==BlueprintFeature.While)spaces+=Width;
+            if(feature==BlueprintFeature.Match||feature==BlueprintFeature.Case||feature==BlueprintFeature.Default||feature==BlueprintFeature.Def||feature==BlueprintFeature.If||feature==BlueprintFeature.Elif||feature==BlueprintFeature.Else||feature==BlueprintFeature.For||feature==BlueprintFeature.While)spaces+=Width;
         }
         string newline=text.Contains("\r\n")?"\r\n":"\n";
         return Replace(text,start,end,newline+new string(' ',spaces));

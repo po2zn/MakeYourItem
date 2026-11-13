@@ -4,7 +4,7 @@ using System.Collections.Generic;
 public sealed partial class BlueprintRuntime
 {
     double Now => Math.Max(context.Seconds(), startedAt+productionSeconds);
-    void EnsureLive(ForgeMvp.Piece p){if(p.data.destroyed||p.data.recovered)Fail("파괴되거나 회수된 작업물은 사용할 수 없습니다.");}
+    void EnsureLive(ForgeMvp.Piece p){if(p.data.dragonBone?.Pending==true)Fail("용뼈 절단 작업이 아직 완료되지 않았습니다.");if(p.data.destroyed||p.data.recovered)Fail("파괴되거나 회수된 작업물은 사용할 수 없습니다.");}
     void ColdBlade(ForgeMvp.Piece p){EnsureLive(p);if((p.material!=1&&p.material!=7)||!p.shaped||p.heat!=0)Fail("성형하고 식힌 철 또는 별철 검날이 필요합니다.");}
     void Consume(int material,int count=1)
     {
@@ -24,7 +24,11 @@ public sealed partial class BlueprintRuntime
     void Cool(ForgeMvp.Piece p,int coolant)
     {
         if(coolant!=0&&coolant!=3&&coolant!=8)Fail("냉각 재료는 공기(0), 물(3), 서리수(8)입니다.");
-        Consume(coolant);
+        if(coolant==8){CoolingCall(BlueprintFeature.CoolingRun,new List<object>{p,8,CoolingGraph(p).DefaultPath()});return;}
+        Consume(coolant);ApplyCooling(p,coolant);
+    }
+    void ApplyCooling(ForgeMvp.Piece p,int coolant)
+    {
         int before=p.heat;
         if(p.material==7&&p.shaped&&before==ForgeBalance.DefaultFurnaceTemperature)p.data.star=true;
         if(coolant==3&&p.shaped&&before>=ForgeBalance.MinimumForgeTemperature&&p.data.lastHammerTemperature==before){
@@ -81,7 +85,7 @@ public sealed partial class BlueprintRuntime
                 Consume(material);d.handle=material;
             }
             else {if(!(args[1] is ForgeMvp.Piece))Fail("5(Item, Material)의 Material에는 정수 재료 번호를 넣으세요.");var part=Piece(args[1]);EnsureLive(part);if(ReferenceEquals(part,p))Fail("자기 자신을 장착할 수 없습니다.");
-                if(part.material==9&&part.data.refined&&d.handle==0)d.handle=9;
+                if(part.material==9&&part.data.refined&&d.handle==0){d.handle=9;part.data.dragonBone?.Use();d.dragonBone=part.data.dragonBone?.Clone();}
                 else if(part.material==6&&part.data.activated&&part.heat==0&&!d.activated)d.activated=true;
                 else Fail("정제 용뼈 또는 식힌 공명 수정이 필요하며 같은 부품을 중복 장착할 수 없습니다.");part.data.recovered=true;absorbed=part.id;}
             Action(5,p,absorbed>0&&d.activated?"공명 수정 부품 장착":"손잡이 제작 · "+ForgeMaterialGuide.Find(d.handle).Name+" · 0G");result.steps[result.steps.Count-1].absorbedPiece=absorbed;break;

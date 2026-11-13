@@ -6,7 +6,8 @@ public sealed class ForgeSfxLibrary:ScriptableObject {
  readonly Dictionary<string,AudioClip> sped=new Dictionary<string,AudioClip>();
  public static ForgeSfxLibrary Instance=>instance?instance:instance=Resources.Load<ForgeSfxLibrary>("ForgeSfxLibrary");
  public AudioClip AtSpeed(AudioClip clip,float speed){
-  if(!clip)return null;speed=Mathf.Clamp(speed,1,5);
+  // Level 5 keeps its gameplay timing but shares the level 4 sound and cache entry.
+  if(!clip)return null;speed=Mathf.Clamp(speed,1,4);
   if(clip.loadState==AudioDataLoadState.Unloaded)clip.LoadAudioData();
   bool soft=clip==water||clip==polish||clip==sparkle;
   if(speed==1&&!soft)return clip;
@@ -17,7 +18,7 @@ public sealed class ForgeSfxLibrary:ScriptableObject {
   if(clip==sparkle)data=SparkleSamples(clip.frequency,speed); // Shorter envelopes, unchanged gentle bell pitches.
   else{
    var original=new float[clip.samples*clip.channels];if(!clip.GetData(original,0))return null;
-   // Filter before speeding up, so the output cutoff stays fixed even at 5x and avoids harsh aliasing.
+   // Filter before speeding up, so the output cutoff stays fixed at every audio speed and avoids harsh aliasing.
    if(soft)original=LowPass(original,clip.channels,clip.frequency,(clip==water?1200:1500)/speed);
    data=Resample(original,clip.channels,speed);
    if(soft)for(int i=0;i<data.Length;i++)data[i]*=clip==water?.72f:.65f;

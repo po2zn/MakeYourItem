@@ -47,7 +47,7 @@ public static class BlueprintRecursionChecks
             var r=ForgeMvp.Evaluate("import m\nm.forever()",modules:new Dictionary<string,string>{{"m","def forever():\n    return forever()"}});Require(!r.compileError&&r.errorModule=="m"&&r.errorLine==2&&r.errorMessage.Contains("32"),"module error");
         });
         check("branching recursion shares command budget",()=>{
-            var r=ForgeMvp.Evaluate("def fib(n):\n    if n <= 1:\n        return n\n    return fib(n - 1) + fib(n - 2)\nfib(20)");Require(!r.compileError&&r.errorMessage.Contains("10000"),"budget");
+            var r=BlueprintCommandLimitChecks.NearLimit("def fib(n):\n    if n <= 1:\n        return n\n    return fib(n - 1) + fib(n - 2)\nfib(20)");Require(!r.compileError&&r.errorMessage.Contains("21억"),"budget");
         });
         check("arithmetic overflow remains a controlled recursive error",()=>{
             var r=ForgeMvp.Evaluate(Factorial+"\nfactorial(13)");Require(!r.compileError&&r.errorLine==4&&r.errorMessage.Contains("정수 범위"),"overflow");

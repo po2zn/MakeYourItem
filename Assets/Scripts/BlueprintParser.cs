@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-public enum BlueprintExprKind { Literal, Name, Unary, Binary, Call, List, Tuple, Set, Dict, Index, Slice, Attribute }
+public enum BlueprintExprKind { Literal, Name, Unary, Binary, Call, List, Tuple, Set, Dict, Index, Slice, Attribute, Increment }
 public sealed class BlueprintExpr
 {
     public BlueprintExprKind Kind;
@@ -13,7 +13,7 @@ public sealed class BlueprintExpr
     public int Process;
     public List<BlueprintExpr> Args = new List<BlueprintExpr>();
 }
-public enum BlueprintStatementKind { Assign, Call, If, For, While, Def, Return, Break, Continue, Finish, Import, FromImport, Error }
+public enum BlueprintStatementKind { Assign, Call, If, For, While, Def, Return, Break, Continue, Finish, Import, FromImport, Error, Match, Case }
 public sealed class BlueprintImportName
 {
     public string Name, Alias;
@@ -24,12 +24,13 @@ public sealed class BlueprintStatement
     public BlueprintToken Token;
     public string Name;
     public BlueprintExpr Expr, Target;
+    public BlueprintPattern Pattern;
     public BlueprintException Error;
     public List<BlueprintImportName> Imports = new List<BlueprintImportName>();
     public List<string> Parameters = new List<string>();
     public List<BlueprintStatement> Body = new List<BlueprintStatement>(), Other = new List<BlueprintStatement>();
 }
-public sealed class BlueprintParser
+public sealed partial class BlueprintParser
 {
     readonly List<BlueprintToken> tokens;
     readonly HashSet<string> functionNames = new HashSet<string>(StringComparer.Ordinal);
@@ -53,7 +54,7 @@ public sealed class BlueprintParser
         this.deferErrors=deferErrors;tokens=(deferErrors?BlueprintLexer.ScanDeferred(source):BlueprintLexer.Scan(source)).FindAll(t=>t.Kind!=BlueprintTokenKind.Comment);
         // Check all branches before execution, including deferred sessions and imported modules.
         if(technology!=null&&!technology.Owns(ForgeTechnology.EnglishResearch))foreach(var token in tokens){
-            if(Array.IndexOf(ForgeTechnology.ControlFeatures,token.Feature)<0)continue;
+            if(Array.IndexOf(ForgeTechnology.ControlFeatures,token.Feature)<0&&token.Feature!=BlueprintFeature.Match&&token.Feature!=BlueprintFeature.Case)continue;
             var alias=BlueprintAliases.Find(token.Feature);
             if(token.Raw==alias.English)throw new BlueprintException(token.Line,"영어 예약어 '"+token.Raw+"'는 테크 트리의 '영어 예약어' 연구가 필요합니다. 대신 "+alias.Symbol+" 표기를 사용하세요.");
         }
@@ -134,6 +135,8 @@ public sealed class BlueprintParser
         if(token.Raw=="import" || token.Raw=="from")return ImportStatement();
         switch(token.Feature)
         {
+            case BlueprintFeature.Match:return MatchStatement();
+            case BlueprintFeature.Case:case BlueprintFeature.Default:Fail("case/6?/9?는 match/696 바로 안에 들여써야 합니다.");break;
             case BlueprintFeature.If:
                 return Conditional();
             case BlueprintFeature.While:
@@ -172,7 +175,7 @@ public sealed class BlueprintParser
             if(value.Kind!=BlueprintExprKind.Name && value.Kind!=BlueprintExprKind.Index && value.Kind!=BlueprintExprKind.Slice) throw new BlueprintException(token.Line,"대입 대상은 이름 또는 인덱스여야 합니다.");
             statement.Kind=BlueprintStatementKind.Assign; statement.Target=value; statement.Expr=Expression();
         } else {
-            if(value.Kind!=BlueprintExprKind.Call) throw new BlueprintException(token.Line,"대입 또는 함수 호출이 필요합니다.");
+            if(value.Kind!=BlueprintExprKind.Call&&value.Kind!=BlueprintExprKind.Increment) throw new BlueprintException(token.Line,"대입, 함수 호출 또는 증감 연산이 필요합니다.");
             statement.Kind=BlueprintStatementKind.Call; statement.Expr=value;
         }
         EndLine(); return statement;
@@ -221,8 +224,15 @@ public sealed class BlueprintParser
     }
     BlueprintExpr Sum() { var left=Product(); while(Current.Raw=="+"||Current.Raw=="-") { var op=Take();left=Node(BlueprintExprKind.Binary,op,left,Product()); } return left; }
     BlueprintExpr Product() { var left=Unary(); while(Current.Raw=="*"||Current.Raw=="//"||Current.Raw=="%") { var op=Take();left=Node(BlueprintExprKind.Binary,op,left,Unary()); } return left; }
+    BlueprintExpr Increment(BlueprintToken op,BlueprintExpr target,bool postfix)
+    {
+        if(target.Kind!=BlueprintExprKind.Name&&!(target.Kind==BlueprintExprKind.Index&&target.Args[0].Kind==BlueprintExprKind.Name))throw new BlueprintException(op.Line,"증감 대상은 정수 변수 또는 이름으로 저장한 리스트·딕셔너리의 원소여야 합니다.");
+        if(target.Kind==BlueprintExprKind.Name){try{PythonIdentifier.ParseAssignment(target.Token.Raw);}catch(Exception ex){throw new BlueprintException(op.Line,ex.Message);}}
+        var result=Node(BlueprintExprKind.Increment,op,target);result.Value=postfix;return result;
+    }
     BlueprintExpr Unary()
     {
+        if(Current.Raw=="++"||Current.Raw=="--"){var op=Take();if(++depth>32)Fail("표현식 중첩 제한");try{return Increment(op,Unary(),false);}finally{depth--;}}
         if(Current.Raw=="-") {
             var op=Take();
             if(Current.Kind==BlueprintTokenKind.Number && Current.Raw=="2147483648") { Take();var n=Node(BlueprintExprKind.Literal,op);n.Value=int.MinValue;return n; }
@@ -282,7 +292,8 @@ public sealed class BlueprintParser
                 var call=Node(BlueprintExprKind.Call,token);call.Callee=value;
                 if(!Match(")")){do{call.Args.Add(Expression());}while(Match(","));Need(")");}
                 value=call;
-            }else break;
+            }else if(Current.Raw=="++"||Current.Raw=="--"){var op=Take();value=Increment(op,value,true);}
+            else break;
         }
         return value;
     }

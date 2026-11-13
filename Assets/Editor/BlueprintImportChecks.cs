@@ -86,7 +86,7 @@ public static class BlueprintImportChecks
         check("Unicode titles normalize consistently",()=>{var r=Good("import 재료 as m\nprint(m.값)",new Dictionary<string,string>{{"재료","값 = 3"}});Require(r.steps.Single().text=="3","unicode");});
         check("module resource and command limits cannot reset via imports",()=>{
             var r=ForgeMvp.Evaluate("import m",100,0,modules:new Dictionary<string,string>{{"m","1(1)"}});Require(r.error!=null&&r.cost==0&&r.errorModule=="m","stock");
-            r=ForgeMvp.Evaluate("import m",modules:new Dictionary<string,string>{{"m","while True:\n    x = 1"}});Require(r.errorMessage.Contains("10000")&&r.errorModule=="m","command limit");
+            r=BlueprintCommandLimitChecks.NearLimit("import m",modules:new Dictionary<string,string>{{"m","while True:\n    x = 1"}});Require(r.errorMessage.Contains("21억")&&r.errorModule=="m","command limit");
         });
         check("technology ownership applies inside imported modules",()=>{
             var tech=new ForgeTechnology();tech.Restore(Array.Empty<BlueprintFeature>(),new[]{ForgeTechnology.AutomationRoot,ForgeTechnology.ImportResearch});var r=ForgeMvp.Evaluate("import m",technology:tech,modules:new Dictionary<string,string>{{"m","x = random(1, 2)"}});Require(r.error!=null&&r.errorModule=="m"&&r.errorMessage.Contains("구매"),"technology");

@@ -7,7 +7,7 @@ public static class BlueprintHelp
     {
         if(token.Raw=="import")return "import 모듈명 [as 별칭] · 다른 코드창을 가져옵니다. 모듈명.함수명(...)으로 호출하세요.";
         if(token.Raw=="from")return "from 모듈명 import 함수명 [as 별칭] · 가져온 함수를 직접 호출합니다.";
-        if(token.Raw=="as")return "가져온 모듈이나 함수에 이 코드창에서 사용할 별칭을 지정합니다.";
+        if(token.Raw=="as")return "import에서는 별칭을 지정합니다. case 패턴 as 이름에서는 맞은 값을 이름에 저장합니다.";
         var alias=BlueprintAliases.Find(token.Feature);if(alias!=null)return alias.Tooltip;
         if(token.Kind!=BlueprintTokenKind.Number)return "";
         var frames=new Stack<Frame>();BlueprintToken previous=null;

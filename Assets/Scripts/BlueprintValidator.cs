@@ -48,6 +48,7 @@ public sealed class BlueprintValidator
         foreach(var s in body){
             if(s.Kind==BlueprintStatementKind.Assign&&s.Target.Kind==BlueprintExprKind.Name)dynamicNames.Add(s.Target.Name);
             if(s.Kind==BlueprintStatementKind.For)dynamicNames.Add(s.Name);
+            if(s.Pattern!=null)dynamicNames.UnionWith(s.Pattern.Bindings);
             foreach(var parameter in s.Parameters)dynamicNames.Add(parameter);
             if(s.Kind==BlueprintStatementKind.Import||s.Kind==BlueprintStatementKind.FromImport){hasImports=true;foreach(var item in s.Imports)if(item.Name=="*")hasStarImport=true;else dynamicNames.Add(item.Alias);}
             CollectBindings(s.Body);CollectBindings(s.Other);
@@ -65,7 +66,7 @@ public sealed class BlueprintValidator
         foreach(var s in body){foreach(var call in ExprCalls(s.Expr))yield return call;foreach(var call in ExprCalls(s.Target))yield return call;
             foreach(var call in Calls(s.Body))yield return call;foreach(var call in Calls(s.Other))yield return call;}
     }
-    bool HasEffects(List<BlueprintStatement> body) {foreach(var c in Calls(body))if(c.Process>0 || c.Name!=null&&program.Effectful.Contains(c.Name))return true;return false;}
+    bool HasEffects(List<BlueprintStatement> body) {foreach(var c in Calls(body))if(c.Process>0 || ForgeStarlight.IsFeature(c.Feature) || ForgeCoolingGraph.IsFeature(c.Feature) || c.Name!=null&&program.Effectful.Contains(c.Name))return true;return false;}
     bool Known(BlueprintType value,params BlueprintType[] allowed) {return value==BlueprintType.Unknown || Array.IndexOf(allowed,value)>=0;}
     void Statements(List<BlueprintStatement> body,Dictionary<string,BlueprintType> names,bool function,int loops,bool root)
     {
@@ -97,6 +98,17 @@ public sealed class BlueprintValidator
                     }break;
                 case BlueprintStatementKind.Call:
                     Expr(s.Expr,names,true);break;
+                case BlueprintStatementKind.Match:
+                    if(technology!=null&&!technology.Owns(BlueprintFeature.Match))Error(s.Token,"먼저 random 다음의 선택 분기 연구(5K)를 구매하세요.");
+                    Expr(s.Expr,names,false);
+                    foreach(var branch in s.Body){
+                        var scope=new Dictionary<string,BlueprintType>(names);
+                        foreach(string binding in branch.Pattern.Bindings)scope[binding]=BlueprintType.Unknown;
+                        if(branch.Expr!=null)Expr(branch.Expr,scope,false);
+                        Statements(branch.Body,scope,function,loops,false);
+                        foreach(var item in scope)names[item.Key]=BlueprintType.Unknown;
+                    }
+                    break;
                 case BlueprintStatementKind.If:
                     if(!Known(Expr(s.Expr,names,false),BlueprintType.Bool))Error(s.Token,"조건은 bool이어야 합니다.");
                     var yes=new Dictionary<string,BlueprintType>(names);var no=new Dictionary<string,BlueprintType>(names);
@@ -137,6 +149,11 @@ public sealed class BlueprintValidator
         // Keep syntax/literal/arity checks here; Eval resolves names and types when read.
         if(e.Kind==BlueprintExprKind.Name)return BlueprintType.Unknown;
         var args=new List<BlueprintType>();foreach(var a in e.Args)args.Add(Expr(a,names,false));
+        if(e.Kind==BlueprintExprKind.Increment){
+            var target=e.Args[0];
+            if(target.Kind==BlueprintExprKind.Index&&!Known(Expr(target.Args[0],names,false),BlueprintType.List,BlueprintType.Dict))Error(e.Token,"리스트와 딕셔너리 원소만 증감할 수 있습니다.");
+            if(!Known(args[0],BlueprintType.Int))Error(e.Token,"증감 연산에는 정수가 필요합니다.");return BlueprintType.Int;
+        }
         if(e.Kind==BlueprintExprKind.Attribute)return BlueprintType.Unknown;
         if(e.Kind==BlueprintExprKind.Call) {
             if(deferErrors&&technology!=null&&ForgeTechnology.RequiresPurchase(e.Feature)&&!technology.Owns(e.Feature))Error(e.Token,"테크 트리에서 먼저 구매해야 하는 기능입니다: "+BlueprintAliases.Find(e.Feature).Symbol+"()");
@@ -156,6 +173,24 @@ public sealed class BlueprintValidator
             }
             if(ForgeSmithLanguage.IsSmith(e.Feature))return e.Feature==BlueprintFeature.SmithPosition?BlueprintType.Tuple:e.Feature==BlueprintFeature.SmithGift?BlueprintType.None:BlueprintType.Int;
             if(e.Feature==BlueprintFeature.GiantRune)return BlueprintType.None;
+            if(ForgeDragonBone.IsFeature(e.Feature)){
+                if(technology!=null&&!technology.MaterialAvailable(9))Error(e.Token,"용뼈 공급을 먼저 해금하세요.");
+                if(!Known(args[0],BlueprintType.Piece))Error(e.Token,"첫 인자는 용뼈 작업물이어야 합니다.");
+                for(int i=1;i<args.Count;i++)if(!Known(args[i],BlueprintType.Int))Error(e.Token,"마디 번호와 위치는 정수여야 합니다.");
+                return e.Feature==BlueprintFeature.BoneCut?BlueprintType.None:e.Feature==BlueprintFeature.BoneIsCut?BlueprintType.Bool:BlueprintType.Int;
+            }
+            if(ForgeCoolingGraph.IsFeature(e.Feature)){
+                if(technology!=null&&!technology.MaterialAvailable(8))Error(e.Token,"서리수 공급을 먼저 해금하세요.");
+                if(!Known(args[0],BlueprintType.Piece))Error(e.Token,"첫 인자는 칼날 작업물이어야 합니다.");
+                if(e.Feature==BlueprintFeature.CoolingCost){for(int i=1;i<3;i++)if(!Known(args[i],BlueprintType.Int))Error(e.Token,"지점 번호는 정수여야 합니다.");}
+                if(e.Feature==BlueprintFeature.CoolingRun){if(!Known(args[1],BlueprintType.Int)||!Known(args[2],BlueprintType.List,BlueprintType.Tuple))Error(e.Token,"84(칼날, 8, 정수 경로 배열)로 호출하세요.");return BlueprintType.None;}
+                return BlueprintType.Int;
+            }
+            if(ForgeStarlight.IsFeature(e.Feature)){
+                if(!Known(args[0],BlueprintType.Piece))Error(e.Token,"첫 인자는 별철 작업물이어야 합니다.");
+                for(int i=1;i<args.Count;i++)if(!Known(args[i],BlueprintType.Int))Error(e.Token,"별빛 위치는 정수여야 합니다.");
+                return e.Feature==BlueprintFeature.StarlightCount||e.Feature==BlueprintFeature.StarlightRead?BlueprintType.Int:BlueprintType.None;
+            }
             if(ForgeExpansion.IsExtended(e.Feature))return ForgeExpansion.ReturnType(e.Feature);
             switch(e.Feature){
                 case BlueprintFeature.IsDay:return BlueprintType.Int;

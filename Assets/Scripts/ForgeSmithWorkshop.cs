@@ -55,7 +55,7 @@ public partial class ForgeMvp
     }
     Dictionary<int,long> SmithMaterials(){var values=new Dictionary<int,long>();foreach(var s in materialStocks??Array.Empty<ForgeMaterialStock>())if(s!=null&&s.unlocked)values[s.material]=s.count;return values;}
     ForgeRunContext SmithContext(int id)=>new ForgeRunContext{
-        Day=()=>DayCycle.Day,Seconds=()=>Time.time,Seed=worldSeed,Speed=craftSpeed,
+        Day=()=>DayCycle.Day,Seconds=()=>Time.time,Seed=worldSeed,Speed=craftSpeed,StarSwapSeconds=starSwapSeconds,StarRemoveSeconds=starRemoveSeconds,DragonSettings=dragonSettings,DragonUnlocked=technology.MaterialAvailable(9),CoolingSettings=coolingSettings,CoolingUnlocked=CoolingUnlocked,Observation=id==0?coolingObservation:null,
         SmithCall=(feature,args)=>SmithCall(id,feature,args),StartSmith=(target,create)=>StartSmithJob(target,create,id),
         RefreshResources=session=>session.SetResources(gold,iron,SmithMaterials())
     };

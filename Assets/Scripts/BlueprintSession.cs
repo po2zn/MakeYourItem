@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 public sealed partial class BlueprintRuntime
 {
     Session session;
-    Task BeforeStatement(BlueprintToken token) => session==null ? Task.CompletedTask : session.Pause(token);
+    Task BeforeStatement(BlueprintToken token,Dictionary<string,object> env=null){if(env!=null)ObservedScope(token,env);return session==null?Task.CompletedTask:session.Pause(token);}
 
     // No worker thread and no speculative replay: the async call stack stays suspended.
     public sealed class Session : IDisposable
@@ -45,7 +45,7 @@ public sealed partial class BlueprintRuntime
         {
             try {if(entry!=null)await entry();else await runtime.Block(runtime.program.Body,evaluation.values);}
             catch(OperationCanceledException){Cancelled=true;}
-            catch(BlueprintException e){Failure(evaluation,e,false);}
+            catch(BlueprintException e){runtime.context.Observation?.Record(e.Line,e.ModuleName,"실행 오류: "+e.Message,true);Failure(evaluation,e,false);}
             catch(OverflowException){Failure(evaluation,new BlueprintException(runtime.currentLine,"정수 범위 초과"){ModuleName=runtime.currentModule.IsMain?null:runtime.currentModule.Name},false);}
             finally {
                 Completed=true;NextLine=0;NextModule=null;gate=null;
@@ -66,10 +66,12 @@ public sealed partial class BlueprintRuntime
         }
         public void Dispose()
         {
+            foreach(var step in evaluation.steps){step.ReleaseCooling();step.CancelWork();}
             if(Completed)return;
             Cancelled=true;
             var resume=gate;gate=null;resume?.TrySetException(new OperationCanceledException());
         }
+        public long MaterialCount(int id)=>runtime?.stocks!=null&&runtime.stocks.TryGetValue(id,out long amount)?amount:0;
         public void SetResources(int gold,int iron,IReadOnlyDictionary<int,long> materials)
         {
             if(runtime==null)return;runtime.gold=gold;runtime.iron=iron;
@@ -80,7 +82,7 @@ public sealed partial class BlueprintRuntime
     {
         BlueprintProgram program;
         try {program=new BlueprintValidator(new BlueprintParser(source,deferErrors,technology).Parse(),technology,deferErrors).Validate();}
-        catch(BlueprintException e){return new Session(Failure(new ForgeMvp.Evaluation(),e,true));}
+        catch(BlueprintException e){context?.Observation?.Record(e.Line,e.ModuleName,"컴파일 오류: "+e.Message,true);return new Session(Failure(new ForgeMvp.Evaluation(),e,true));}
         return new Session(new BlueprintRuntime(program,gold,iron,owner,seed,materialStocks,modules,technology,clockHour,context),deferErrors);
     }
 }

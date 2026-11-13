@@ -143,6 +143,7 @@ public partial class ForgeMvp : ISerializationCallbackReceiver
     }
     void ResetProgressForDebug(bool persist=true)
     {
+        CoolingView.Clear();coolingObservation.Clear();coolingBreakpoints.Clear();coolingPanel?.TargetChanged();coolingProductId=-1;
         if(busy||executionSession!=null)return;
         if(hierarchyGame)hierarchyGame.DiscardCodeViews();
         codeSavePending=false;
@@ -201,6 +202,8 @@ public partial class ForgeMvp : ISerializationCallbackReceiver
     bool SellProductInternal(int id)
     {
         if(!shop.TrySell(id,ref gold,out var sold))return false;
+        ForgeSoundEffects.ProductSold();
+        if(coolingProductId==id){CoolingView.Clear();coolingPanel?.TargetChanged();coolingProductId=-1;}
         reportError=false;totalSales++;earnedGold+=ForgePricing.Quote(sold).SalePrice;tutorialStage=Math.Max(tutorialStage,6);selectedProductId=-1;
         resultOwner=sold.BlueprintName;report= "판매 영수증 · #"+id+"\n"+ForgePricing.Describe(sold,false);return true;
     }

@@ -13,7 +13,7 @@ public sealed class ForgeCraftMotion : MonoBehaviour
     public IEnumerator DestructionReaction(){uint generation=motionGeneration;stunnedUntil=Time.time+DestructionStunSeconds;ActiveProcess=-3;Quaternion pose=smith?smith.localRotation:Quaternion.identity;if(workshop)workshop.BeginDestruction();else if(fallbackAudio)fallbackAudio.PlayDestruction();try{while(IsStunned&&generation==motionGeneration){float phase=1-(stunnedUntil-Time.time)/DestructionStunSeconds;if(workshop)workshop.DestructionPose(phase);else if(smith){float weight=Mathf.Sin(phase*Mathf.PI);smith.localRotation=pose*Quaternion.Euler(-18*weight,0,Mathf.Sin(phase*18)*6*weight);if(arm)arm.localRotation=Quaternion.Euler(-45*weight,0,-35*weight);}yield return null;}}finally{if(workshop)workshop.EndDestruction();else{if(smith)smith.localRotation=pose;if(arm)arm.localRotation=Quaternion.identity;}ActiveProcess=0;}}
     public bool UsesWorkshopAssets => workshop != null;
     public void CancelCurrentAction(){motionGeneration++;if(fallbackAudio)fallbackAudio.Stop();ActiveProcess=0;if(workshop)workshop.Cancel();else{if(fallbackCoal)fallbackCoal.SetActive(false);if(arm){arm.localRotation=Quaternion.identity;var tool=arm.Find("Hammer");if(tool)tool.gameObject.SetActive(true);}}}
-    public void ReactToCodeError(){CancelCurrentAction();if(workshop)workshop.ReactToCodeError();}
+    public void ReactToCodeError(){ForgeSoundEffects.CodeError();CancelCurrentAction();if(workshop)workshop.ReactToCodeError();}
     void OnDisable(){CancelCurrentAction();}
     readonly Dictionary<int, GameObject> pieces = new Dictionary<int, GameObject>();
     Transform smith, arm;
@@ -122,7 +122,31 @@ public sealed class ForgeCraftMotion : MonoBehaviour
     }
     public IEnumerator Play(ForgeMvp.Step step)
     {
+        var game=GetComponentInParent<ForgeMvp>();uint generation=0;
+        // The main station owns the code observer; other stations keep their own execution UI.
+        bool primary=game&&ReferenceEquals(game.MainCoolingMotion,this);
+        if(primary)generation=game.BeginCoolingReceipt(step);
+        if(step.coolingCall>=80&&step.coolingCall<=83)yield break;
+        Coroutine progress=null;
+        if(primary&&(step.coolingCall==84||step.process==93))progress=StartCoroutine(CoolingTravel(game,generation,step.duration));
+        uint workGeneration=motionGeneration;
+        try{yield return PlayPhysical(step);if(workGeneration==motionGeneration){step.CompleteWork();if(primary)game.BeginCoolingReceipt(step);}}finally{step.CancelWork();step.ReleaseCooling();if(progress!=null)StopCoroutine(progress);if(primary)game.EndCoolingReceipt(generation);}
+    }
+    IEnumerator CoolingTravel(ForgeMvp game,uint generation,float duration){float elapsed=0;while(elapsed<duration){game.CoolingProgress(generation,duration<=0?1:elapsed/duration);yield return null;elapsed+=Time.deltaTime;}}
+    IEnumerator PlayPhysical(ForgeMvp.Step step)
+    {
+        uint actionGeneration=motionGeneration;
         if(step.debugOutput) yield break;
+        if(step.process>=90&&step.process<=95){float boneElapsed=0;while(boneElapsed<step.duration&&actionGeneration==motionGeneration){yield return null;boneElapsed+=Time.deltaTime;}yield break;}
+        if(step.process>=70&&step.process<=73){
+            uint generation=motionGeneration;ActiveProcess=step.process;
+            ForgeStarlightPanel.Receipt(step,true,gameObject.name);
+            float starElapsed=0;
+            while(starElapsed<step.duration&&generation==motionGeneration){yield return null;starElapsed+=Time.deltaTime;}
+            if(generation==motionGeneration){ForgeStarlightPanel.Receipt(step,false,gameObject.name);CompletedActions++;ActiveProcess=0;}
+            yield break;
+        }
+        if(step.process==1&&step.material==7)ForgeStarlightPanel.Receipt(step,false,gameObject.name);
         if(workshop){
             uint generation=motionGeneration;
             ActiveProcess=step.process;
@@ -155,7 +179,7 @@ public sealed class ForgeCraftMotion : MonoBehaviour
         Color to = step.heat>0 ? Color.Lerp(Color.gray,Color.red,step.heat/1200f) : Color.gray;
         float elapsed = 0;
         float duration = step.duration;bool sealApplied=false;
-        while(elapsed < duration)
+        while(elapsed < duration && actionGeneration==motionGeneration)
         {
             float t = Mathf.Clamp01(elapsed/duration);
             float move = Mathf.SmoothStep(0,1,Mathf.Min(1,t*2));
@@ -171,6 +195,7 @@ public sealed class ForgeCraftMotion : MonoBehaviour
             elapsed += Time.deltaTime;
             yield return null;
         }
+        if(actionGeneration!=motionGeneration)yield break;
         fallbackAudio.Finish();
         if(step.data!=null&&step.data.destroyed){work.SetActive(false);yield return DestructionReaction();}
         if(fallbackHammer)fallbackHammer.gameObject.SetActive(true);

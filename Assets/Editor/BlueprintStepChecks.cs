@@ -90,7 +90,7 @@ public static class BlueprintStepChecks
         });
         check("recursion and command limits apply across separate clicks",()=>{
             using(var s=Start("def forever():\n    forever()\nforever()")){Drain(s);Require(s.Evaluation.errorMessage.Contains("32"),"depth");}
-            using(var s=Start("while True:\n    x = 1")){Drain(s);Require(s.Evaluation.errorMessage.Contains("10000"),"commands");}
+            using(var s=Start("while True:\n    x = 1")){BlueprintCommandLimitChecks.SetRemaining(s,40);Drain(s);Require(s.Evaluation.errorMessage.Contains("21억"),"commands");}
         });
         return log.AppendLine("TOTAL stepping "+count+" passed").ToString();
     }

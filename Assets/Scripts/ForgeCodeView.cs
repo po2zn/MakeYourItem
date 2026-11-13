@@ -9,7 +9,7 @@ public sealed class ForgeCodeView:MonoBehaviour,IPointerDownHandler
  public void Sync(string name,string source,Rect bounds,bool collapsed,bool running,bool canRun,int line,string diagnostic){syncing=true;if(!title.isFocused)title.SetTextWithoutNotify(name);if(editor.text!=source)editor.SetTextWithoutNotify(source);if(bounds!=last){rect.anchoredPosition=new Vector2(bounds.x,-bounds.y);rect.sizeDelta=bounds.size;last=bounds;}body.gameObject.SetActive(!collapsed);if(statusArea){statusArea.gameObject.SetActive(false);editorArea.offsetMin=new Vector2(editorArea.offsetMin.x,0);}run.interactable=step.interactable=canRun;stop.interactable=running||diagnostic!=null;status.text="";if(executionHighlight)executionHighlight.Line=diagnostic==null?line:0;if(header)header.color=diagnostic!=null?new Color(.65f,.12f,.14f,.97f):headerColor;if(errorHover)errorHover.description=diagnostic??"";syncing=false;}
  public void Reveal(int index){StartCoroutine(RevealCaret(index));}
  System.Collections.IEnumerator RevealCaret(int index){editor.ActivateInputField();yield return null;editor.caretPosition=Mathf.Clamp(index,0,editor.text.Length);editor.ForceLabelUpdate();}
- void LateUpdate(){CommitBounds();if(game&&executionHighlight)game.GameWorkerLines(id,executionHighlight.WorkerLines); }
+ void LateUpdate(){CommitBounds();if(game&&executionHighlight){game.GameWorkerLines(id,executionHighlight.WorkerLines);game.CoolingBreakpointLines(id,executionHighlight.BreakpointLines);} }
  void OnDisable(){CommitBounds();}
  public void Detach(){syncing=true;game=null;}
  public void CommitBounds(){if(game==null)return;var bounds=new Rect(rect.anchoredPosition.x,-rect.anchoredPosition.y,rect.sizeDelta.x,rect.sizeDelta.y);if(bounds!=last){last=bounds;game.GameCodeBounds(id,bounds);}}

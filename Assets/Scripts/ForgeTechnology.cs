@@ -29,7 +29,7 @@ public sealed class ForgeTechnology
         internal Offer(string id,ForgePurchaseKind kind,int price,string name,string description,int tier,int lane,int material,BlueprintFeature feature,params string[] parents)
         {Id=id;Kind=kind;Price=kind==ForgePurchaseKind.Material?price:ForgeBalance.ResearchPrice(id,price);Name=name;Description=description;Tier=tier+(kind!=ForgePurchaseKind.Material&&id!=AutomationRoot?1:0);Lane=lane;Material=material;Feature=feature;
             Parents=Array.AsReadOnly(parents.Length==0&&kind!=ForgePurchaseKind.Material&&id!=AutomationRoot?new[]{AutomationRoot}:parents.Select(CanonicalId).ToArray());
-            Features=Array.AsReadOnly(id==AutomationRoot?(BlueprintFeature[])ControlFeatures.Clone():kind!=ForgePurchaseKind.Function||feature==BlueprintFeature.None?Array.Empty<BlueprintFeature>():feature==BlueprintFeature.Min?new[]{feature,BlueprintFeature.Max}:feature==BlueprintFeature.IsDay?new[]{feature,BlueprintFeature.NightTime}:feature==BlueprintFeature.Lucky?new[]{feature,BlueprintFeature.LuckyCode}:new[]{feature});}
+            Features=Array.AsReadOnly(id==AutomationRoot?(BlueprintFeature[])ControlFeatures.Clone():kind!=ForgePurchaseKind.Function||feature==BlueprintFeature.None?Array.Empty<BlueprintFeature>():feature==BlueprintFeature.Match?new[]{feature,BlueprintFeature.Case,BlueprintFeature.Default}:feature==BlueprintFeature.Min?new[]{feature,BlueprintFeature.Max}:feature==BlueprintFeature.IsDay?new[]{feature,BlueprintFeature.NightTime}:feature==BlueprintFeature.Lucky?new[]{feature,BlueprintFeature.LuckyCode}:new[]{feature});}
     }
     static Offer F(BlueprintFeature f,int price,int tier,int lane,params string[] parents)
     {var a=BlueprintAliases.Find(f);return new Offer("function-"+f,ForgePurchaseKind.Function,price,a.Symbol+"() · "+a.English,a.Description,tier,lane,0,f,parents);}
@@ -49,7 +49,7 @@ public sealed class ForgeTechnology
         new Offer(1,5),new Offer(2,3),new Offer(3,1),new Offer(4,20),new Offer(5,30),
         new Offer(6,30),new Offer(7,40),new Offer(8,25),new Offer(9,50),
         new Offer(AutomationRoot,ForgePurchaseKind.Function,500,"제어문 해금 · 자동화 시작","조건·반복·반복 제어·사용자 함수의 숫자/기호 표기를 해금합니다. 영어 예약어는 별도 연구가 필요합니다. 구매 후 모든 분야의 첫 노드를 구매할 수 있습니다.",1,4,0,BlueprintFeature.If),
-        new Offer(EnglishResearch,ForgePurchaseKind.Function,500,"영어 예약어","제어문을 영어로도 작성합니다. if / elif / else / for / while / break / continue / def / return. 숫자·기호 표기도 계속 사용할 수 있습니다. in, and, or, not, True, False, None은 기본 문법이며 import는 별도 연구를 따릅니다.",4,10,0,BlueprintFeature.None,"function-Min"),
+        new Offer(EnglishResearch,ForgePurchaseKind.Function,500,"영어 예약어","제어문을 영어로도 작성합니다. if / elif / else / for / while / break / continue / def / return / match / case. 숫자·기호 표기도 계속 사용할 수 있습니다. in, and, or, not, True, False, None은 기본 문법이며 import는 별도 연구를 따릅니다.",4,10,0,BlueprintFeature.None,"function-Min"),
         F(BlueprintFeature.Heat,20,1,0),
         // General computation branches start from the workshop, independently of forging.
         F(BlueprintFeature.Abs,15,1,10),
@@ -57,6 +57,7 @@ public sealed class ForgeTechnology
         new Offer(ImportResearch,ForgePurchaseKind.Function,500,"import · 모듈 가져오기","다른 코드 창을 모듈로 가져옵니다. import, from ... import ..., as 별칭을 함께 해금합니다. 파일이나 외부 Python 패키지는 가져올 수 없습니다.",1,12,0,BlueprintFeature.None),
         Bundle(BlueprintFeature.Min,BlueprintFeature.Max,5000,2,10,"최솟값·최댓값 · min / max","function-Abs"),
         F(BlueprintFeature.Random,30,3,11,"function-Set"),
+        new Offer("function-Match",ForgePurchaseKind.Function,5000,"선택 분기 · match/case","값에 맞는 분기를 하나 선택합니다. 696 / 6? / 9? 표기와 패턴 매칭을 해금합니다. 영어 match/case는 영어 예약어 연구도 필요합니다.",4,11,0,BlueprintFeature.Match,"function-Random"),
         F(BlueprintFeature.Set,25,2,11,"function-Len"),
         Bundle(BlueprintFeature.IsDay,BlueprintFeature.NightTime,40,1,8,"시간 조회 · 12() + 24()"),
         F(BlueprintFeature.Polish,25,2,0,"function-Heat"),
@@ -85,7 +86,7 @@ public sealed class ForgeTechnology
     static string CanonicalId(string id)
     {
         foreach(var f in ControlFeatures)if(id=="function-"+f)return AutomationRoot;
-        return id=="function-Max"?"function-Min":id=="material-6"?"function-Charge":id=="material-9"?"function-Refine":id=="material-4"?"function-Fuel":id=="function-NightTime"?"function-IsDay":id=="function-LuckyCode"?"function-Lucky":id=="function-Speed"?"speed-1":id;
+        return id=="function-Case"||id=="function-Default"?"function-Match":id=="function-Max"?"function-Min":id=="material-6"?"function-Charge":id=="material-9"?"function-Refine":id=="material-4"?"function-Fuel":id=="function-NightTime"?"function-IsDay":id=="function-LuckyCode"?"function-Lucky":id=="function-Speed"?"speed-1":id;
     }
     public static Offer Find(string id)=>Offers.FirstOrDefault(o=>o.Id==CanonicalId(id));
     public static bool RequiresPurchase(BlueprintFeature feature)=>Offers.Any(o=>o.Features.Contains(feature));

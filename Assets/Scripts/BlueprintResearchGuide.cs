@@ -10,6 +10,8 @@ public static class BlueprintResearchGuide
     public static bool FeatureVisible(BlueprintFeature feature,ForgeTechnology tech,ForgeBlacksmiths smiths)
     {
         if(tech==null)return false;
+        if(ForgeDragonBone.IsFeature(feature))return tech.MaterialAvailable(9);
+        if(ForgeCoolingGraph.IsFeature(feature))return tech.MaterialAvailable(8);
         if(ForgeTechnology.RequiresPurchase(feature))return tech.Owns(feature);
         switch(feature){
             case BlueprintFeature.SmithFavor:return smiths!=null&&smiths.favorUnlocked;

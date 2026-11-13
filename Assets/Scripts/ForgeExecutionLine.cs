@@ -3,11 +3,14 @@ using UnityEngine;
 using UnityEngine.UI;
 // A non-interactive background follows the generated visual rows of a source line.
 public sealed class ForgeExecutionLine:MonoBehaviour {
+ public readonly List<int> BreakpointLines=new List<int>();readonly List<Image> breakpointBands=new List<Image>();
  public int Line;public readonly List<int> WorkerLines=new List<int>();readonly List<Image> workerBands=new List<Image>();ForgeCodeInput input;Image band;
  public void Initialize(ForgeCodeInput value){input=value;if(band)return;var go=new GameObject("ExecutionLine",typeof(RectTransform),typeof(CanvasRenderer),typeof(Image));go.layer=5;go.transform.SetParent(input.textComponent.transform.parent,false);go.transform.SetSiblingIndex(input.textComponent.transform.GetSiblingIndex());band=go.GetComponent<Image>();band.color=new Color(1f,.58f,.22f,.22f);band.raycastTarget=false;band.gameObject.SetActive(false);}
  void LateUpdate(){
  if(!input||!band)return;
  UpdateBand(band,Line);
+ while(breakpointBands.Count<BreakpointLines.Count){var marker=Instantiate(band,band.transform.parent);marker.name="BreakpointMarker";marker.color=new Color(.8f,.15f,.15f,.85f);breakpointBands.Add(marker);}
+ for(int i=0;i<breakpointBands.Count;i++){UpdateBand(breakpointBands[i],i<BreakpointLines.Count?BreakpointLines[i]:0);breakpointBands[i].rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal,5);}
  while(workerBands.Count<WorkerLines.Count){var extra=Instantiate(band,band.transform.parent);extra.name="WorkerExecutionLine";extra.color=new Color(.25f,.8f,1f,.25f);extra.transform.SetSiblingIndex(band.transform.GetSiblingIndex());workerBands.Add(extra);}
  for(int i=0;i<workerBands.Count;i++)UpdateBand(workerBands[i],i<WorkerLines.Count?WorkerLines[i]:0);
  }

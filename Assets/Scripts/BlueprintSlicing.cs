@@ -17,7 +17,9 @@ public sealed partial class BlueprintRuntime {
  }
  async Task AssignSlice(BlueprintExpr target,object value,Dictionary<string,object> env){
  var container=await Eval(target.Args[0],env);if(!(container is List<int>))Fail("슬라이스 대입 대상은 리스트여야 합니다.");var list=(List<int>)container;var replacement=new List<int>(Sequence(value));var range=await SliceBounds(target,env,list.Count);var indices=SliceIndices(range);
+ int[] before=Watching?list.ToArray():null;
  if(range.step!=1){if(indices.Count!=replacement.Count)Fail("간격이 있는 슬라이스 대입은 선택한 원소 수와 대입할 원소 수가 같아야 합니다.");for(int i=0;i<indices.Count;i++)list[indices[i]]=replacement[i];}
  else {int removed=Math.Max(0,range.stop-range.start);int size=list.Count-removed+replacement.Count;if(size>CollectionLimit)Fail("리스트는 최대 1024개입니다.");Allocate(replacement.Count);list.RemoveRange(range.start,removed);list.InsertRange(range.start,replacement);}
+ if(Watching&&before!=null)for(int i=0;i<Math.Max(before.Length,list.Count);i++)if(i>=before.Length||i>=list.Count||before[i]!=list[i])Trace(target.Token.Line,target.Args[0].Name+"["+i+"] 슬라이스 변경 "+(i<before.Length?before[i].ToString():"없음")+" → "+(i<list.Count?list[i].ToString():"없음"));
  }
 }

@@ -35,7 +35,7 @@ public static class BlueprintLexer
             return prefix;
         }
     }
-    static bool IsSymbol(char c) => "()[]{}:,.=+-*/%<>!~?".IndexOf(c)>=0;
+    static bool IsSymbol(char c) => "()[]{}:,.=+-*/%<>!~?|".IndexOf(c)>=0;
     public static List<BlueprintToken> Scan(string source, bool tolerant = false)
     {
         source = source ?? "";
@@ -67,12 +67,12 @@ public static class BlueprintLexer
             else if(index+3<source.Length && source.Substring(index,4)=="777?") { index+=4; kind=BlueprintTokenKind.Symbol; }
             // Longest conditional symbol first: 01? must remain one raw token.
             else if(index+2<source.Length && source.Substring(index,3)=="01?") { index+=3; kind=BlueprintTokenKind.Symbol; }
-            else if(index+1<source.Length && (source.Substring(index,2)=="1?" || source.Substring(index,2)=="0?")) { index+=2; kind=BlueprintTokenKind.Symbol; }
+            else if(index+1<source.Length && (source.Substring(index,2)=="1?" || source.Substring(index,2)=="0?" || source.Substring(index,2)=="6?" || source.Substring(index,2)=="9?")) { index+=2; kind=BlueprintTokenKind.Symbol; }
             else if(IsSymbol(c)) {
                 index++;
                 if(index<source.Length) {
                     string pair=source.Substring(begin,2);
-                    if(pair=="!!"||pair=="~~"||pair=="<<"||pair=="<="||pair==">="||pair=="=="||pair=="!="||pair=="//") index++;
+                    if(pair=="++"||pair=="--"||pair=="!!"||pair=="~~"||pair=="<<"||pair=="<="||pair==">="||pair=="=="||pair=="!="||pair=="//") index++;
                 }
                 kind=BlueprintTokenKind.Symbol;
             }
@@ -90,14 +90,22 @@ public static class BlueprintLexer
                     bool call=next<source.Length && source[next]=='(';
                     if(alias.Syntax==BlueprintSyntaxKind.Builtin ? call :
                        token.Raw==alias.English || kind==BlueprintTokenKind.Symbol ||
-                       (statementStart && (call || alias.Id==BlueprintFeature.Def))) token.Feature=alias.Id;
+                       (statementStart && (call || alias.Id==BlueprintFeature.Def || alias.Id==BlueprintFeature.Match))) token.Feature=alias.Id;
+                }
+                // match/case are soft keywords: assignments and calls still use ordinary names.
+                if(token.Raw=="match"||token.Raw=="case"){
+                    int end=source.IndexOf('\n',index);if(end<0)end=source.Length;
+                    string rest=source.Substring(index,end-index);char quote='\0';bool escape=false;int comment=-1;
+                    for(int at=0;at<rest.Length;at++){char ch=rest[at];if(escape){escape=false;continue;}if(quote!='\0'){if(ch=='\\')escape=true;else if(ch==quote)quote='\0';}else if(ch=='\''||ch=='"')quote=ch;else if(ch=='#'){comment=at;break;}}
+                    if(comment>=0)rest=rest.Substring(0,comment);
+                    if(!statementStart||!rest.TrimEnd().EndsWith(":")||rest.TrimStart().StartsWith("="))token.Feature=BlueprintFeature.None;
                 }
                 statementStart=false;
             }
             raw.Add(token);
         }
         // Legacy straight-line sources used Trim on every line. Only block programs require indentation.
-        bool blocks=raw.Exists(t=>t.Feature==BlueprintFeature.If||t.Feature==BlueprintFeature.While||t.Feature==BlueprintFeature.For||t.Feature==BlueprintFeature.Def||t.Feature==BlueprintFeature.Else||t.Feature==BlueprintFeature.Elif);
+        bool blocks=raw.Exists(t=>t.Feature==BlueprintFeature.Match||t.Feature==BlueprintFeature.Case||t.Feature==BlueprintFeature.Default||t.Feature==BlueprintFeature.If||t.Feature==BlueprintFeature.While||t.Feature==BlueprintFeature.For||t.Feature==BlueprintFeature.Def||t.Feature==BlueprintFeature.Else||t.Feature==BlueprintFeature.Elif);
         var output=new List<BlueprintToken>(); var levels=new Stack<int>(); levels.Push(0);
         bool first=true; int lineStart=0;
         foreach(var token in raw) {

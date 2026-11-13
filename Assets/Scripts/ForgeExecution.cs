@@ -59,6 +59,7 @@ public partial class ForgeMvp
             executionSession=session;executionOwner=owner;executionLedger=new ForgeProductionLedger();
             receiptCursor=0;executionSeedConsumed=false;executionDebugStarted=false;executionProduct=null;
             resultOwner=owner.name;report="";reportError=false;
+            coolingObservation.Clear();CoolingView.Clear();coolingBreakpoints.Restart();executionPauseRequested=false;
             craftMotion.BeginRun();
         }
         StartCoroutine(RunExecution(singleStep));
@@ -69,6 +70,7 @@ public partial class ForgeMvp
         do {
             if(ExecutionSourceChanged()){StopExecution(false);report+="\n실행 중인 코드창이 변경되거나 삭제되어 실행을 중단했습니다. 다음 실행은 처음부터 시작합니다.";busy=false;yield break;}
             UpdateExecutionLocation();
+            if(executionPauseRequested||CoolingBreakpointStop(session,singleStep)){executionPauseRequested=false;busy=false;yield break;}
             if(!session.Completed)yield return BlueprintExecutionTiming.WaitForTick(()=>Time.timeAsDouble);
             if(executionSession!=session||session.Cancelled){busy=false;yield break;}
             if(ExecutionSourceChanged()){StopExecution(false);report+="\n실행 대기 중 코드가 변경되어 중단했습니다.";busy=false;yield break;}
@@ -128,6 +130,7 @@ public partial class ForgeMvp
     {
         if(craftMotion)craftMotion.CancelCurrentAction();
         var session=executionSession;executionSession=null;session?.Dispose();
+        if(announce){CoolingView.Clear();coolingObservation.Clear();coolingPanel?.TargetChanged();}else if(session!=null&&!session.Completed){CoolingView.Clear();coolingPanel?.TargetChanged();}
         foreach(var window in codeWindows){window.executionLine=0;window.revealExecution=false;}
         if(announce&&session!=null)report+="\n실행 중단 · 이미 소비한 재료는 돌아오지 않습니다.";
     }

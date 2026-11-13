@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 // The interpreter emits receipts; sessions suspend before each executed statement.
 public sealed partial class BlueprintRuntime
 {
-    public const int CommandLimit=10000, CallLimit=32, CollectionLimit=1024;
+    public const int CommandLimit=2_100_000_000, CallLimit=32, CollectionLimit=1024;
     readonly BlueprintProgram program;
     readonly ForgeMvp.Evaluation result=new ForgeMvp.Evaluation();
     readonly ForgeProductionLedger ledger=new ForgeProductionLedger();
@@ -27,7 +27,7 @@ public sealed partial class BlueprintRuntime
     enum Flow { Next, Break, Continue, Return, Finish }
     struct Signal { public Flow Flow; public object Value; public Signal(Flow flow,object value=null){Flow=flow;Value=value;} }
     BlueprintRuntime(BlueprintProgram program,int gold,int iron,string owner,uint seed,IReadOnlyDictionary<int,long> materialStocks=null,IReadOnlyDictionary<string,string> modules=null,ForgeTechnology technology=null,Func<double> clockHour=null,ForgeRunContext context=null)
-    {this.context=context??new ForgeRunContext();startedAt=this.context.Seconds();this.clockHour=clockHour??(()=>8d);InitializeModules(modules,technology,program);stocks=materialStocks==null?null:new Dictionary<int,long>();if(materialStocks!=null)foreach(var item in materialStocks)stocks[item.Key]=item.Value;this.program=program;this.gold=gold;this.iron=iron;this.owner=owner;randomState=seed;result.debugOnly=program.DebugOnly;}
+    {this.context=context??new ForgeRunContext();startedAt=this.context.Seconds();this.clockHour=clockHour??(()=>8d);InitializeModules(modules,technology,program);stocks=materialStocks==null?null:new Dictionary<int,long>();if(materialStocks!=null)foreach(var item in materialStocks)stocks[item.Key]=item.Value;this.program=program;this.gold=gold;this.iron=iron;this.owner=owner;randomState=seed;result.debugOnly=program.DebugOnly;if(this.context.PracticePiece!=null){result.values["StarIron"]=this.context.PracticePiece;nextPieceId=this.context.PracticePiece.id;}if(this.context.PracticeBlade!=null){result.values[this.context.PracticeBlade.material==9?"Bone":"Blade"]=this.context.PracticeBlade;result.values["FrostWater"]=8;nextPieceId=this.context.PracticeBlade.id;}}
     public static ForgeMvp.Evaluation Evaluate(string source,int gold,int iron,string owner,uint seed,IReadOnlyDictionary<int,long> materialStocks=null,ForgeTechnology technology=null,IReadOnlyDictionary<string,string> modules=null,Func<double> clockHour=null,ForgeRunContext context=null)
     {
         BlueprintProgram program;
@@ -44,8 +44,8 @@ public sealed partial class BlueprintRuntime
     }
     static ForgeMvp.Evaluation Failure(ForgeMvp.Evaluation r,BlueprintException e,bool compile)
     {r.compileError=compile;r.errorLine=e.Line;r.errorModule=e.ModuleName;r.errorMessage=e.Message;r.error=(compile?"컴파일 오류":"공정 오류")+" · "+(e.ModuleName==null?"":e.ModuleName+" · ")+e.Line+"줄: "+e.Message;return r;}
-    void Fail(string message){throw new BlueprintException(currentLine,message){ModuleName=currentModule.IsMain?null:currentModule.Name};}
-    void Tick(BlueprintToken token){currentLine=token.Line;if(++commands>CommandLimit)Fail("도면 실행 명령 수 제한(10000)에 도달했습니다.");}
+    void Fail(string message){context.Observation?.Record(currentLine,currentModule.IsMain?null:currentModule.Name,"실행 오류: "+message,true);throw new BlueprintException(currentLine,message){ModuleName=currentModule.IsMain?null:currentModule.Name};}
+    void Tick(BlueprintToken token){currentLine=token.Line;if(commands>=CommandLimit)Fail("도면 실행 명령 수 제한(21억 회)에 도달했습니다.");commands++;}
     int Int(object value){if(!(value is int))Fail("정수 인자가 필요합니다.");return (int)value;}
     bool Bool(object value){if(!(value is bool))Fail("조건은 bool이어야 합니다.");return (bool)value;}
     bool WhileCondition(object value){if(value is int number)return number!=0;return Bool(value);}
@@ -61,7 +61,7 @@ public sealed partial class BlueprintRuntime
     }
     async Task<Signal> Block(List<BlueprintStatement> body,Dictionary<string,object> env,bool inLoop=false)
     {
-        foreach(var s in body){await BeforeStatement(s.Token);Tick(s.Token);
+        foreach(var s in body){await BeforeStatement(s.Token,env);Tick(s.Token);
             if(s.Error!=null)throw new BlueprintException(s.Error.Line,s.Error.Message){ModuleName=currentModule.IsMain?null:currentModule.Name};
             switch(s.Kind){
             case BlueprintStatementKind.Import:
@@ -69,28 +69,33 @@ public sealed partial class BlueprintRuntime
             case BlueprintStatementKind.Def:break;
             case BlueprintStatementKind.Assign:
                 var value=await Eval(s.Expr,env);
-                if(s.Target.Kind==BlueprintExprKind.Name)env[s.Target.Name]=Copy(value);
+                if(s.Target.Kind==BlueprintExprKind.Name){
+                    string before=null;if(Watching)before=env.TryGetValue(s.Target.Name,out var previous)?BlueprintObservation.Format(previous):"아직 기록하지 않음";
+                    env[s.Target.Name]=Copy(value);if(Watching)Trace(s.Token.Line,s.Target.Name+" 변경 "+before+" → "+BlueprintObservation.Format(env[s.Target.Name]));
+                }
                 else if(s.Target.Kind==BlueprintExprKind.Slice)await AssignSlice(s.Target,value,env);
                 else {
                     var target=await Eval(s.Target.Args[0],env);int key=Int(await Eval(s.Target.Args[1],env));int n=Int(value);
-                    if(target is List<int> list){CheckIndex(key,list.Count);list[key]=n;}
-                    else if(target is Dictionary<int,int> dict){if(!dict.ContainsKey(key)){Allocate(1);if(dict.Count>=CollectionLimit)Fail("컬렉션은 최대1024개입니다.");}dict[key]=n;}
+                    if(target is List<int> list){CheckNamedIndex(s.Target.Args[0].Name,key,list.Count);int before=list[key];list[key]=n;if(Watching)Trace(s.Token.Line,s.Target.Args[0].Name+"["+key+"] 변경 "+before+" → "+n);}
+                    else if(target is Dictionary<int,int> dict){string before=Watching&&dict.TryGetValue(key,out int old)?old.ToString():"아직 기록하지 않음";if(!dict.ContainsKey(key)){Allocate(1);if(dict.Count>=CollectionLimit)Fail("컬렉션은 최대1024개입니다.");}dict[key]=n;if(Watching)Trace(s.Token.Line,s.Target.Args[0].Name+"["+key+"] 변경 "+before+" → "+n);}
                     else Fail("리스트와 딕셔너리만 변경할 수 있습니다.");
                 }break;
             case BlueprintStatementKind.Call:await Eval(s.Expr,env);break;
+            case BlueprintStatementKind.Match:
+                var matched=await MatchBlock(s,env,inLoop);if(matched.Flow!=Flow.Next)return matched;break;
             case BlueprintStatementKind.If:
-                var branch=await Block(Bool(await Eval(s.Expr,env))?s.Body:s.Other,env,inLoop);if(branch.Flow!=Flow.Next)return branch;break;
+                var branch=await Block(Bool(ObservedCondition(await Eval(s.Expr,env),s.Token.Line))?s.Body:s.Other,env,inLoop);if(branch.Flow!=Flow.Next)return branch;break;
             case BlueprintStatementKind.For:
                 var iterable=Copy(await Eval(s.Expr,env));
                 var items=iterable is int?null:Sequence(iterable);
                 int count=iterable is int repetitions?Math.Max(0,repetitions):items.Count;
                 for(int index=0;index<=count;index++){
-                    if(index>0){await BeforeStatement(s.Token);Tick(s.Token);}
+                    if(index>0){await BeforeStatement(s.Token,env);Tick(s.Token);}
                     if(index==count)break;
-                    env[s.Name]=items==null?index:items[index];var flow=await Block(s.Body,env,true);if(flow.Flow==Flow.Break)break;if(flow.Flow==Flow.Return||flow.Flow==Flow.Finish)return flow;
+                    string beforeLoop=Watching&&env.TryGetValue(s.Name,out var oldLoop)?BlueprintObservation.Format(oldLoop):"아직 기록하지 않음";env[s.Name]=items==null?index:items[index];if(Watching)Trace(s.Token.Line,s.Name+" 변경 "+beforeLoop+" → "+BlueprintObservation.Format(env[s.Name]));var flow=await Block(s.Body,env,true);if(flow.Flow==Flow.Break)break;if(flow.Flow==Flow.Return||flow.Flow==Flow.Finish)return flow;
                 }break;
             case BlueprintStatementKind.While:
-                while(WhileCondition(await Eval(s.Expr,env))){Tick(s.Token);var flow=await Block(s.Body,env,true);if(flow.Flow==Flow.Break)break;if(flow.Flow==Flow.Return||flow.Flow==Flow.Finish)return flow;await BeforeStatement(s.Token);Tick(s.Token);}break;
+                while(WhileCondition(ObservedCondition(await Eval(s.Expr,env),s.Token.Line))){Tick(s.Token);var flow=await Block(s.Body,env,true);if(flow.Flow==Flow.Break)break;if(flow.Flow==Flow.Return||flow.Flow==Flow.Finish)return flow;await BeforeStatement(s.Token,env);Tick(s.Token);}break;
             case BlueprintStatementKind.Break:return new Signal(Flow.Break);
             case BlueprintStatementKind.Continue:return new Signal(Flow.Continue);
             case BlueprintStatementKind.Return:return new Signal(Flow.Return,s.Expr==null?null:Copy(await Eval(s.Expr,env)));
@@ -105,7 +110,8 @@ public sealed partial class BlueprintRuntime
         }}return new Signal(Flow.Next);
     }
     IList<int> Sequence(object value){if(value is List<int> l)return l;if(value is int[] t)return t;Fail("정수 리스트 또는 튜플이 필요합니다.");return null;}
-    void CheckIndex(int key,int count){if(key<0||key>=count)Fail("인덱스 범위를 벗어났습니다: "+key);}
+    void CheckIndex(int key,int count){CheckNamedIndex("배열",key,count);}
+    void CheckNamedIndex(string name,int key,int count){if(key<0||key>=count)Fail((name??"배열")+"["+key+"] 접근 불가. "+(count==0?"빈 배열입니다.":"유효 위치는 0~"+(count-1)+"입니다."));}
     async Task<object> Eval(BlueprintExpr e,Dictionary<string,object> env)
     {
         Tick(e.Token);
@@ -114,16 +120,20 @@ public sealed partial class BlueprintRuntime
             case BlueprintExprKind.Name:return Lookup(e.Name,env);
             case BlueprintExprKind.Attribute:
                 var target=await Eval(e.Args[0],env);currentLine=e.Token.Line;return Member(target,e.Name);
+            case BlueprintExprKind.Increment:return await Increment(e,env);
             case BlueprintExprKind.Unary:var unary=await Eval(e.Args[0],env);currentLine=e.Token.Line;return e.Token.Raw=="not"?(object)!Bool(unary):checked(-Int(unary));
             case BlueprintExprKind.Binary:return await Binary(e,env);
             case BlueprintExprKind.Call:
                 object callable=e.Callee!=null?await Eval(e.Callee,env):e.Process==0&&e.Feature==BlueprintFeature.None?Lookup(e.Name,env):null;
-                var args=new List<object>();foreach(var a in e.Args)args.Add(await Eval(a,env));currentLine=e.Token.Line;return e.Callee!=null||e.Process==0&&e.Feature==BlueprintFeature.None?await Invoke(callable,args):Call(e,args);
+                var args=new List<object>();foreach(var a in e.Args)args.Add(await Eval(a,env));currentLine=e.Token.Line;
+                string callText=null;List<string> observedArgs=null;if(Watching){observedArgs=new List<string>();foreach(var arg in args)observedArgs.Add(BlueprintObservation.Format(arg));callText=e.Token.Raw+"("+string.Join(", ",observedArgs)+")";Trace(e.Token.Line,"호출 "+callText);}
+                var returned=e.Callee!=null||e.Process==0&&e.Feature==BlueprintFeature.None?await Invoke(callable,args):Call(e,args);
+                if(Watching){if(e.Feature==BlueprintFeature.Append)Trace(e.Token.Line,(e.Args[0].Name??"배열")+"["+(((IList<int>)args[0]).Count-1)+"] 추가: 미기록 → "+BlueprintObservation.Format(args[1]));if(e.Feature==BlueprintFeature.Pop)Trace(e.Token.Line,(e.Args[0].Name??"배열")+"["+((IList<int>)args[0]).Count+"] 제거: "+BlueprintObservation.Format(returned)+" → 없음");if(observedArgs!=null)for(int i=0;i<args.Count;i++)if(args[i] is IList<int>){string after=BlueprintObservation.Format(args[i]);if(after!=observedArgs[i])Trace(e.Token.Line,(e.Args[i].Name??"배열 인자")+" 변경 "+observedArgs[i]+" → "+after);}Trace(e.Token.Line,callText+" → "+BlueprintObservation.Format(returned));}return returned;
             case BlueprintExprKind.Slice:return await Slice(e,env);
             case BlueprintExprKind.Index:
                 var container=await Eval(e.Args[0],env);int key=Int(await Eval(e.Args[1],env));currentLine=e.Token.Line;
                 if(container is Dictionary<int,int> dict){if(!dict.TryGetValue(key,out int n))Fail("딕셔너리에 키가 없습니다: "+key);return n;}
-                var seq=Sequence(container);CheckIndex(key,seq.Count);return seq[key];
+                var seq=Sequence(container);CheckNamedIndex(e.Args[0].Name,key,seq.Count);return seq[key];
             default:
                 var numbers=new List<int>();foreach(var a in e.Args)numbers.Add(Int(await Eval(a,env)));currentLine=e.Token.Line;
                 Allocate(e.Kind==BlueprintExprKind.Dict?numbers.Count/2:numbers.Count);
@@ -133,18 +143,37 @@ public sealed partial class BlueprintRuntime
                 var map=new Dictionary<int,int>();for(int i=0;i<numbers.Count;i+=2)map[numbers[i]]=numbers[i+1];return map;
         }
     }
+    async Task<object> Increment(BlueprintExpr e,Dictionary<string,object> env)
+    {
+        var target=e.Args[0];int before,key=0;object container=null;string label=target.Name;
+        if(target.Kind==BlueprintExprKind.Name)before=Int(Lookup(target.Name,env));
+        else {
+            container=await Eval(target.Args[0],env);key=Int(await Eval(target.Args[1],env));currentLine=e.Token.Line;label=target.Args[0].Name+"["+key+"]";
+            if(container is List<int> list){CheckNamedIndex(target.Args[0].Name,key,list.Count);before=list[key];}
+            else if(container is Dictionary<int,int> dict){if(!dict.TryGetValue(key,out before))Fail("딕셔너리에 키가 없습니다: "+key);}
+            else {Fail("리스트와 딕셔너리 원소만 증감할 수 있습니다.");return null;}
+        }
+        currentLine=e.Token.Line;
+        int after;try{after=checked(before+(e.Token.Raw=="++"?1:-1));}catch(OverflowException){Fail("증감 연산의 정수 범위 초과: "+label);return null;}
+        if(target.Kind==BlueprintExprKind.Name)env[target.Name]=after;
+        else if(container is List<int> list)list[key]=after;
+        else ((Dictionary<int,int>)container)[key]=after;
+        if(Watching)Trace(e.Token.Line,label+" 변경 "+before+" → "+after);
+        return (bool)e.Value?before:after;
+    }
     async Task<object> Binary(BlueprintExpr e,Dictionary<string,object> env)
     {
         string op=e.Token.Raw;var a=await Eval(e.Args[0],env);
-        if(op=="and"&&!Bool(a))return false;if(op=="or"&&Bool(a))return true;
+        if(op=="and"&&!Bool(a)){if(Watching)Trace(e.Token.Line,"조건식: 거짓 and … → 거짓 (오른쪽 평가 생략)");return false;}if(op=="or"&&Bool(a)){if(Watching)Trace(e.Token.Line,"조건식: 참 or … → 참 (오른쪽 평가 생략)");return true;}
         var b=await Eval(e.Args[1],env);currentLine=e.Token.Line;
-        if(op=="and"||op=="or")return Bool(b);
-        if(op=="=="||op=="!="){bool equal=Equal(a,b);return op=="=="?equal:!equal;}
+        object Compared(object answer){if(Watching)Trace(e.Token.Line,"조건식: "+BlueprintObservation.Format(a)+" "+op+" "+BlueprintObservation.Format(b)+" → "+BlueprintObservation.Format(answer));return answer;}
+        if(op=="and"||op=="or")return Compared(Bool(b));
+        if(op=="=="||op=="!="){bool equal=Equal(a,b);return Compared(op=="=="?equal:!equal);}
         if(op=="in") {int item=Int(a);if(b is Dictionary<int,int> d)return d.ContainsKey(item);if(b is HashSet<int> s)return s.Contains(item);return Sequence(b).Contains(item);}
         int x=Int(a),y=Int(b);
         switch(op){case "+":return checked(x+y);case "-":return checked(x-y);case "*":return checked(x*y);
             case "//":case "%":if(y==0)Fail("0으로 나눌 수 없습니다.");long q=(long)x/y,r=(long)x%y;if(r!=0&&(r<0)!=(y<0)){q--;r+=y;}return checked((int)(op=="//"?q:r));
-            case "<":return x<y;case ">":return x>y;case "<=":return x<=y;case ">=":return x>=y;}
+            case "<":return Compared(x<y);case ">":return Compared(x>y);case "<=":return Compared(x<=y);case ">=":return Compared(x>=y);}
         Fail("지원하지 않는 연산자");return null;
     }
     bool Equal(object a,object b)
@@ -189,6 +218,9 @@ public sealed partial class BlueprintRuntime
             if(context.SmithCall==null)Fail("대장장이 함수는 실제 공방 실행에서 사용할 수 있습니다.");
             try{return context.SmithCall(e.Feature,args);}catch(ArgumentException error){Fail(error.Message);}
         }
+        if(ForgeDragonBone.IsFeature(e.Feature))return BoneCall(e.Feature,args);
+        if(ForgeCoolingGraph.IsFeature(e.Feature))return CoolingCall(e.Feature,args);
+        if(ForgeStarlight.IsFeature(e.Feature))return StarlightCall(e.Feature,args);
         if(ForgeExpansion.IsExtended(e.Feature))return Extended(e.Feature,args);
         switch(e.Feature){
             case BlueprintFeature.IsDay:
@@ -248,14 +280,18 @@ public sealed partial class BlueprintRuntime
 
         // Validate before committing state. Forging consumes materials, never gold.
         piece.heat=heat;piece.shaped=shaped;piece.traits=traits;
-        Record(id,piece,0,0,id==2?"화로 가열 · "+heat+"°C · 0G":id==3?(heat>=ForgeBalance.MinimumForgeTemperature?"타격 · 검날 성형":"타격 · 열 부족으로 성형 효과 없음"):"공기 냉각 · 0G",false);return null;
+        Record(id,piece,0,0,id==2?"화로 가열 · "+heat+"°C · 0G":id==3?(heat>=ForgeBalance.MinimumForgeTemperature?"타격 · 검날 성형":"타격 · 열 부족으로 성형 효과 없음"):"공기 냉각 · 0G",false);if(id==2)BoneHeatReceipt(piece);return null;
     }
     ForgeMvp.Piece LoadMaterial(int material)
     {
         var entry=ForgeMaterialGuide.Find(material);
         if(entry==null)Fail("등록되지 않은 재료 번호: "+material);
         if(material>1&&stocks!=null&&(!stocks.TryGetValue(material,out long amount)||amount<1))Fail(entry.Name+" 재료가 잠겨 있거나 보유량이 부족합니다.");
+        if(context.PracticeBlade!=null&&(material==1||material==7||material==9))Fail("연습에서는 준비된 Blade 변수를 사용하세요. 새 칼날을 생성하지 않습니다.");
         var piece=new ForgeMvp.Piece{id=++nextPieceId,material=material};
+        if(material==1||material==7)piece.data.cooling=ForgeCoolingGraph.Create(unchecked(randomState^(uint)piece.id*2654435761u),context.CoolingSettings);
+        if(material==7){var light=new int[5];for(int i=0;i<5;i++){randomState=unchecked(randomState*1664525u+1013904223u);light[i]=(int)(randomState%10);}piece.data.starlight=new ForgeStarlight(light);}
+        if(material==9){try{piece.data.dragonBone=ForgeDragonBone.Create(unchecked(randomState^(uint)piece.id*2654435761u),context.DragonSettings);}catch(ArgumentException error){Fail(error.Message);}}
         if(material==6){randomState=unchecked(randomState*1664525u+1013904223u);piece.data.resonanceTarget=((int)(randomState%9)+1)*100;}
         AddStep(1,piece,0,material==1?1:0,entry.Name+" 올리기 · 0G");
         if(material>1&&stocks!=null)stocks[material]--;

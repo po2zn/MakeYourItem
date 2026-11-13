@@ -4,6 +4,9 @@ using System.Collections.Generic;
 [Serializable]
 public sealed class ForgeItemData
 {
+    public ForgeDragonBone dragonBone;
+    public ForgeStarlight starlight;
+    public ForgeCoolingGraph cooling;
     public int idealTemperature, lastHammerTemperature;
     public bool perfectQuench;
     public int hardness, handle, charge, sealBonus, magicGrade, luckyDay, luckyCode, resonanceTarget=-1;
@@ -12,7 +15,7 @@ public sealed class ForgeItemData
     public double smithSaleMultiplier=1;
     public int[] materials=new int[10];
     public List<int> seals=new List<int>(), runes=new List<int>();
-    public ForgeItemData Clone(){var c=(ForgeItemData)MemberwiseClone();c.materials=(int[])materials.Clone();c.seals=new List<int>(seals);c.runes=new List<int>(runes);return c;}
+    public ForgeItemData Clone(){var c=(ForgeItemData)MemberwiseClone();c.dragonBone=dragonBone?.Clone();c.starlight=starlight?.Clone();c.cooling=cooling?.Clone();c.materials=(int[])materials.Clone();c.seals=new List<int>(seals);c.runes=new List<int>(runes);return c;}
 }
 public sealed class ForgeRunContext
 {
@@ -23,6 +26,12 @@ public sealed class ForgeRunContext
     public Func<double> Seconds=()=>0;
     public int Seed=72431;
     public float Speed=1;
+    public float StarSwapSeconds=.4f,StarRemoveSeconds=.25f;
+    public ForgeMvp.Piece PracticePiece,PracticeBlade;
+    public bool CoolingUnlocked,DragonUnlocked;
+    public ForgeDragonSettings DragonSettings=new ForgeDragonSettings();
+    public ForgeCoolingSettings CoolingSettings=new ForgeCoolingSettings();
+    public BlueprintObservation Observation;
     public int LuckyCode => ForgeLuck.Code(Seed,Day());
 }
 public static class ForgeLuck

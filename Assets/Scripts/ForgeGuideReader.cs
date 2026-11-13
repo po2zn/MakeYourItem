@@ -25,7 +25,7 @@ public sealed partial class ForgeGuideReader
         for(int i=0;i<BlueprintGuide.Entries.Count;i++)if(BlueprintResearchGuide.EntryVisible(BlueprintGuide.Entries[i],tech,team))next.Add(i);
         foreach(int i in next)if(notify&&!visible.Contains(i)){fresh.Add(i);noticeUntil=Time.realtimeSinceStartup+8;}
         if(notify&&tech.MaxSpeedLevel>knownSpeed)foreach(int i in next)if(BlueprintGuide.Entries[i].Feature==BlueprintFeature.Speed){fresh.Add(i);noticeUntil=Time.realtimeSinceStartup+8;}
-        if(notify&&tech.Owns(ForgeTechnology.EnglishResearch)&&!knownEnglish)foreach(int i in next)if(BlueprintGuide.Entries[i].Id=="notation"||System.Array.IndexOf(ForgeTechnology.ControlFeatures,BlueprintGuide.Entries[i].Feature)>=0){fresh.Add(i);noticeUntil=Time.realtimeSinceStartup+8;}
+        if(notify&&tech.Owns(ForgeTechnology.EnglishResearch)&&!knownEnglish)foreach(int i in next)if(BlueprintGuide.Entries[i].Id=="notation"||BlueprintGuide.Entries[i].Feature==BlueprintFeature.Match||System.Array.IndexOf(ForgeTechnology.ControlFeatures,BlueprintGuide.Entries[i].Feature)>=0){fresh.Add(i);noticeUntil=Time.realtimeSinceStartup+8;}
         knownEnglish=tech.Owns(ForgeTechnology.EnglishResearch);knownSpeed=tech.MaxSpeedLevel;
         fresh.IntersectWith(next);visible.Clear();visible.UnionWith(next);
         var materials=new HashSet<int>();for(int i=0;i<ForgeMaterialGuide.Entries.Count;i++)if(tech.MaterialAvailable(ForgeMaterialGuide.Entries[i].Number))materials.Add(i);
@@ -68,7 +68,7 @@ public sealed partial class ForgeGuideReader
     public static readonly string[] Sections={"게임 소개","테크 트리","재료","시작하기","대장간 공정","금속 가공","행운","마력 가공","공방 운영","시간 조회","기술 연구","대장장이와 다이아몬드","조건과 반복","사용자 함수","출력","자료 묶음","기본 문법","완성 예제","문제가 생겼을 때"};
     // Header and page insets surround the full bookmark rail.
     public static float DefaultWindowHeight => Mathf.Min(660,ForgeGuideUI.HeaderHeight+20+Sections.Length*BookmarkStep);
-    static readonly string[] Tabs={"소개","테크","재료","시작","공정","금속","행운","마력","운영","시간","연구","대장장이","조건","함수","출력","자료","기본","예제","오류"};
+    static readonly string[] Tabs={"소개","테크","재료","시작","공정","금속","행운","마력","운영","시간","연구","대장장이","조건 반복","함수","출력","자료","기본","예제","오류"};
     GUIStyle bodyStyle,titleStyle,sectionStyle,entryStyle,codeStyle,buttonStyle,searchStyle,tabStyle;
     void Styles(Font font,int fontSize)
     {
@@ -228,16 +228,21 @@ public sealed partial class ForgeGuideReader
         ForgeTextLayout.Label(new Rect(0,titleH+12,width,bodyH),IntroductionText,bodyStyle);
         GUI.EndScrollView();
     }
+    bool coolingGuideAdvanced;
     void DrawMaterial(Rect page)
     {
         var entry=ForgeMaterialGuide.Entries[material];float width=Mathf.Max(1,page.width-22);
         string status=BlueprintResearchGuide.MaterialInfo(entry.Number,englishUnlocked);
-        string description=VisibleProse(entry.Description);
+        string description=entry.Number==7||entry.Number==8||entry.Number==9?BlueprintResearchGuide.FormatGold(entry.Description):VisibleProse(entry.Description);
+        if(entry.Number==8&&coolingGuideAdvanced)description=ForgeCoolingGuide.Advanced+"\n\n"+ForgeCoolingGuide.FullExample;
+        if(entry.Number==9&&coolingGuideAdvanced)description=ForgeDragonGuide.Advanced+"\n\n"+ForgeDragonGuide.FullExample;
         float titleH=TitleHeight(entry.Heading,width),statusH=Height(status,sectionStyle,width),bodyH=Height(description,bodyStyle,width);
-        materialScroll=BeginScroll(page,materialScroll,new Rect(0,0,width,Mathf.Max(page.height,titleH+statusH+bodyH+36)));
+        materialScroll=BeginScroll(page,materialScroll,new Rect(0,0,width,Mathf.Max(page.height,titleH+statusH+bodyH+(entry.Number==8||entry.Number==9?148:entry.Number==7?88:36))));
         ForgeTextLayout.Label(new Rect(0,0,width,titleH),entry.Heading,titleStyle);
         ForgeTextLayout.Label(new Rect(0,titleH+8,width,statusH),status,sectionStyle);
         ForgeTextLayout.Label(new Rect(0,titleH+statusH+20,width,bodyH),description,bodyStyle);
+        if(entry.Number==8||entry.Number==9){if(ForgeTextLayout.Button(new Rect(0,titleH+statusH+bodyH+28,width,44),coolingGuideAdvanced?"기본 설명 보기":entry.Number==9?"심화: 절단 순서":"심화: 다익스트라",entryStyle)){coolingGuideAdvanced=!coolingGuideAdvanced;materialScroll=Vector2.zero;}if(coolingGuideAdvanced&&ForgeTextLayout.Button(new Rect(0,titleH+statusH+bodyH+78,width,44),"전체 예제 복사",entryStyle))GUIUtility.systemCopyBuffer=entry.Number==9?ForgeDragonGuide.FullExample:ForgeCoolingGuide.FullExample;}
+        if(entry.Number==7&&ForgeTextLayout.Button(new Rect(0,titleH+statusH+bodyH+28,width,44),"별철 연습",entryStyle))ForgeStarlightPanel.Get().OpenPractice();
         GUI.EndScrollView();
     }
     // Visible scrollbars expose overflow, including long code lines. Callers reserve the gutter.

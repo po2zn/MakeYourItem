@@ -52,10 +52,17 @@ public sealed partial class BlueprintRuntime
     {
         foreach(var s in body){
             if(s.Kind==BlueprintStatementKind.Assign&&s.Target.Kind==BlueprintExprKind.Name)names.Add(s.Target.Name);
+            GatherIncrementLocals(s.Expr,names);GatherIncrementLocals(s.Target,names);
             if(s.Kind==BlueprintStatementKind.For)names.Add(s.Name);
+            if(s.Pattern!=null)names.UnionWith(s.Pattern.Bindings);
             foreach(var item in s.Imports)if(item.Alias!=null)names.Add(item.Alias);
             GatherLocals(s.Body,names);GatherLocals(s.Other,names);
         }
+    }
+    static void GatherIncrementLocals(BlueprintExpr expression,HashSet<string> names)
+    {
+        if(expression==null)return;var pending=new Stack<BlueprintExpr>();pending.Push(expression);
+        while(pending.Count>0){var e=pending.Pop();if(e.Kind==BlueprintExprKind.Increment&&e.Args[0].Kind==BlueprintExprKind.Name)names.Add(e.Args[0].Name);foreach(var arg in e.Args)pending.Push(arg);if(e.Callee!=null)pending.Push(e.Callee);}
     }
     object Lookup(string name,Dictionary<string,object> env)
     {

@@ -19,6 +19,16 @@ public sealed class ForgeGuideMaterialColors : BaseMeshEffect
   foreach(Match match in Materials.Matches(source))for(int i=match.Index;i<match.Index+match.Length;i++)result[i]=true;
   return result;
  }
+ // Guide prose uses dark ink on paper; editor token colors target black backgrounds.
+ public static Color MaterialColor(Color ink)
+ {
+  if(ink.grayscale>.5f)return ForgeCodeColors.TokenColor(ForgeSyntax.Kind.Material);
+  switch(ForgeCodeColors.Palette){
+   case 1:return new Color32(25,75,125,255);
+   case 2:return ink;
+   default:return new Color32(145,35,80,255);
+  }
+ }
  public static void Apply(Text text)
  {
   if(!text||text.GetComponentInParent<InputField>()||text.GetComponent<ForgeCodeColors>())return;
@@ -41,7 +51,7 @@ public sealed class ForgeGuideMaterialColors : BaseMeshEffect
   string source=((Text)graphic).text??"";
   if(cached!=source||material==null){cached=source;material=MaterialMask(source);}
   var indices=ForgeCodeColors.GlyphIndices(source,mesh.currentVertCount/4);
-  Color32 pink=ForgeCodeColors.TokenColor(ForgeSyntax.Kind.Material);
+  Color32 pink=MaterialColor(((Text)graphic).color);
   for(int quad=0;quad<indices.Count&&quad*4+3<mesh.currentVertCount;quad++){
    if(!material[indices[quad]])continue;
    for(int corner=0;corner<4;corner++){
