@@ -9,7 +9,21 @@ public sealed partial class ForgeGameUI:MonoBehaviour
  readonly Dictionary<string,Transform> nodes=new Dictionary<string,Transform>();readonly Dictionary<string,Text> texts=new Dictionary<string,Text>();readonly Dictionary<string,Button> buttons=new Dictionary<string,Button>();readonly Dictionary<string,InputField> inputs=new Dictionary<string,InputField>();
  public readonly Dictionary<int,ForgeCodeView> codes=new Dictionary<int,ForgeCodeView>();readonly Dictionary<int,Button> sales=new Dictionary<int,Button>();
  ForgeMvp game; float nextRefresh;int screenWidth,screenHeight,layoutPasses;int enabledFrame=-1;public bool Bound=>game!=null;
- public void Bind(ForgeMvp owner){if(game==owner&&nodes.Count>0)return;if(nodes.Count==0)DiscardCodeViews();game=owner;EnsureAirMaterial();ConfigureMaterialInput();ConfigureResizeHandles();Font.textureRebuilt+=FontRebuilt;foreach(var t in GetComponentsInChildren<Transform>(true)){nodes[t.name]=t;if(t.TryGetComponent<Text>(out var text))texts[t.name]=text;if(t.TryGetComponent<Button>(out var button))buttons[t.name]=button;if(t.TryGetComponent<InputField>(out var input))inputs[t.name]=input;}foreach(var a in GetComponentsInChildren<ForgeUIAction>(true)){string key=a.action;a.button.onClick.AddListener(()=>{ForgeMouseTrace.Mark("UI_CLICK",key);game.GameUIAction(key);Refresh();});}foreach(var hover in GetComponentsInChildren<ForgeUIHover>(true))hover.Bind(this);ForgeSfxButton.Bind(this);ConfigureBookmarkInput();ConfigureCurrencyDisplay();foreach(var guideText in nodes["Guide"].GetComponentsInChildren<Text>(true))ForgeGuideMaterialColors.Apply(guideText);inputs["GuideSearch"].onValueChanged.AddListener(_=>game.GameGuideSearch());ForgeCodeColors.Apply(inputs["TutorialInput"].textComponent);inputs["TutorialInput"].onValueChanged.AddListener(value=>game.GameTutorialInput(value));}
+ public void Bind(ForgeMvp owner){if(game==owner&&nodes.Count>0)return;if(nodes.Count==0)DiscardCodeViews();game=owner;EnsureGuideEntries();EnsureAirMaterial();ConfigureMaterialInput();ConfigureResizeHandles();Font.textureRebuilt+=FontRebuilt;foreach(var t in GetComponentsInChildren<Transform>(true)){nodes[t.name]=t;if(t.TryGetComponent<Text>(out var text))texts[t.name]=text;if(t.TryGetComponent<Button>(out var button))buttons[t.name]=button;if(t.TryGetComponent<InputField>(out var input))inputs[t.name]=input;}foreach(var a in GetComponentsInChildren<ForgeUIAction>(true)){string key=a.action;a.button.onClick.AddListener(()=>{ForgeMouseTrace.Mark("UI_CLICK",key);game.GameUIAction(key);Refresh();});}foreach(var hover in GetComponentsInChildren<ForgeUIHover>(true))hover.Bind(this);ForgeSfxButton.Bind(this);ConfigureBookmarkInput();ConfigureCurrencyDisplay();foreach(var guideText in nodes["Guide"].GetComponentsInChildren<Text>(true))ForgeGuideMaterialColors.Apply(guideText);inputs["GuideSearch"].onValueChanged.AddListener(_=>game.GameGuideSearch());ForgeCodeColors.Apply(inputs["TutorialInput"].textComponent);inputs["TutorialInput"].onValueChanged.AddListener(value=>game.GameTutorialInput(value));}
+ // The guide registry grows independently of the authored prefab. Complete the index
+ // before caching nodes and binding actions, so a missing row cannot abort page refresh.
+ void EnsureGuideEntries(){
+ var existing=new HashSet<string>();Transform template=null;
+ foreach(var t in GetComponentsInChildren<Transform>(true)){existing.Add(t.name);if(t.name=="GuideEntry0")template=t;}
+ if(!template)throw new InvalidOperationException("도면 안내서의 기본 항목 버튼이 없습니다.");
+ foreach(int index in MissingGuideEntries(existing,BlueprintGuide.Entries.Count)){
+ var clone=Instantiate(template.gameObject,template.parent);clone.name="GuideEntry"+index;
+ var action=clone.GetComponent<ForgeUIAction>();action.action="guide-entry:"+index;action.button=clone.GetComponent<Button>();action.button.onClick=new Button.ButtonClickedEvent();
+ var label=clone.GetComponentInChildren<Text>(true);label.name=clone.name+"Label";label.text=BlueprintGuide.Entries[index].HeadingFor(false);
+ clone.SetActive(false);
+ }
+ }
+ public static List<int> MissingGuideEntries(ISet<string> existing,int count){var missing=new List<int>();for(int i=0;i<count;i++)if(!existing.Contains("GuideEntry"+i))missing.Add(i);return missing;}
  void ConfigureBookmarkInput(){
  // Only bookmark buttons receive pointer hits. The transparent viewport still clips them.
  foreach(string name in new[]{"Bookmarks","BookmarksViewport","BookmarksContent"})
