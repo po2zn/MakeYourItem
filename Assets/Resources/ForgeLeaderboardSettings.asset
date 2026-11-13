@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e004490cb37948fb8bbafdfd97e7dd4f, type: 3}
   m_Name: ForgeLeaderboardSettings
   m_EditorClassIdentifier:
-  enabledForPlayers: 0
+  enabledForPlayers: 1
   projectId: cb1fbf8a-2e62-412a-9f01-fb1b4426efb7
   environment: production
   leaderboardId: highest-sword-sale
