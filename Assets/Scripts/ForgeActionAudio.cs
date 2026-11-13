@@ -17,7 +17,7 @@ public sealed class ForgeActionAudio:MonoBehaviour {
  public void Begin(ForgeMvp.Step value){walking.Stop();cooling.Stop();step=value;previous=-1;Volume();}
  void One(AudioClip clip){var lib=ForgeSfxLibrary.Instance;if(lib){clip=lib.AtSpeed(clip,step.workSpeed);if(clip)effects.PlayOneShot(clip,.75f);}}
  void Loop(AudioSource voice,AudioClip clip,bool active){if(!active){voice.Stop();return;}if(voice.isPlaying)return;var lib=ForgeSfxLibrary.Instance;if(!lib)return;voice.clip=lib.AtSpeed(clip,step.workSpeed);if(voice.clip)voice.Play();}
- public const float SealContactTime=.82f,FrostDropTime=.52f;
+ public const float SealContactTime=.82f,FrostDropTime=.52f,HandleContactTime=.6f;
  public static bool IsFrost(ForgeMvp.Step receipt)=>receipt!=null&&receipt.process==4&&receipt.consumed!=null&&receipt.consumed.TryGetValue(8,out var amount)&&amount>0;
  public static bool Crossed(float previous,float current,float cue)=>previous<cue&&current>=cue;
  public static int HammerHits(float previous,float current)=>(Crossed(previous,current,.7f)?1:0)+(Crossed(previous,current,1f)?1:0);
@@ -31,6 +31,7 @@ public sealed class ForgeActionAudio:MonoBehaviour {
   if(step.process==1&&Cross(t,.4f))One(lib.place);
   if(step.process==8&&Cross(t,.64f))One(lib.coal);
   if(step.process==3)for(int hit=0;hit<HammerHits(previous,t);hit++)One(lib.hammer);
+  if(step.process==5&&Cross(t,HandleContactTime))One(lib.handle);
   if(step.process==777&&Cross(t,.48f))One(lib.sparkle);
   if(step.process==201&&Cross(t,SealContactTime))One(lib.seal);
   if(step.process==6)for(int stroke=0;stroke<PolishStrokes(previous,t);stroke++)One(lib.polish);

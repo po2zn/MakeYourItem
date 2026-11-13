@@ -31,7 +31,7 @@ public sealed partial class ForgeGuideReader
         var materials=new HashSet<int>();for(int i=0;i<ForgeMaterialGuide.Entries.Count;i++)if(tech.MaterialAvailable(ForgeMaterialGuide.Entries[i].Number))materials.Add(i);
         foreach(int i in materials)if(notify&&!visibleMaterials.Contains(i)){freshMaterials.Add(i);noticeUntil=Time.realtimeSinceStartup+8;}
         freshMaterials.IntersectWith(materials);visibleMaterials.Clear();visibleMaterials.UnionWith(materials);
-        researchOverview=null;proseCache.Clear();
+        proseCache.Clear();
         if(material>=0&&!visibleMaterials.Contains(material))material=-1;
         if(!SectionVisible(section)){section="게임 소개";newOnly=false;}
     }
@@ -39,7 +39,6 @@ public sealed partial class ForgeGuideReader
     {
         if(BlueprintResearchGuide.BookmarkSection(value)!=value)return false;
         if(value==""||value=="게임 소개"||value=="재료")return true;
-        if(value=="테크 트리")return technology!=null&&technology.ExportNodes().Length>0;
         foreach(int i in visible)if(BlueprintGuide.Entries[i].Section==value)return true;
         return false;
     }
@@ -67,10 +66,11 @@ public sealed partial class ForgeGuideReader
     int material=-1;
     string section="게임 소개";
     // Serialized GuideSection indices remain stable; merged bookmarks are hidden.
-    public static readonly string[] Sections={"게임 소개","테크 트리","재료","시작하기","대장간 공정","금속 가공","행운","마력 가공","공방 운영","시간 조회","기술 연구","대장장이와 다이아몬드","조건과 반복","사용자 함수","출력","자료 묶음","기본 문법","완성 예제","문제가 생겼을 때"};
+    public static readonly string[] Sections={"게임 소개","반복","재료","시작하기","대장간 공정","금속 가공","행운","마력 가공","공방 운영","시간 조회","기술 연구","대장장이와 다이아몬드","조건","사용자 함수","출력","자료 묶음","기본 문법","완성 예제","문제가 생겼을 때"};
     // Header and page insets surround the full bookmark rail.
     public static float DefaultWindowHeight => Mathf.Min(660,ForgeGuideUI.HeaderHeight+20+Sections.Length*BookmarkStep);
-    static readonly string[] Tabs={"소개","테크","재료","시작","공정","금속","행운","마력","운영","시간","연구","대장장이","조건 점 반복","함수","출력","자료","기본","예제","오류"};
+    static readonly string[] Tabs={"소개","반복","재료","시작","공정","금속","행운","마력","운영","시간","연구","대장장이","조건","함수","출력","자료","기본","예제","오류"};
+    static readonly int[] BookmarkOrder={0,2,3,4,5,6,7,8,9,10,11,12,1,13,14,15,16,17,18};
     GUIStyle bodyStyle,titleStyle,sectionStyle,entryStyle,codeStyle,buttonStyle,searchStyle,tabStyle;
     void Styles(Font font,int fontSize)
     {
@@ -116,7 +116,6 @@ public sealed partial class ForgeGuideReader
             }
             GUI.backgroundColor=previous;page.y+=h+8;page.height=Mathf.Max(1,page.height-h-8);
         }
-        if(section=="테크 트리"){DrawResearchOverview(page);return;}
         if(section=="재료"){DrawMaterials(page);return;}
         if(section=="게임 소개"){DrawIntroduction(page);return;}
         if(ForgeTextLayout.Button(new Rect(page.x,page.y,58,28),new GUIContent(showContents?"본문":"<-",showContents?"본문 보기":"목록으로 돌아가기"),buttonStyle))showContents=!showContents;
@@ -164,7 +163,7 @@ public sealed partial class ForgeGuideReader
         leftTabScroll=GUI.BeginScrollView(rail,leftTabScroll,new Rect(0,0,width,contentHeight),false,false,GUIStyle.none,GUIStyle.none);
         GUI.skin.scrollView=scrollBackground;
         int row=0;
-        for(int i=0;i<Sections.Length;i++){
+        foreach(int i in BookmarkOrder){
             if(!SectionVisible(Sections[i]))continue;
             bool active=section==Sections[i];
             Rect hit=new Rect(0,row++*BookmarkStep,width,BookmarkHeight);
@@ -207,16 +206,6 @@ public sealed partial class ForgeGuideReader
             if(ForgeTextLayout.Button(new Rect(0,y,width,height),heading,entryStyle)){freshMaterials.Remove(i);material=i;materialScroll=Vector2.zero;}
             y+=height+4;
         }
-        GUI.EndScrollView();
-    }
-    string researchOverview;bool researchOverviewEnglish;
-    void DrawResearchOverview(Rect page)
-    {
-        if(researchOverview==null||researchOverviewEnglish!=englishUnlocked){researchOverviewEnglish=englishUnlocked;researchOverview=BlueprintResearchGuide.UnlockedOverview(technology,englishUnlocked);}
-        float width=Mathf.Max(1,page.width-22),titleH=TitleHeight("현재 테크 트리 · 성장 안내",width),bodyH=Height(researchOverview,bodyStyle,width);
-        detailScroll=BeginScroll(page,detailScroll,new Rect(0,0,width,Mathf.Max(page.height,titleH+bodyH+24)));
-        ForgeTextLayout.Label(new Rect(0,0,width,titleH),"현재 테크 트리 · 성장 안내",titleStyle);
-        ForgeTextLayout.Label(new Rect(0,titleH+12,width,bodyH),researchOverview,bodyStyle);
         GUI.EndScrollView();
     }
     const string IntroductionText="기본 공정으로 검을 만들고 판매해 연구 자금을 모으세요. 철·나무·물은 재료 상점에서 구매할 수 있습니다.\n\n구매하지 않은 기술의 설명과 예제는 숨겨져 있습니다. 테크 트리에서 연구를 구매하면 사용할 수 있는 내용이 안내서에 추가되며, 반짝이는 알림과 책갈피로 알려드립니다.\n\n책갈피는 마우스 휠로 넘깁니다. 각 페이지의 준비물을 확인하고 실행하세요. 예제를 복사해도 재료는 지급되지 않습니다.";

@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 public sealed class ForgeSfxLibrary:ScriptableObject {
  public AudioClip click,ui,place,coal,walk,hammer,water,air,seal,upgrade,polish,sparkle;
- public AudioClip frostDrop,frostCooling;
+ public AudioClip frostDrop,frostCooling,handle;
  static ForgeSfxLibrary instance;
  readonly Dictionary<string,AudioClip> sped=new Dictionary<string,AudioClip>();
  public static ForgeSfxLibrary Instance=>instance?instance:instance=Resources.Load<ForgeSfxLibrary>("ForgeSfxLibrary");
@@ -10,7 +10,7 @@ public sealed class ForgeSfxLibrary:ScriptableObject {
   // Level 5 keeps its gameplay timing but shares the level 4 sound and cache entry.
   if(!clip)return null;speed=Mathf.Clamp(speed,1,4);
   if(clip.loadState==AudioDataLoadState.Unloaded)clip.LoadAudioData();
-  bool soft=clip==water||clip==polish||clip==sparkle||clip==frostCooling||clip==frostDrop;
+  bool soft=clip==water||clip==polish||clip==sparkle||clip==frostCooling||clip==frostDrop||clip==handle;
   if(speed==1&&!soft)return clip;
   string key=clip.name+"/"+speed.ToString("0.###",System.Globalization.CultureInfo.InvariantCulture);
   if(sped.TryGetValue(key,out var result)&&result)return result;
@@ -59,6 +59,16 @@ public sealed class ForgeSfxLibrary:ScriptableObject {
    double fade=System.Math.Min(1,(samples.Length-1-i)/(rate*.025/speed));samples[i]=(float)(sum*System.Math.Max(0,fade));
   }
   return samples;
+ }
+ // A short fitting scrape followed by a muted seating tap.
+ public static float[] HandleSamples(int rate){
+  if(rate<8000)throw new System.ArgumentOutOfRangeException(nameof(rate));
+  var data=new float[(int)(rate*.28)];uint seed=51023;double filtered=0;
+  for(int i=0;i<data.Length;i++){double t=(double)i/rate;seed=unchecked(seed*1664525u+1013904223u);double noise=(seed>>8)/(double)0xffffff*2-1;filtered+=.18*(noise-filtered);
+   double scrape=t<.17?System.Math.Sin(System.Math.PI*t/.17)*.24*filtered:0;double age=t-.17;
+   double tap=age<0?0:(1-System.Math.Exp(-age/.0015))*System.Math.Exp(-age/.025)*(.5*System.Math.Sin(2*System.Math.PI*310*age)+.16*System.Math.Sin(2*System.Math.PI*910*age)+filtered*.4);
+   double fade=System.Math.Min(1,i/(rate*.004))*System.Math.Min(1,(data.Length-1-i)/(rate*.015));data[i]=(float)((scrape+tap)*fade);
+  }return data;
  }
  public static float[] FrostSamples(int rate,bool drop){
   var data=new float[(int)(rate*(drop?.34f:.8f))];uint seed=83117;double filtered=0;

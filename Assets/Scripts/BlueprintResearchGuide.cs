@@ -64,10 +64,11 @@ public static class BlueprintResearchGuide
         }));
     }
     // Keep old bookmark actions working while grouping introductory topics together.
-    public static string BookmarkSection(string section)=>section=="출력"||section=="기본 문법"||section=="완성 예제"||section=="문제가 생겼을 때"?"시작하기":section;
+    public static string BookmarkSection(string section)=>section=="테크 트리"?"게임 소개":section=="조건과 반복"?"조건":section=="출력"||section=="기본 문법"||section=="완성 예제"||section=="문제가 생겼을 때"?"시작하기":section;
     public static string SectionFor(BlueprintFeature feature,string fallback)
     {
         switch(feature){
+            case BlueprintFeature.While:case BlueprintFeature.For:case BlueprintFeature.Break:case BlueprintFeature.Continue:return "반복";
             case BlueprintFeature.Heat:case BlueprintFeature.Polish:case BlueprintFeature.Plate:case BlueprintFeature.Refine:return "금속 가공";
             case BlueprintFeature.Lucky:case BlueprintFeature.LuckyCode:return "행운";
             case BlueprintFeature.Inspect:case BlueprintFeature.Charge:case BlueprintFeature.Rune:case BlueprintFeature.Magic:case BlueprintFeature.Resonate:case BlueprintFeature.Protect:case BlueprintFeature.Curse:

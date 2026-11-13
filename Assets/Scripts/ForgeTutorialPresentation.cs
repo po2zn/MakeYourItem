@@ -66,6 +66,7 @@ public sealed partial class ForgeGameUI
   var paper=Node("Guide").Find("LegacyPaper");
   var panel=Node("TutorialScroll").GetComponent<Image>();
   panel.sprite=null;panel.color=paper?paper.GetComponent<Image>().color:new Color(.96f,.92f,.82f);
+  ForgeTutorialFrame.Apply(panel.rectTransform);
   // GuideBody is tinted lazily when the book opens; the tutorial can be first.
   var ink=new Color(.18f,.15f,.12f,1);
   foreach(var text in tutorial.GetComponentsInChildren<Text>(true)){

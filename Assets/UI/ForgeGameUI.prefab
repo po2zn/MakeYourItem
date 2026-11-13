@@ -10704,7 +10704,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: "조건 점 반복"
+  m_Text: "조건"
 --- !u!1 &1572821870050761181
 GameObject:
   m_ObjectHideFlags: 0
@@ -12881,7 +12881,6 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 6423273027386465002}
-  - {fileID: 7184534612192405275}
   - {fileID: 4787577538264054202}
   - {fileID: 4316713871066047449}
   - {fileID: 8396546567561480171}
@@ -12893,6 +12892,7 @@ RectTransform:
   - {fileID: 2879471732957693771}
   - {fileID: 5433483912082588801}
   - {fileID: 7960742206524544157}
+  - {fileID: 7184534612192405275}
   - {fileID: 878603126486465763}
   - {fileID: 1615319229774094633}
   - {fileID: 297820192404180940}
@@ -26158,9 +26158,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.LayoutElement
   m_IgnoreLayout: 0
   m_MinWidth: -1
-  m_MinHeight: 54
+  m_MinHeight: 40
   m_PreferredWidth: -1
-  m_PreferredHeight: 54
+  m_PreferredHeight: 40
   m_FlexibleWidth: 1
   m_FlexibleHeight: -1
   m_LayoutPriority: 1
@@ -26176,7 +26176,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7ecf8c386c92300458bee7239cd2bc10, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ForgeUIAction
-  action: "guide-section:\uC870\uAC74\uACFC \uBC18\uBCF5"
+  action: "guide-section:조건"
   button: {fileID: 3104035047324479616}
 --- !u!1 &3995276706449237131
 GameObject:
@@ -39700,7 +39700,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: "\uD14C\uD06C"
+  m_Text: "반복"
 --- !u!1 &6439812823445845190
 GameObject:
   m_ObjectHideFlags: 0
@@ -39936,7 +39936,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7ecf8c386c92300458bee7239cd2bc10, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ForgeUIAction
-  action: "guide-section:\uD14C\uD06C \uD2B8\uB9AC"
+  action: "guide-section:반복"
   button: {fileID: 6214130424931731014}
 --- !u!1 &6460705124546190764
 GameObject:
