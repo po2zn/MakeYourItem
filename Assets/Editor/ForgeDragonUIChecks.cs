@@ -38,10 +38,10 @@ public static class ForgeDragonUIChecks {
      CheckText(window);Capture(camera,target,"diagram-"+size.x+"-"+count+"-"+minimum);report.AppendLine("Diagram "+size+" nodes="+count+" minimum="+minimum+" text metrics passed");
     }
     panel.SendMessage("StartPractice");panel.SendMessage("ResetPractice");Settle(panel,window);CheckText(window);Capture(camera,target,"practice-"+size.x);panel.Close();
-    foreach(bool english in new[]{false,true})foreach(bool advanced in new[]{false,true})foreach(bool minimum in new[]{false,true}){
+    foreach(bool english in new[]{false,true})foreach(bool advanced in new[]{false})foreach(bool minimum in new[]{false,true}){
      tech.Restore(Array.Empty<BlueprintFeature>(),english?new[]{"material-9",ForgeTechnology.AutomationRoot,ForgeTechnology.EnglishResearch}:new[]{"material-9",ForgeTechnology.AutomationRoot});ui.Active("Guide",true);game.GameGuideAction("guide-material:9");if(advanced)game.GameGuideAction("guide-copy");var guide=(RectTransform)ui.Node("Guide");guide.sizeDelta=minimum?guide.GetComponentsInChildren<ForgeUIDrag>(true).First(d=>d.resize).minimum:new Vector2(Mathf.Min(850,size.x-120),size.y-36);guide.anchorMin=guide.anchorMax=guide.pivot=new Vector2(0,1);guide.anchoredPosition=new Vector2(12,-12);
      for(int pass=0;pass<5;pass++){Canvas.ForceUpdateCanvases();foreach(var group in guide.GetComponentsInChildren<VerticalLayoutGroup>())LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)group.transform);}
-     var body=ui.Node("GuideBody").GetComponent<Text>();Require(body.preferredHeight<=body.rectTransform.rect.height+2,"guide body clipped "+size);var copy=ui.Node("GuideCopy").GetComponentInChildren<Text>();Require(copy.preferredHeight<=copy.rectTransform.rect.height+2,"guide button clipped");
+     var body=ui.Node("GuideBody").GetComponent<Text>();Require(body.preferredHeight<=body.rectTransform.rect.height+2,"guide body clipped "+size);Require(!ui.Node("GuideCopy").gameObject.activeSelf,"material practice/advanced/example button removed");
      if(advanced){var example=guide.GetComponentsInChildren<Text>().Single(t=>t.name=="GuideExampleText");Require(example.text.Contains("93(Bone, position)"),"actual advanced code visible");Require(example.preferredHeight<=example.rectTransform.rect.height+2,"code height");}
      Capture(camera,target,"guide-"+size.x+"-"+english+"-"+advanced+"-"+minimum);report.AppendLine("Guide "+size+" English="+english+" advanced="+advanced+" minimum="+minimum+" metrics passed");ui.Active("Guide",false);
     }

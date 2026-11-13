@@ -228,21 +228,16 @@ public sealed partial class ForgeGuideReader
         ForgeTextLayout.Label(new Rect(0,titleH+12,width,bodyH),IntroductionText,bodyStyle);
         GUI.EndScrollView();
     }
-    bool coolingGuideAdvanced;
     void DrawMaterial(Rect page)
     {
         var entry=ForgeMaterialGuide.Entries[material];float width=Mathf.Max(1,page.width-22);
         string status=BlueprintResearchGuide.MaterialInfo(entry.Number,englishUnlocked);
         string description=entry.Number==7||entry.Number==8||entry.Number==9?BlueprintResearchGuide.FormatGold(entry.Description):VisibleProse(entry.Description);
-        if(entry.Number==8&&coolingGuideAdvanced)description=ForgeCoolingGuide.Advanced+"\n\n"+ForgeCoolingGuide.FullExample;
-        if(entry.Number==9&&coolingGuideAdvanced)description=ForgeDragonGuide.Advanced+"\n\n"+ForgeDragonGuide.FullExample;
         float titleH=TitleHeight(entry.Heading,width),statusH=Height(status,sectionStyle,width),bodyH=Height(description,bodyStyle,width);
-        materialScroll=BeginScroll(page,materialScroll,new Rect(0,0,width,Mathf.Max(page.height,titleH+statusH+bodyH+(entry.Number==8||entry.Number==9?148:entry.Number==7?88:36))));
+        materialScroll=BeginScroll(page,materialScroll,new Rect(0,0,width,Mathf.Max(page.height,titleH+statusH+bodyH+36)));
         ForgeTextLayout.Label(new Rect(0,0,width,titleH),entry.Heading,titleStyle);
         ForgeTextLayout.Label(new Rect(0,titleH+8,width,statusH),status,sectionStyle);
         ForgeTextLayout.Label(new Rect(0,titleH+statusH+20,width,bodyH),description,bodyStyle);
-        if(entry.Number==8||entry.Number==9){if(ForgeTextLayout.Button(new Rect(0,titleH+statusH+bodyH+28,width,44),coolingGuideAdvanced?"기본 설명 보기":entry.Number==9?"심화: 절단 순서":"심화: 다익스트라",entryStyle)){coolingGuideAdvanced=!coolingGuideAdvanced;materialScroll=Vector2.zero;}if(coolingGuideAdvanced&&ForgeTextLayout.Button(new Rect(0,titleH+statusH+bodyH+78,width,44),"전체 예제 복사",entryStyle))GUIUtility.systemCopyBuffer=entry.Number==9?ForgeDragonGuide.FullExample:ForgeCoolingGuide.FullExample;}
-        if(entry.Number==7&&ForgeTextLayout.Button(new Rect(0,titleH+statusH+bodyH+28,width,44),"별철 연습",entryStyle))ForgeStarlightPanel.Get().OpenPractice();
         GUI.EndScrollView();
     }
     // Visible scrollbars expose overflow, including long code lines. Callers reserve the gutter.
@@ -329,7 +324,7 @@ public sealed partial class ForgeGuideReader
         string example=entry.ExampleFor(englishUnlocked);
         if(entry.Feature==BlueprintFeature.Speed&&technology.MaxSpeedLevel==1)example=example.Replace("222(2)","222(1)").Replace("speed(2)","speed(1)");
         float bodyH=Height(description,bodyStyle,width);
-        float codeHeight=Mathf.Max(codeStyle.CalcSize(new GUIContent(example+"\n ")).y,codeStyle.padding.vertical+(BlueprintViewport.Row(example,example.Length)+2)*Mathf.Max(1,codeStyle.lineHeight));
+        float codeHeight=example.Length==0?0:Mathf.Max(codeStyle.CalcSize(new GUIContent(example+"\n ")).y,codeStyle.padding.vertical+(BlueprintViewport.Row(example,example.Length)+2)*Mathf.Max(1,codeStyle.lineHeight));
         string expected=entry.IsFunctionReference?"":BlueprintResearchGuide.FormatGold(entry.Expected);
         float expectedH=expected.Length==0?0:SubsectionHeight("실행 결과",expected,width);
         string note=VisibleProse(entry.NoteFor(englishUnlocked));
@@ -339,6 +334,7 @@ public sealed partial class ForgeGuideReader
         float y=0;ForgeTextLayout.Label(new Rect(0,y,width,sectionH),entry.Section,sectionStyle);y+=sectionH+4;
         ForgeTextLayout.Label(new Rect(0,y,width,titleH),entry.HeadingFor(englishUnlocked),titleStyle);y+=titleH+10;
         ForgeTextLayout.Label(new Rect(0,y,width,bodyH),description,bodyStyle);y+=bodyH+12;
+        if(example.Length>0){
         if(ForgeTextLayout.Button(new Rect(0,y,Mathf.Min(width,150),28),copied?"복사했습니다":"예제 복사",buttonStyle)){GUIUtility.systemCopyBuffer=example;copied=true;}
         y+=34;
         Rect codeRect=new Rect(0,y,width,codeHeight);
@@ -348,6 +344,7 @@ public sealed partial class ForgeGuideReader
         codeScroll=BeginScroll(codeRect,codeScroll,new Rect(0,0,codeWidth,codeHeight),true);
         DrawReadOnlyCode(new Rect(0,0,codeWidth,codeHeight),example,entry.Id);
         GUI.EndScrollView();y+=codeRect.height+12;
+        }
         if(expectedH>0)DrawSubsection(y,width,"실행 결과",expected);y+=expectedH+12;
         if(noteH>0)DrawSubsection(y,width,"주의할 점",note);
         GUI.EndScrollView();

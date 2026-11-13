@@ -10,6 +10,7 @@ public static class BlueprintResearchGuide
     public static bool FeatureVisible(BlueprintFeature feature,ForgeTechnology tech,ForgeBlacksmiths smiths)
     {
         if(tech==null)return false;
+        if(ForgeStarlight.IsFeature(feature))return tech.MaterialAvailable(7);
         if(ForgeDragonBone.IsFeature(feature))return tech.MaterialAvailable(9);
         if(ForgeCoolingGraph.IsFeature(feature))return tech.MaterialAvailable(8);
         if(ForgeTechnology.RequiresPurchase(feature))return tech.Owns(feature);

@@ -21,12 +21,12 @@ public sealed class BlueprintAlias
 public static class BlueprintAliases
 {
     static readonly BlueprintAlias[] definitions = {
-        new BlueprintAlias(BlueprintFeature.BoneLength,"bone_length","90",BlueprintSyntaxKind.Builtin,"최초 전체 길이","Bone → 정수",1),
-        new BlueprintAlias(BlueprintFeature.BoneCount,"bone_count","91",BlueprintSyntaxKind.Builtin,"최초 필수 마디 수","Bone → 정수",1),
-        new BlueprintAlias(BlueprintFeature.BonePosition,"bone_position","92",BlueprintSyntaxKind.Builtin,"0 기반 마디 번호의 고정 위치","Bone, Index → 정수",2),
-        new BlueprintAlias(BlueprintFeature.BoneCut,"bone_cut","93",BlueprintSyntaxKind.Builtin,"현재 조각 절단 · 완료 후 비용 반영","Bone, Position → None",2),
-        new BlueprintAlias(BlueprintFeature.BoneIsCut,"bone_is_cut","94",BlueprintSyntaxKind.Builtin,"필수 위치의 절단 완료 여부","Bone, Position → 불리언",2),
-        new BlueprintAlias(BlueprintFeature.BoneCost,"bone_cost","95",BlueprintSyntaxKind.Builtin,"완료된 절단의 누적 비용","Bone → 정수",1),
+        new BlueprintAlias(BlueprintFeature.BoneLength,"bone_length","90",BlueprintSyntaxKind.Builtin,"최초 전체 길이","90(Bone) → 정수",1),
+        new BlueprintAlias(BlueprintFeature.BoneCount,"bone_count","91",BlueprintSyntaxKind.Builtin,"최초 필수 마디 수","91(Bone) → 정수",1),
+        new BlueprintAlias(BlueprintFeature.BonePosition,"bone_position","92",BlueprintSyntaxKind.Builtin,"0 기반 마디 번호의 고정 위치","92(Bone, Index) → 정수",2),
+        new BlueprintAlias(BlueprintFeature.BoneCut,"bone_cut","93",BlueprintSyntaxKind.Builtin,"현재 조각 절단 · 완료 후 비용 반영","93(Bone, Position) → None",2),
+        new BlueprintAlias(BlueprintFeature.BoneIsCut,"bone_is_cut","94",BlueprintSyntaxKind.Builtin,"필수 위치의 절단 완료 여부","94(Bone, Position) → 불리언",2),
+        new BlueprintAlias(BlueprintFeature.BoneCost,"bone_cost","95",BlueprintSyntaxKind.Builtin,"완료된 절단의 누적 비용","95(Bone) → 정수",1),
         new BlueprintAlias(BlueprintFeature.CoolingCount,"cooling_count","80",BlueprintSyntaxKind.Builtin,"냉각 도면의 지점 수를 읽습니다.","80(Blade) → 정수",1),
         new BlueprintAlias(BlueprintFeature.CoolingStart,"cooling_start","81",BlueprintSyntaxKind.Builtin,"입구 지점 번호를 읽습니다.","81(Blade) → 정수",1),
         new BlueprintAlias(BlueprintFeature.CoolingEnd,"cooling_end","82",BlueprintSyntaxKind.Builtin,"출구 지점 번호를 읽습니다.","82(Blade) → 정수",1),
