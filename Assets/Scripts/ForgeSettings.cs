@@ -17,7 +17,7 @@ public partial class ForgeMvp
     int selectedLanguage,selectedDisplaySize;
     string settingsMessage="";
     GUIStyle settingsOption,settingsRowLabel,settingsTitle,settingsText,settingsButton,settingsSlider,settingsSliderThumb;
-    GUIStyle SettingsButton => settingsButton ?? (settingsButton=SettingsWithoutHover(menuButton));
+    GUIStyle SettingsButton => settingsButton ?? (settingsButton=new GUIStyle(SettingsWithoutHover(menuButton)){padding=new RectOffset(12,12,4,4)});
     static GUIStyle SettingsWithoutHover(GUIStyle source)
     {
         var style=new GUIStyle(source);
@@ -26,7 +26,8 @@ public partial class ForgeMvp
         return style;
     }
     Font settingsLanguageFont;
-    Vector2 settingsDropdownScroll,settingsPageScroll;
+    Vector2 settingsDropdownScroll;
+    int settingsTab;
     int settingsDropdown;
     Rect settingsDropdownAnchor;
     void AddDisplaySize(int width,int height)
@@ -76,67 +77,59 @@ public partial class ForgeMvp
         bool popupOpen=settingsDropdown!=0;
         if(popupOpen&&(ev.isMouse||ev.isKey||ev.type==EventType.ScrollWheel))ev.type=EventType.Ignore;
         ForgeTitleStyle.Fill(new Rect(0,0,Screen.width,Screen.height),new Color(.04f,.07f,.11f,.35f));
-        float width=Mathf.Min(840,Mathf.Max(1,Screen.width-68));
-        float x=(Screen.width-20-width)/2;
-        float labelWidth=width*.28f,controlX=x+labelWidth,controlWidth=width-labelWidth;
-        const string audioHelp="변경 즉시 적용 · 자동 저장 · 0%는 음소거\n전체 음량은 BGM과 효과음 모두에 적용됩니다.";
-        float audioHelpHeight=ForgeTextLayout.Height(audioHelp,settingsRowLabel,controlWidth);
-        const string typingHelp="키 입력 소리 · 효과음(SFX) 음량 적용";
-        const string forgeHelp="입력한 코드가 붉게 달아올랐다가 금속빛으로 식으며, 화면이 미세하게 흔들립니다.";
-        float typingHeight=ForgeTextLayout.Height(typingHelp,settingsRowLabel,controlWidth),forgeHeight=ForgeTextLayout.Height(forgeHelp,settingsRowLabel,controlWidth);
-        float panelHeight=952+Mathf.Max(44,audioHelpHeight)+144+typingHeight+forgeHeight;
-        float y=Mathf.Max(16,(Screen.height-panelHeight)/2);
-        settingsPageScroll=GUI.BeginScrollView(new Rect(0,0,Screen.width,Screen.height),settingsPageScroll,new Rect(0,0,Screen.width-20,Mathf.Max(Screen.height,y+panelHeight+12)));
-        ForgeTitleStyle.Window(new Rect(x-16,y-8,width+32,panelHeight),false);
-        ForgeTextLayout.Label(new Rect(x,y,width,58),"Settings · 설정",settingsTitle);
-        ForgeTextLayout.Label(new Rect(x,y+64,width,30),"게임 환경을 원하는 방식으로 설정하세요.",settingsText);
-        y+=120;
-        ForgeTextLayout.Label(new Rect(x,y,labelWidth-16,48),"언어",settingsRowLabel);
-        if(ForgeTextLayout.Button(new Rect(controlX,y,controlWidth,48),languageLabels[selectedLanguage]+"  ▾",settingsOption))OpenSettingsDropdown(1,new Rect(controlX,y,controlWidth,48),selectedLanguage);
-        ForgeTextLayout.Label(new Rect(controlX,y+52,controlWidth,28),"선택값만 저장됩니다. 번역 기능은 추후 지원됩니다.",settingsRowLabel);
-        y+=94;
-        ForgeTextLayout.Label(new Rect(x,y,labelWidth-16,48),"해상도",settingsRowLabel);
-        var size=displaySizes[selectedDisplaySize];
-        if(ForgeTextLayout.Button(new Rect(controlX,y,controlWidth,48),size.x+" × "+size.y+"  ▾",settingsOption))OpenSettingsDropdown(2,new Rect(controlX,y,controlWidth,48),selectedDisplaySize);
-        y+=72;
-        ForgeTextLayout.Label(new Rect(x,y,labelWidth-16,48),"화면 모드",settingsRowLabel);
-        if(ForgeTextLayout.Button(new Rect(controlX,y,controlWidth,48),(Screen.fullScreen?"전체 화면":"창 모드")+"  ▾",settingsOption))OpenSettingsDropdown(3,new Rect(controlX,y,controlWidth,48),Screen.fullScreen?0:1);
-        y+=72;
-        float master=DrawVolumeRow(x,y,labelWidth,controlWidth,"전체 음량",ForgeAudioSettings.Master);
-        y+=64;
-        float music=DrawVolumeRow(x,y,labelWidth,controlWidth,"배경음 (BGM)",ForgeAudioSettings.Music);
-        y+=64;
-        float sfx=DrawVolumeRow(x,y,labelWidth,controlWidth,"효과음 (SFX)",ForgeAudioSettings.Sfx);
-        if(!Mathf.Approximately(master,ForgeAudioSettings.Master)||!Mathf.Approximately(music,ForgeAudioSettings.Music)||!Mathf.Approximately(sfx,ForgeAudioSettings.Sfx))
-            ForgeAudioSettings.SetVolumes(master,music,sfx);
-        y+=56;
-        if(ForgeTextLayout.Button(new Rect(controlX,y,Mathf.Min(180,controlWidth),40),"효과음 미리 듣기",SettingsButton))ForgeSoundEffects.Preview();
-        y+=48;
-        ForgeTextLayout.Label(new Rect(controlX,y,controlWidth,audioHelpHeight),audioHelp,settingsRowLabel);
-        y+=Mathf.Max(44,audioHelpHeight)+16;
-        ForgeTextLayout.Label(new Rect(x,y,labelWidth-16,48),"코드 색상",settingsRowLabel);
-        if(ForgeTextLayout.Button(new Rect(controlX,y,controlWidth,48),ForgeCodeColors.PaletteNames[ForgeCodeColors.Palette]+"  ▾",settingsOption))OpenSettingsDropdown(4,new Rect(controlX,y,controlWidth,48),ForgeCodeColors.Palette);
-        var kinds=new[]{ForgeSyntax.Kind.Material,ForgeSyntax.Kind.Function,ForgeSyntax.Kind.Reserved,ForgeSyntax.Kind.Comment};
-        var samples=new[]{"재료 · 1","함수 · Heat()","예약어 · if","주석 · # 설명"};
-        for(int i=0;i<4;i++){
-            var preview=new GUIStyle(settingsRowLabel){fontSize=16};preview.normal.textColor=ForgeCodeColors.TokenColor(kinds[i]);
-            ForgeTextLayout.Label(new Rect(controlX+(i%2)*controlWidth/2,y+52+(i/2)*30,controlWidth/2-8,28),samples[i],preview);
+        float width=Mathf.Min(900,Mathf.Max(1,Screen.width-64));
+        float height=Mathf.Min(560,Screen.height-24),x=(Screen.width-width)/2,top=(Screen.height-height)/2;
+        ForgeTitleStyle.Window(new Rect(x-12,top,width+24,height),false);
+        ForgeTextLayout.Label(new Rect(x,top+6,width,46),"Settings · 설정",settingsTitle);
+        string[] tabs={"화면","소리","코드 색상","코드 효과"};float tabWidth=(width-24)/4;
+        for(int i=0;i<tabs.Length;i++){
+            var tabRect=new Rect(x+i*(tabWidth+8),top+58,tabWidth,42);
+            if(ForgeTextLayout.Button(tabRect,(settingsTab==i?"● ":"")+tabs[i],SettingsButton)){settingsTab=i;settingsMessage="";settingsDropdown=0;}
         }
-        y+=156;
-        ForgeTextLayout.Label(new Rect(x,y,labelWidth-16,48),"코드 입력 소리",settingsRowLabel);
-        if(ForgeTextLayout.Button(new Rect(controlX,y,controlWidth,48),ForgeCodePreferences.TypingSound?"ON · 켜짐":"OFF · 꺼짐",SettingsButton))ForgeCodePreferences.SetTypingSound(!ForgeCodePreferences.TypingSound);
-        ForgeTextLayout.Label(new Rect(controlX,y+52,controlWidth,typingHeight),typingHelp,settingsRowLabel);y+=72+typingHeight;
-        ForgeTextLayout.Label(new Rect(x,y,labelWidth-16,48),"Forge Code",settingsRowLabel);
-        if(ForgeTextLayout.Button(new Rect(controlX,y,controlWidth,48),ForgeCodePreferences.ForgeCode?"ON · 켜짐":"OFF · 꺼짐",SettingsButton))ForgeCodePreferences.SetForgeCode(!ForgeCodePreferences.ForgeCode);
-        ForgeTextLayout.Label(new Rect(controlX,y+52,controlWidth,forgeHeight),forgeHelp,settingsRowLabel);y+=72+forgeHeight;
-        if(ForgeTextLayout.Button(new Rect(x,y,140,48),"뒤로",SettingsButton)){ForgeAudioSettings.Save();titlePage=0;settingsDropdown=0;}
-        if(ForgeTextLayout.Button(new Rect(x+width-220,y,220,48),"해상도 적용",SettingsButton)){
-            size=displaySizes[selectedDisplaySize];Screen.SetResolution(size.x,size.y,Screen.fullScreen);
+        float y=top+116,labelWidth=width*.29f,controlX=x+labelWidth,controlWidth=width-labelWidth;
+        var size=displaySizes[selectedDisplaySize];
+        if(settingsTab==0){
+            ForgeTextLayout.Label(new Rect(x,y,labelWidth-12,44),"언어",settingsRowLabel);
+            if(ForgeTextLayout.Button(new Rect(controlX,y,controlWidth,44),languageLabels[selectedLanguage]+"  ▾",settingsOption))OpenSettingsDropdown(1,new Rect(controlX,y,controlWidth,44),selectedLanguage);
+            y+=58;
+            ForgeTextLayout.Label(new Rect(x,y,labelWidth-12,44),"해상도",settingsRowLabel);
+            if(ForgeTextLayout.Button(new Rect(controlX,y,controlWidth,44),size.x+" × "+size.y+"  ▾",settingsOption))OpenSettingsDropdown(2,new Rect(controlX,y,controlWidth,44),selectedDisplaySize);
+            y+=58;
+            ForgeTextLayout.Label(new Rect(x,y,labelWidth-12,44),"화면 모드",settingsRowLabel);
+            if(ForgeTextLayout.Button(new Rect(controlX,y,controlWidth,44),(Screen.fullScreen?"전체 화면":"창 모드")+"  ▾",settingsOption))OpenSettingsDropdown(3,new Rect(controlX,y,controlWidth,44),Screen.fullScreen?0:1);
+            ForgeTextLayout.Label(new Rect(x,y+52,width,44),"언어는 선택값만 저장됩니다. 번역 기능은 추후 지원됩니다.",settingsRowLabel);
+        }else if(settingsTab==1){
+            float master=DrawVolumeRow(x,y,labelWidth,controlWidth,"전체 음량",ForgeAudioSettings.Master);y+=54;
+            float music=DrawVolumeRow(x,y,labelWidth,controlWidth,"배경음 (BGM)",ForgeAudioSettings.Music);y+=54;
+            float sfx=DrawVolumeRow(x,y,labelWidth,controlWidth,"효과음 (SFX)",ForgeAudioSettings.Sfx);y+=54;
+            if(!Mathf.Approximately(master,ForgeAudioSettings.Master)||!Mathf.Approximately(music,ForgeAudioSettings.Music)||!Mathf.Approximately(sfx,ForgeAudioSettings.Sfx))ForgeAudioSettings.SetVolumes(master,music,sfx);
+            if(ForgeTextLayout.Button(new Rect(x,y,190,40),"효과음 미리 듣기",SettingsButton))ForgeSoundEffects.Preview();
+            ForgeTextLayout.Label(new Rect(x+206,y,width-206,44),"즉시 적용 · 자동 저장 · 0%는 음소거",settingsRowLabel);
+        }else if(settingsTab==2){
+            ForgeTextLayout.Label(new Rect(x,y,labelWidth-12,44),"코드 색상",settingsRowLabel);
+            if(ForgeTextLayout.Button(new Rect(controlX,y,controlWidth,44),ForgeCodeColors.PaletteNames[ForgeCodeColors.Palette]+"  ▾",settingsOption))OpenSettingsDropdown(4,new Rect(controlX,y,controlWidth,44),ForgeCodeColors.Palette);
+            var kinds=new[]{ForgeSyntax.Kind.Material,ForgeSyntax.Kind.Function,ForgeSyntax.Kind.Reserved,ForgeSyntax.Kind.Comment};
+            var samples=new[]{"재료 · 1","함수 · Heat()","예약어 · if","주석 · # 설명"};
+            for(int i=0;i<4;i++){var preview=new GUIStyle(settingsRowLabel){fontSize=20};preview.normal.textColor=ForgeCodeColors.TokenColor(kinds[i]);ForgeTextLayout.Label(new Rect(controlX,y+62+i*34,controlWidth,32),samples[i],preview);}
+        }else{
+            ForgeTextLayout.Label(new Rect(x,y,labelWidth-12,44),"코드 입력 소리",settingsRowLabel);
+            if(ForgeTextLayout.Button(new Rect(controlX,y,controlWidth,44),ForgeCodePreferences.TypingSound?"ON · 켜짐":"OFF · 꺼짐",SettingsButton))ForgeCodePreferences.SetTypingSound(!ForgeCodePreferences.TypingSound);
+            const string typing="키 입력 소리 · 효과음(SFX) 음량 적용";
+            float typingHeight=ForgeTextLayout.Height(typing,settingsRowLabel,controlWidth);
+            ForgeTextLayout.Label(new Rect(controlX,y+48,controlWidth,typingHeight),typing,settingsRowLabel);y+=60+typingHeight;
+            ForgeTextLayout.Label(new Rect(x,y,labelWidth-12,44),"Forge Code",settingsRowLabel);
+            if(ForgeTextLayout.Button(new Rect(controlX,y,controlWidth,44),ForgeCodePreferences.ForgeCode?"ON · 켜짐":"OFF · 꺼짐",SettingsButton))ForgeCodePreferences.SetForgeCode(!ForgeCodePreferences.ForgeCode);
+            const string effect="코드가 붉게 달아올랐다가 금속빛으로 식으며, 화면이 미세하게 흔들립니다.";
+            ForgeTextLayout.Label(new Rect(controlX,y+48,controlWidth,ForgeTextLayout.Height(effect,settingsRowLabel,controlWidth)),effect,settingsRowLabel);
+        }
+        float footer=top+height-60;
+        if(settingsMessage.Length>0)ForgeTextLayout.Label(new Rect(x,footer-48,width,44),settingsMessage,settingsText);
+        if(ForgeTextLayout.Button(new Rect(x,footer,140,44),"뒤로",SettingsButton)){ForgeAudioSettings.Save();titlePage=0;settingsDropdown=0;}
+        if(settingsTab==0&&ForgeTextLayout.Button(new Rect(x+width-220,footer,220,44),"해상도 적용",SettingsButton)){
+            Screen.SetResolution(size.x,size.y,Screen.fullScreen);
             PlayerPrefs.SetInt(WidthSetting,size.x);PlayerPrefs.SetInt(HeightSetting,size.y);PlayerPrefs.Save();
             settingsMessage=size.x+" × "+size.y+" 설정을 저장했습니다.";
         }
-        if(settingsMessage.Length>0)ForgeTextLayout.Label(new Rect(x,y+58,width,48),settingsMessage,settingsText);
-        GUI.EndScrollView();
         if(popupOpen)ev.type=savedEvent;
         if(settingsDropdown!=0)DrawSettingsDropdown();
     }
@@ -149,7 +142,7 @@ public partial class ForgeMvp
         return Mathf.Round(next*100)/100f;
     }
     void OpenSettingsDropdown(int kind,Rect anchor,int selected)
-    {anchor.y-=settingsPageScroll.y;settingsDropdown=kind;settingsDropdownAnchor=anchor;settingsDropdownScroll=new Vector2(0,Mathf.Max(0,selected-2)*44);ClearUIFocus();}
+    {settingsDropdown=kind;settingsDropdownAnchor=anchor;settingsDropdownScroll=new Vector2(0,Mathf.Max(0,selected-2)*44);ClearUIFocus();}
     void DrawSettingsDropdown()
     {
         int count=settingsDropdown==1?languageLabels.Length:settingsDropdown==2?displaySizes.Count:settingsDropdown==4?ForgeCodeColors.PaletteNames.Length:2;

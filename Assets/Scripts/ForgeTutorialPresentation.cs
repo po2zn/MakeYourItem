@@ -24,7 +24,7 @@ public sealed partial class ForgeGameUI
    var label=new GameObject("TutorialHintText",typeof(RectTransform),typeof(Text),typeof(LayoutElement));
    label.layer=block.layer;label.transform.SetParent(block.transform,false);
    tutorialHintText=label.GetComponent<Text>();tutorialHintText.font=texts["TutorialInstructions"].font;
-   tutorialHintText.fontSize=20;tutorialHintText.supportRichText=false;tutorialHintText.raycastTarget=false;
+   tutorialHintText.fontSize=22;tutorialHintText.supportRichText=false;tutorialHintText.raycastTarget=false;
    tutorialHintText.horizontalOverflow=HorizontalWrapMode.Wrap;tutorialHintText.verticalOverflow=VerticalWrapMode.Overflow;
   }
   button.transform.parent.gameObject.SetActive(available);
@@ -67,13 +67,17 @@ public sealed partial class ForgeGameUI
   var panel=Node("TutorialScroll").GetComponent<Image>();
   panel.sprite=null;panel.color=paper?paper.GetComponent<Image>().color:new Color(.96f,.92f,.82f);
   ForgeTutorialFrame.Apply(panel.rectTransform);
+  var scroll=Node("TutorialScroll").GetComponent<ScrollRect>();
+  scroll.viewport.offsetMin=new Vector2(12,158);scroll.viewport.offsetMax=new Vector2(-12,-12);
+  var contentLayout=scroll.content.GetComponent<VerticalLayoutGroup>();
+  contentLayout.padding=new RectOffset(16,16,16,16);contentLayout.spacing=12;
   // GuideBody is tinted lazily when the book opens; the tutorial can be first.
   var ink=new Color(.18f,.15f,.12f,1);
   foreach(var text in tutorial.GetComponentsInChildren<Text>(true)){
    if(text.GetComponentInParent<ForgeProductInventory>(true))continue;
    text.font=texts["GuideBody"].font;
    if(!text.GetComponentInParent<Button>()&&!text.GetComponentInParent<InputField>()){
-    text.color=text.name=="TutorialHintText"?TutorialHintGreen:ink;text.fontSize=text.name=="TutorialHeading"?26:20;
+    text.color=text.name=="TutorialHintText"?TutorialHintGreen:ink;text.fontSize=text.name=="TutorialHeading"?28:22;
     text.horizontalOverflow=HorizontalWrapMode.Wrap;text.verticalOverflow=VerticalWrapMode.Overflow;
    }
   }
@@ -84,7 +88,7 @@ public sealed partial class ForgeGameUI
    if(surface){surface.sprite=source.sprite;surface.type=source.type;surface.color=source.color;}
    button.colors=prototype.colors;
    var label=button.GetComponentInChildren<Text>(true);
-   if(label){label.color=prototype.GetComponentInChildren<Text>(true).color;label.fontSize=20;label.resizeTextForBestFit=false;label.horizontalOverflow=HorizontalWrapMode.Wrap;label.verticalOverflow=VerticalWrapMode.Overflow;}
+   if(label){label.color=prototype.GetComponentInChildren<Text>(true).color;label.fontSize=22;label.resizeTextForBestFit=false;label.horizontalOverflow=HorizontalWrapMode.Wrap;label.verticalOverflow=VerticalWrapMode.Overflow;}
   }
   var editor=Node("TutorialEditor").GetComponent<Image>();
   var window=Node("Debug").GetComponent<Image>();
@@ -129,7 +133,7 @@ public sealed partial class ForgeGameUI
  RectTransform tutorialGoldTile,tutorialProductsTile;
  Text tutorialGoldLabel,tutorialProductsLabel;
  Button tutorialProductsButton;
- float tutorialSaleMotion;
+ float tutorialSaleMotion,tutorialCompleteMotion;
  public static float TutorialSalePanelWidth(float width)=>Mathf.Min(460,(width-36)*.48f);
  // Shrink, move while small, then grow. The final size is the familiar guide size.
  public static float TutorialSaleScale(float t)=>t<.25f?Mathf.Lerp(1,.72f,Mathf.SmoothStep(0,1,t/.25f)):t<.75f?.72f:Mathf.Lerp(.72f,1,Mathf.SmoothStep(0,1,(t-.75f)/.25f));
@@ -154,20 +158,26 @@ public sealed partial class ForgeGameUI
  {
   bool sale=game.TutorialSaleActive,visible=game.TutorialSaleVisible;
   if(sale)EnsureTutorialSaleHud();
-  if(!sale)tutorialSaleMotion=0;
+  if(!sale){tutorialSaleMotion=0;tutorialCompleteMotion=0;}
   else if(game.TutorialInputReady)tutorialSaleMotion=Mathf.Min(1,tutorialSaleMotion+delta/1.05f);
+  bool complete=sale&&game.TutorialSaleStage==11;
+  if(!complete)tutorialCompleteMotion=0;
+  else if(game.TutorialInputReady)tutorialCompleteMotion=Mathf.Min(1,tutorialCompleteMotion+delta/1.05f);
   var rect=(RectTransform)Node("TutorialScroll");var root=(RectTransform)transform;
   float width=TutorialSalePanelWidth(root.rect.width),t=tutorialSaleMotion;
   rect.anchorMin=rect.anchorMax=rect.pivot=new Vector2(0,1);
   rect.sizeDelta=new Vector2(width,root.rect.height-24);
   float move=Mathf.SmoothStep(0,1,Mathf.Clamp01((t-.25f)/.5f));
-  float scale=sale?TutorialSaleScale(t):1;
+  float transition=complete?tutorialCompleteMotion:t;
+  float scale=sale?TutorialSaleScale(transition):1;
   rect.localScale=Vector3.one*scale;
   if(!tutorialPanelGroup){tutorialPanelGroup=rect.GetComponent<CanvasGroup>();if(!tutorialPanelGroup)tutorialPanelGroup=rect.gameObject.AddComponent<CanvasGroup>();}
-  tutorialPanelGroup.alpha=sale?TutorialSaleAlpha(t):1;
-  tutorialPanelGroup.interactable=!sale||t>=1;
-  tutorialPanelGroup.blocksRaycasts=!sale||t>=1;
-  rect.anchoredPosition=new Vector2(Mathf.Lerp(12,root.rect.width-width-12,move)+width*(1-scale)*.5f,-12-(root.rect.height-24)*(1-scale)*.5f);
+  tutorialPanelGroup.alpha=sale?TutorialSaleAlpha(transition):1;
+  tutorialPanelGroup.interactable=!sale||transition>=1;
+  tutorialPanelGroup.blocksRaycasts=!sale||transition>=1;
+  float panelX=Mathf.Lerp(12,root.rect.width-width-12,move);
+  if(complete)panelX=Mathf.Lerp(root.rect.width-width-12,(root.rect.width-width)*.5f,Mathf.SmoothStep(0,1,Mathf.Clamp01((tutorialCompleteMotion-.25f)/.5f)));
+  rect.anchoredPosition=new Vector2(panelX+width*(1-scale)*.5f,-12-(root.rect.height-24)*(1-scale)*.5f);
   // Inventory and HUD are children of the same tutorial CanvasGroup: pause/intro
   // gates every practice action, while the panel's scroll viewport remains usable.
   if(tutorialGoldTile){tutorialGoldTile.gameObject.SetActive(visible&&!game.TutorialInventoryOpen);tutorialProductsTile.gameObject.SetActive(visible&&!game.TutorialInventoryOpen&&game.TutorialSaleStage!=11);

@@ -45263,8 +45263,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 18, y: -28.322754}
-  m_SizeDelta: {x: 64, y: 43.354492}
+  m_AnchoredPosition: {x: 18, y: -22.172448}
+  m_SizeDelta: {x: 64, y: 55.655103}
   m_Pivot: {x: 0, y: 1}
 --- !u!222 &919000000000000007
 CanvasRenderer:
@@ -45294,10 +45294,10 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Texture: {fileID: 2800000, guid: e21313ffc78ac844095432442934f5b8, type: 3}
+  m_Texture: {fileID: 2800000, guid: e86bdb270e573354abc563cf55dbd186, type: 3}
   m_UVRect:
     serializedVersion: 2
-    x: 0.03125
-    y: 0.024414062
-    width: 0.9375
-    height: 0.95214844
+    x: 0.19140625
+    y: 0.08300781
+    width: 0.6191406
+    height: 0.8076172
